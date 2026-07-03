@@ -1,4 +1,5 @@
 import { addMonths } from './date'
+import type { MsiInstallmentUpdate } from '../types/gasto'
 
 export interface GastoInsertPayload {
   monto: number
@@ -67,4 +68,31 @@ export function buildSingleGasto(params: {
     es_msi: false,
     grupo_msi_id: null,
   }
+}
+
+export function parseMsiDescripcion(descripcion: string): {
+  base: string
+  index: number
+  total: number
+} | null {
+  const match = descripcion.trim().match(/^(.+?) \(MSI (\d+)\/(\d+)\)$/)
+  if (!match) return null
+
+  const index = Number(match[2])
+  const total = Number(match[3])
+  if (!Number.isInteger(index) || !Number.isInteger(total) || index < 1 || total < 1) {
+    return null
+  }
+
+  return { base: match[1], index, total }
+}
+
+export function toMsiInstallmentUpdates(
+  rows: GastoInsertPayload[],
+): MsiInstallmentUpdate[] {
+  return rows.map((row) => ({
+    monto: row.monto,
+    descripcion: row.descripcion,
+    fecha: row.fecha,
+  }))
 }

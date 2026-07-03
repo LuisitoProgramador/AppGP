@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo } from 'react'
 import { useAuthContext, useGastosRefresh } from '../contexts'
-import { removePendingGasto, getPendingGastos } from '../services/offlineQueue'
+import { removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import {
   CATEGORIAS,
@@ -11,10 +11,10 @@ import {
 } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatShortDate, getMonthRange } from '../utils/date'
-import { filterOptimisticGastos } from '../utils/optimisticGastos'
+import { filterOptimisticGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import { showError, showSuccess } from '../utils/toast'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
-import EditGastoModal from './EditGastoModal'
+import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
 import { cardClassName, inputClassName } from './formStyles'
 
@@ -90,10 +90,16 @@ function EditIcon() {
   )
 }
 
-export default function Historial() {
+export default memo(function Historial() {
   const { user } = useAuthContext()
-  const { refreshKey, refresh, optimisticGastos, revertGastoSaldo, removeOptimisticGastos } =
-    useGastosRefresh()
+  const {
+    refreshKey,
+    refresh,
+    optimisticGastos,
+    pendingGastos,
+    revertGastoSaldo,
+    removeOptimisticGastos,
+  } = useGastosRefresh()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -107,6 +113,12 @@ export default function Historial() {
   const [error, setError] = useState<string | null>(null)
   const [accionId, setAccionId] = useState<string | number | null>(null)
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null)
+  const [editModo, setEditModo] = useState<EditGastoModo>('cuota')
+
+  function abrirEdicion(gastoItem: Gasto, modo: EditGastoModo) {
+    setEditModo(modo)
+    setGastoEditando(gastoItem)
+  }
 
   useEffect(() => {
     setPage(0)
@@ -145,10 +157,7 @@ export default function Historial() {
         query = query.ilike('descripcion', `%${busqueda.trim()}%`)
       }
 
-      const [gastosResult, pending] = await Promise.all([
-        query,
-        page === 0 ? getPendingGastos() : Promise.resolve([]),
-      ])
+      const gastosResult = await query
 
       if (isFirstPage) {
         setCargando(false)
@@ -169,7 +178,10 @@ export default function Historial() {
       setHasMore(sincronizados.length === HISTORIAL_PAGE_SIZE)
 
       if (page === 0) {
-        const pendientes: HistorialItem[] = pending.map((gasto) => ({
+        const pendientes: HistorialItem[] = filterPendingNotInOptimistic(
+          pendingGastos,
+          optimisticGastos,
+        ).map((gasto) => ({
           ...gasto,
           pendiente: true as const,
         }))
@@ -200,7 +212,7 @@ export default function Historial() {
     }
 
     cargarHistorial()
-  }, [user, refreshKey, selectedMonth, categoriaFiltro, busqueda, page, optimisticGastos])
+  }, [user, refreshKey, selectedMonth, categoriaFiltro, busqueda, page, optimisticGastos, pendingGastos])
 
   async function handleEliminar(item: HistorialItem) {
     if ('optimistic' in item && item.optimistic) return
@@ -358,15 +370,29 @@ export default function Historial() {
                   {formatCurrency(Number(item.monto))}
                 </p>
                 {!item.pendiente && !isOptimistic && (
-                  <button
-                    type="button"
-                    onClick={() => setGastoEditando(item)}
-                    disabled={isBusy}
-                    aria-label="Editar gasto"
-                    className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-50"
-                  >
-                    <EditIcon />
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => abrirEdicion(item, 'cuota')}
+                      disabled={isBusy}
+                      aria-label="Editar gasto"
+                      className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-50"
+                    >
+                      <EditIcon />
+                    </button>
+                    {item.es_msi && item.grupo_msi_id && (
+                      <button
+                        type="button"
+                        onClick={() => abrirEdicion(item, 'compra')}
+                        disabled={isBusy}
+                        aria-label="Editar compra MSI"
+                        title="Editar compra MSI"
+                        className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold text-violet-300 transition hover:bg-violet-500/15 disabled:opacity-50"
+                      >
+                        MSI
+                      </button>
+                    )}
+                  </>
                 )}
                 {!isOptimistic && (
                   <button
@@ -397,8 +423,15 @@ export default function Historial() {
       )}
 
       {gastoEditando && (
-        <EditGastoModal gasto={gastoEditando} onClose={() => setGastoEditando(null)} />
+        <EditGastoModal
+          gasto={gastoEditando}
+          modoInicial={editModo}
+          onClose={() => {
+            setGastoEditando(null)
+            setEditModo('cuota')
+          }}
+        />
       )}
     </section>
   )
-}
+})

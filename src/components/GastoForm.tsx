@@ -18,7 +18,7 @@ import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
 import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
 import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
 import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
-import { validateDescripcion, validateMonto } from '../utils/validation'
+import { validateCuentaId, validateDescripcion, validateMonto, validateMsiMeses } from '../utils/validation'
 import { cardClassName, inputClassName } from './formStyles'
 
 const initialForm = {
@@ -248,8 +248,9 @@ export default function GastoForm() {
       return
     }
 
-    if (!data.cuentaId) {
-      showError('Selecciona una cuenta o método de pago.')
+    const cuentaError = validateCuentaId(data.cuentaId)
+    if (cuentaError) {
+      showError(cuentaError)
       return
     }
 
@@ -303,11 +304,12 @@ export default function GastoForm() {
     let rows = [buildSingleGasto({ monto, categoria, descripcion, cuentaId })]
 
     if (data.esMsi && isCreditoForSubmit) {
-      const meses = Number(data.mesesMsi)
-      if (!Number.isInteger(meses) || meses < 2 || meses > 48) {
-        showError('Los meses sin intereses deben ser un número entre 2 y 48.')
+      const mesesError = validateMsiMeses(data.mesesMsi)
+      if (mesesError) {
+        showError(mesesError)
         return
       }
+      const meses = Number(data.mesesMsi)
       rows = buildMsiGastos({
         totalMonto: monto,
         months: meses,
@@ -425,11 +427,12 @@ export default function GastoForm() {
   }
 
   const handleQuickTap = async (tap: QuickTap) => {
-    if (guardando || cuentas.length === 0) return
+    if (guardando || cuentasLoading || cuentas.length === 0) return
 
     const cuentaId = form.cuentaId || String(getDefaultCuentaId(cuentas) ?? '')
-    if (!cuentaId) {
-      showError('Selecciona una cuenta o método de pago.')
+    const cuentaError = validateCuentaId(cuentaId)
+    if (cuentaError) {
+      showError(cuentaError)
       return
     }
 
@@ -443,7 +446,12 @@ export default function GastoForm() {
     }
 
     setForm(quickForm)
-    await submitGasto(quickForm)
+    setGuardando(true)
+    try {
+      await submitGasto(quickForm)
+    } finally {
+      setGuardando(false)
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -481,7 +489,7 @@ export default function GastoForm() {
           id="monto"
           type="number"
           inputMode="decimal"
-          min="0"
+          min="0.01"
           step="0.01"
           placeholder={montoSugerido ? `Sugerido: ${formatCurrency(montoSugerido)}` : '0.00'}
           value={form.monto}

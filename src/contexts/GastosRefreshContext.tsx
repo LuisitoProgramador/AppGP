@@ -3,10 +3,11 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react'
-import type { OptimisticGasto } from '../types/gasto'
+import type { OptimisticGasto, PendingGasto } from '../types/gasto'
 import type { Cuenta } from '../types/cuenta'
 import { ensureCuentaEfectivo, listCuentas, applyGastoSaldoLocal, persistCuentaSaldo, revertGastoSaldoLocal, resolveCuentasBase, setCachedCuentas } from '../services/cuentas'
 import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
@@ -21,6 +22,7 @@ interface GastosRefreshContextValue {
   refresh: () => void
   isSyncing: boolean
   pendingCount: number
+  pendingGastos: PendingGasto[]
   optimisticGastos: OptimisticGasto[]
   addOptimisticGasto: (gasto: Omit<OptimisticGasto, 'tempId'>) => string
   removeOptimisticGasto: (tempId: string) => void
@@ -44,6 +46,7 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
   const [refreshKey, setRefreshKey] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  const [pendingGastos, setPendingGastos] = useState<PendingGasto[]>([])
   const [optimisticGastos, setOptimisticGastos] = useState<OptimisticGasto[]>([])
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [cuentasLoading, setCuentasLoading] = useState(true)
@@ -80,6 +83,7 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
     const { data, error } = await listCuentas(user.id)
 
     if (error && data.length === 0) {
+      showError(`No se pudieron cargar las cuentas: ${error}`)
       setCuentas([])
       setCuentasLoading(false)
       return
@@ -146,6 +150,8 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
         cuenta.saldo_actual,
       )
       if (persistError) {
+        setCachedCuentas(user.id, base)
+        setCuentas(base)
         return { error: persistError }
       }
 
@@ -157,6 +163,7 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
   const updatePendingCount = useCallback(async () => {
     const pending = await getPendingGastos()
     setPendingCount(pending.length)
+    setPendingGastos(pending)
   }, [])
 
   const syncRecurring = useCallback(async () => {
@@ -198,6 +205,10 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
       } else if (result.failures.length > 0) {
         showWarning('Algunos gastos offline fallaron y se reintentarán.')
       }
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Error inesperado al sincronizar gastos offline.'
+      showError(message)
     } finally {
       setIsSyncing(false)
     }
@@ -240,25 +251,45 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
     refreshCuentas()
   }, [refreshCuentas, refreshKey])
 
+  const contextValue = useMemo(
+    () => ({
+      refreshKey,
+      refresh,
+      isSyncing,
+      pendingCount,
+      pendingGastos,
+      optimisticGastos,
+      addOptimisticGasto,
+      removeOptimisticGasto,
+      removeOptimisticGastos,
+      syncOffline,
+      cuentas,
+      cuentasLoading,
+      refreshCuentas,
+      applyGastoSaldo,
+      revertGastoSaldo,
+    }),
+    [
+      refreshKey,
+      refresh,
+      isSyncing,
+      pendingCount,
+      pendingGastos,
+      optimisticGastos,
+      addOptimisticGasto,
+      removeOptimisticGasto,
+      removeOptimisticGastos,
+      syncOffline,
+      cuentas,
+      cuentasLoading,
+      refreshCuentas,
+      applyGastoSaldo,
+      revertGastoSaldo,
+    ],
+  )
+
   return (
-    <GastosRefreshContext.Provider
-      value={{
-        refreshKey,
-        refresh,
-        isSyncing,
-        pendingCount,
-        optimisticGastos,
-        addOptimisticGasto,
-        removeOptimisticGasto,
-        removeOptimisticGastos,
-        syncOffline,
-        cuentas,
-        cuentasLoading,
-        refreshCuentas,
-        applyGastoSaldo,
-        revertGastoSaldo,
-      }}
-    >
+    <GastosRefreshContext.Provider value={contextValue}>
       {children}
     </GastosRefreshContext.Provider>
   )

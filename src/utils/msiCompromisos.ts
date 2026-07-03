@@ -1,5 +1,6 @@
-import type { OptimisticGasto } from '../types/gasto'
+import type { OptimisticGasto, PendingGasto } from '../types/gasto'
 import { formatMonthLabel, getMonthRange, shiftMonth } from './date'
+import { expandPendingToLineItems, filterPendingNotInOptimistic } from './optimisticGastos'
 
 export interface MsiCompromisoMes {
   mes: Date
@@ -30,12 +31,18 @@ export function calcularCompromisosMsi(
   limiteMensual: number,
   desde: Date = new Date(),
   meses = 3,
+  pendingGastos: PendingGasto[] = [],
 ): MsiCompromisoMes[] {
+  const pendingMsi = filterPendingNotInOptimistic(pendingGastos, optimisticGastos)
+    .filter((item) => item.msiInstallments?.length)
+    .flatMap(expandPendingToLineItems)
+
   const allRows: GastoMsiRow[] = [
     ...gastosMsi,
     ...optimisticGastos
       .filter((g) => g.es_msi)
       .map((g) => ({ monto: g.monto, fecha: g.fecha })),
+    ...pendingMsi,
   ]
 
   const baseMonth = new Date(desde.getFullYear(), desde.getMonth(), 1)

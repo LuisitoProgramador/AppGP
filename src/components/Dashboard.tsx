@@ -1,4 +1,4 @@
-import { lazy, Suspense, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, memo, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuthContext, useGastosRefresh } from '../contexts'
 import { getLimiteMensual, saveLimiteMensual } from '../services/presupuesto'
 import { listGastosRecurrentes, createGastoRecurrente } from '../services/gastosRecurrentes'
@@ -22,7 +22,7 @@ import {
   shiftMonth,
 } from '../utils/date'
 import { buildEvolucionMensual } from '../utils/evolucionMensual'
-import { mergeResumenWithOptimistic } from '../utils/optimisticGastos'
+import { mergeResumenWithOptimistic, expandPendingToLineItems, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import { getMetaProgress } from '../utils/metaProgress'
 import { calcularCompromisosMsi } from '../utils/msiCompromisos'
 import { calcularSaludAhorro, type SaludNivel } from '../utils/saludAhorro'
@@ -45,7 +45,7 @@ import {
 } from '../utils/detectarRecurrentes'
 import { isModoViaje, setModoViaje } from '../utils/travelMode'
 import { showError, showSuccess, showWarning } from '../utils/toast'
-import { validateMonto } from '../utils/validation'
+import { validateMonto, validateNombre } from '../utils/validation'
 import MonthSelector from './MonthSelector'
 import { cardClassName, inputClassName } from './formStyles'
 
@@ -83,9 +83,10 @@ interface ResumenMensual {
   cantidad: number
 }
 
-export default function Dashboard() {
+export default memo(function Dashboard() {
   const { user } = useAuthContext()
-  const { refreshKey, isSyncing, pendingCount, optimisticGastos, refresh } = useGastosRefresh()
+  const { refreshKey, isSyncing, pendingCount, optimisticGastos, pendingGastos, refresh } =
+    useGastosRefresh()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -126,9 +127,14 @@ export default function Dashboard() {
   const resumen = useMemo(
     () =>
       agruparPorCategoria(
-        mergeResumenWithOptimistic(resumenMensual, optimisticGastos, selectedMonth),
+        mergeResumenWithOptimistic(
+          resumenMensual,
+          optimisticGastos,
+          selectedMonth,
+          pendingGastos,
+        ),
       ),
-    [resumenMensual, optimisticGastos, selectedMonth],
+    [resumenMensual, optimisticGastos, pendingGastos, selectedMonth],
   )
 
   const gastoTotal = useMemo(
@@ -155,8 +161,14 @@ export default function Dashboard() {
     const optimistic = optimisticGastos
       .filter((gasto) => isDateInQuincena(gasto.fecha))
       .reduce((sum, gasto) => sum + gasto.monto, 0)
-    return gastoQuincenaBase + optimistic
-  }, [gastoQuincenaBase, optimisticGastos])
+
+    const pending = filterPendingNotInOptimistic(pendingGastos, optimisticGastos)
+      .flatMap(expandPendingToLineItems)
+      .filter((gasto) => isDateInQuincena(gasto.fecha))
+      .reduce((sum, gasto) => sum + gasto.monto, 0)
+
+    return gastoQuincenaBase + optimistic + pending
+  }, [gastoQuincenaBase, optimisticGastos, pendingGastos])
 
   const diaActual = useMemo(() => new Date().getDate(), [])
 
@@ -256,8 +268,16 @@ export default function Dashboard() {
   )
 
   const compromisosMsi = useMemo(
-    () => calcularCompromisosMsi(gastosMsi, optimisticGastos, limiteMensual),
-    [gastosMsi, optimisticGastos, limiteMensual],
+    () =>
+      calcularCompromisosMsi(
+        gastosMsi,
+        optimisticGastos,
+        limiteMensual,
+        undefined,
+        3,
+        pendingGastos,
+      ),
+    [gastosMsi, optimisticGastos, limiteMensual, pendingGastos],
   )
 
   const evolucionMensual = useMemo(
@@ -443,11 +463,13 @@ export default function Dashboard() {
       return
     }
 
-    const nombre = metaNombre.trim()
-    if (!nombre) {
-      showError('El nombre de la meta es obligatorio.')
+    const nombreError = validateNombre(metaNombre, 'El nombre de la meta')
+    if (nombreError) {
+      showError(nombreError)
       return
     }
+
+    const nombre = metaNombre.trim()
 
     setGuardandoMeta(true)
     const { data, error: createError } = await createMetaAhorro(user.id, {
@@ -1172,4 +1194,4 @@ export default function Dashboard() {
       </div>
     </section>
   )
-}
+})

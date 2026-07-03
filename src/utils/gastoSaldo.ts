@@ -42,3 +42,12 @@ export function saldoRevertAlEliminar(
 
   return { cuentaId: gasto.cuenta_id, monto: Number(gasto.monto) }
 }
+
+export function sumMsiGrupoMontos(rows: { monto: number }[]): number {
+  return Math.round(rows.reduce((sum, row) => sum + Number(row.monto), 0) * 100) / 100
+}
+
+/** Delta de saldo de crédito al corregir el total de una compra MSI. */
+export function saldoDeltaAlCorregirMsiGrupo(oldTotal: number, newTotal: number): number {
+  return Math.round((newTotal - oldTotal) * 100) / 100
+}

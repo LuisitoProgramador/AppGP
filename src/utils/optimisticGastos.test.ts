@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { OptimisticGasto } from '../types/gasto'
-import { filterOptimisticGastos, mergeResumenWithOptimistic } from './optimisticGastos'
+import type { OptimisticGasto, PendingGasto } from '../types/gasto'
+import { filterOptimisticGastos, filterPendingNotInOptimistic, mergeResumenWithOptimistic } from './optimisticGastos'
 
 const mes = new Date(2026, 2, 15)
 
@@ -49,5 +49,39 @@ describe('optimisticGastos utils', () => {
     const filtrados = filterOptimisticGastos(optimistic, mes, 'Comida', 'super')
     expect(filtrados).toHaveLength(1)
     expect(filtrados[0]?.tempId).toBe('1')
+  })
+
+  it('evita duplicar pendientes ya representados como optimistas', () => {
+    const optimistic: OptimisticGasto[] = [
+      {
+        tempId: 'temp-1',
+        monto: 100,
+        categoria: 'Comida',
+        descripcion: 'Cafe',
+        fecha: new Date(2026, 2, 10).toISOString(),
+      },
+    ]
+
+    const pending: PendingGasto[] = [
+      {
+        id: 'pending-1',
+        monto: 100,
+        categoria: 'Comida',
+        descripcion: 'Cafe',
+        fecha: new Date(2026, 2, 10).toISOString(),
+        optimisticTempIds: ['temp-1'],
+        createdAt: Date.now(),
+        retryCount: 0,
+      },
+    ]
+
+    const resultado = mergeResumenWithOptimistic(
+      [],
+      optimistic,
+      mes,
+      pending,
+    )
+
+    expect(resultado).toEqual([{ monto: 100, categoria: 'Comida' }])
   })
 })

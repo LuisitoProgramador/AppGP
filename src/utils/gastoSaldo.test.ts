@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from './gastoSaldo'
+import { montoSaldoAlEliminarPendiente, saldoDeltaAlCorregirMsiGrupo, saldoRevertAlEliminar, sumMsiGrupoMontos } from './gastoSaldo'
 
 describe('gastoSaldo', () => {
   it('revierte el total MSI en gastos pendientes', () => {
@@ -44,5 +44,14 @@ describe('gastoSaldo', () => {
       [{ id: 1, monto: 1000 }],
     )
     expect(result).toEqual({ cuentaId: 'c1', monto: 1000 })
+  })
+
+  it('calcula delta de saldo al corregir total MSI', () => {
+    expect(saldoDeltaAlCorregirMsiGrupo(3000, 3500)).toBe(500)
+    expect(saldoDeltaAlCorregirMsiGrupo(3000, 2800)).toBe(-200)
+  })
+
+  it('suma montos de un grupo MSI', () => {
+    expect(sumMsiGrupoMontos([{ monto: 100 }, { monto: 200.5 }])).toBe(300.5)
   })
 })

@@ -8,7 +8,7 @@ import {
 import { CATEGORIAS, type GastoRecurrente } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { showError, showSuccess } from '../utils/toast'
-import { validateDescripcion, validateMonto } from '../utils/validation'
+import { validateDescripcion, validateDiaMes, validateMonto } from '../utils/validation'
 import { cardClassName, inputClassName } from './formStyles'
 
 const initialForm = {
@@ -86,11 +86,13 @@ export default function GastosRecurrentes() {
       return
     }
 
-    const diaMes = Number(form.dia_mes)
-    if (!Number.isInteger(diaMes) || diaMes < 1 || diaMes > 31) {
-      showError('El día del mes debe estar entre 1 y 31.')
+    const diaError = validateDiaMes(form.dia_mes)
+    if (diaError) {
+      showError(diaError)
       return
     }
+
+    const diaMes = Number(form.dia_mes)
 
     if (!user) {
       showError('Debes iniciar sesión para guardar un gasto recurrente.')

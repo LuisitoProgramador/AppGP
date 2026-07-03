@@ -1,6 +1,12 @@
 import { type ReactNode, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 
+const MODAL_ROOT_ID = 'modal-root'
+
+function getModalRoot(): HTMLElement {
+  return document.getElementById(MODAL_ROOT_ID) ?? document.body
+}
+
 interface ModalPortalProps {
   onClose: () => void
   children: ReactNode
@@ -31,6 +37,6 @@ export default function ModalPortal({
     >
       <div onClick={(e) => e.stopPropagation()}>{children}</div>
     </div>,
-    document.body,
+    getModalRoot(),
   )
 }
