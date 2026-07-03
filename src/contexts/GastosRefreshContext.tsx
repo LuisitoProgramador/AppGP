@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
+import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
+import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import { getPendingGastos } from '../services/offlineQueue'
 import { syncPendingGastos } from '../services/syncGastos'
 import { showError, showSuccess, showWarning } from '../utils/toast'
@@ -57,6 +59,19 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
     setPendingCount(pending.length)
   }, [])
 
+  const syncRecurring = useCallback(async () => {
+    if (!user || !navigator.onLine) return 0
+
+    const registered = await verificarGastosRecurrentes(user.id)
+    if (registered > 0) {
+      showSuccess(
+        `${registered} gasto(s) recurrente(s) registrado(s) automáticamente.`,
+      )
+      refresh()
+    }
+    return registered
+  }, [user, refresh])
+
   const syncOffline = useCallback(async () => {
     if (!user || !navigator.onLine) return
 
@@ -86,16 +101,32 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
 
   useEffect(() => {
     if (!user) return
-    updatePendingCount()
-    syncOffline()
+
+    async function initializeSync() {
+      await updatePendingCount()
+      await syncOffline()
+      if (user && navigator.onLine) {
+        const metaSynced = await syncPendingMetaAhorro(user.id)
+        if (metaSynced > 0) refresh()
+      }
+      await syncRecurring()
+    }
+
+    initializeSync()
 
     const onOnline = () => {
-      syncOffline()
+      syncOffline().then(async () => {
+        if (user) {
+          const metaSynced = await syncPendingMetaAhorro(user.id)
+          if (metaSynced > 0) refresh()
+        }
+        await syncRecurring()
+      })
     }
 
     window.addEventListener('online', onOnline)
     return () => window.removeEventListener('online', onOnline)
-  }, [user, syncOffline, updatePendingCount])
+  }, [user, syncOffline, syncRecurring, updatePendingCount])
 
   useEffect(() => {
     if (user) updatePendingCount()

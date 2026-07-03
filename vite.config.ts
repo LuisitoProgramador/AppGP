@@ -46,6 +46,21 @@ export default defineConfig({
             purpose: 'maskable',
           },
         ],
+        shortcuts: [
+          {
+            name: 'Nuevo Gasto',
+            short_name: 'Nuevo Gasto',
+            description: 'Registra un gasto rápidamente',
+            url: '/?q=',
+            icons: [
+              {
+                src: '/pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              },
+            ],
+          },
+        ],
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest,json}'],

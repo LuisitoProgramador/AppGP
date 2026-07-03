@@ -1,9 +1,11 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { useAuthContext, useGastosRefresh } from '../contexts'
 import { notifyTelegram } from '../services/notifyTelegram'
 import { addPendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS } from '../types/gasto'
+import { parseGastoInput } from '../utils/parser'
+import { formatCurrency } from '../utils/formatCurrency'
 import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import { cardClassName, inputClassName } from './formStyles'
@@ -19,6 +21,36 @@ export default function GastoForm() {
   const { refresh, addOptimisticGasto, removeOptimisticGasto } = useGastosRefresh()
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
+  const montoInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const query = params.get('q')
+    if (query === null) return
+
+    params.delete('q')
+    const remaining = params.toString()
+    const cleanUrl = remaining
+      ? `${window.location.pathname}?${remaining}`
+      : window.location.pathname
+    window.history.replaceState({}, '', cleanUrl)
+
+    if (query.trim()) {
+      const parsed = parseGastoInput(query)
+      if (parsed) {
+        setForm({
+          monto: String(parsed.monto),
+          categoria: parsed.categoria,
+          descripcion: parsed.descripcion,
+        })
+        showInfo(
+          `Gasto detectado: ${formatCurrency(parsed.monto)} en ${parsed.categoria}`,
+        )
+      }
+    }
+
+    montoInputRef.current?.focus()
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -101,6 +133,7 @@ export default function GastoForm() {
           Monto
         </label>
         <input
+          ref={montoInputRef}
           id="monto"
           type="number"
           inputMode="decimal"

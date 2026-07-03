@@ -52,6 +52,22 @@ export const MAX_MONTO = 1_000_000
 export const MAX_DESCRIPCION_LENGTH = 200
 export const HISTORIAL_PAGE_SIZE = 20
 
+export interface GastoRecurrente {
+  id: number
+  descripcion: string
+  monto: number
+  categoria: string
+  dia_mes: number
+  ultimo_registro: string | null
+}
+
+export interface GastoRecurrenteInput {
+  descripcion: string
+  monto: number
+  categoria: string
+  dia_mes: number
+}
+
 export const CHART_COLORS_HEX: Record<string, string> = {
   Comida: '#f59e0b',
   Transporte: '#3b82f6',
