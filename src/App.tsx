@@ -11,16 +11,21 @@ import {
 } from './components'
 import { showError } from './utils/toast'
 
-type AppTab = 'inicio' | 'historial'
+type AppTab = 'registro' | 'resumen' | 'historial'
 
 const TAB_STORAGE_KEY = 'app-tab'
 
+const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial']
+
 function getInitialTab(): AppTab {
   const params = new URLSearchParams(window.location.search)
-  if (params.has('q')) return 'inicio'
+  if (params.has('q')) return 'registro'
 
   const saved = sessionStorage.getItem(TAB_STORAGE_KEY)
-  return saved === 'historial' ? 'historial' : 'inicio'
+  if (saved && VALID_TABS.includes(saved as AppTab)) {
+    return saved as AppTab
+  }
+  return 'registro'
 }
 
 function AppContent() {
@@ -81,7 +86,8 @@ function AppContent() {
           >
             {(
               [
-                { id: 'inicio', label: 'Inicio' },
+                { id: 'registro', label: 'Registro' },
+                { id: 'resumen', label: 'Resumen' },
                 { id: 'historial', label: 'Historial' },
               ] as const
             ).map(({ id, label }) => (
@@ -103,7 +109,12 @@ function AppContent() {
           </div>
 
           <div className="space-y-6 transition-opacity duration-200">
-            {tab === 'inicio' ? (
+            {tab === 'registro' && (
+              <ErrorBoundary title="Error en el formulario">
+                <GastoForm />
+              </ErrorBoundary>
+            )}
+            {tab === 'resumen' && (
               <>
                 <ErrorBoundary title="Error en el Dashboard">
                   <Dashboard />
@@ -111,11 +122,9 @@ function AppContent() {
                 <ErrorBoundary title="Error en gastos recurrentes">
                   <GastosRecurrentes />
                 </ErrorBoundary>
-                <ErrorBoundary title="Error en el formulario">
-                  <GastoForm />
-                </ErrorBoundary>
               </>
-            ) : (
+            )}
+            {tab === 'historial' && (
               <ErrorBoundary title="Error en el historial">
                 <Historial />
               </ErrorBoundary>
