@@ -35,6 +35,16 @@ export function shiftMonth(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1)
 }
 
+export function addMonths(date: Date, months: number): Date {
+  const result = new Date(date)
+  const day = result.getDate()
+  result.setMonth(result.getMonth() + months)
+  if (result.getDate() !== day) {
+    result.setDate(0)
+  }
+  return result
+}
+
 export function toMonthInputValue(date: Date): string {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')

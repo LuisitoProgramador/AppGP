@@ -4,6 +4,9 @@ export interface Gasto {
   categoria: string
   descripcion: string | null
   fecha: string
+  cuenta_id?: string | null
+  es_msi?: boolean
+  grupo_msi_id?: string | null
 }
 
 export interface OptimisticGasto {
@@ -12,6 +15,9 @@ export interface OptimisticGasto {
   categoria: string
   descripcion: string
   fecha: string
+  cuenta_id?: string | null
+  es_msi?: boolean
+  grupo_msi_id?: string | null
 }
 
 export interface PendingGasto {
@@ -20,8 +26,23 @@ export interface PendingGasto {
   categoria: string
   descripcion: string
   fecha: string
+  cuenta_id?: string | null
+  es_msi?: boolean
+  grupo_msi_id?: string | null
+  msiInstallments?: GastoInsertFields[]
+  optimisticTempIds?: string[]
   createdAt: number
   retryCount: number
+}
+
+export interface GastoInsertFields {
+  monto: number
+  categoria: string
+  descripcion: string
+  fecha: string
+  cuenta_id: string | null
+  es_msi: boolean
+  grupo_msi_id: string | null
 }
 
 export interface CategoriaResumen {

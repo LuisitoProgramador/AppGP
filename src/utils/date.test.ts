@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  addMonths,
   fromMonthInputValue,
   getDaysRemainingInMonth,
   getMonthRange,
@@ -32,5 +33,16 @@ describe('date utils', () => {
     const fecha = new Date(2026, 2, 1)
     expect(toMonthInputValue(fecha)).toBe('2026-03')
     expect(fromMonthInputValue('2026-03')).toEqual(new Date(2026, 2, 1))
+  })
+
+  it('suma meses respetando fin de mes (31 ene -> 28 feb)', () => {
+    const enero31 = new Date(2026, 0, 31)
+    const febrero = addMonths(enero31, 1)
+    expect(febrero.getMonth()).toBe(1)
+    expect(febrero.getDate()).toBe(28)
+
+    const diciembre = addMonths(new Date(2026, 10, 15), 1)
+    expect(diciembre.getFullYear()).toBe(2026)
+    expect(diciembre.getMonth()).toBe(11)
   })
 })

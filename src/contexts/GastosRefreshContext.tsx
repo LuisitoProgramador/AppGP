@@ -7,6 +7,8 @@ import {
   type ReactNode,
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
+import type { Cuenta } from '../types/cuenta'
+import { ensureCuentaEfectivo, listCuentas } from '../services/cuentas'
 import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
 import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import { getPendingGastos } from '../services/offlineQueue'
@@ -22,7 +24,11 @@ interface GastosRefreshContextValue {
   optimisticGastos: OptimisticGasto[]
   addOptimisticGasto: (gasto: Omit<OptimisticGasto, 'tempId'>) => string
   removeOptimisticGasto: (tempId: string) => void
+  removeOptimisticGastos: (tempIds: string[]) => void
   syncOffline: () => Promise<void>
+  cuentas: Cuenta[]
+  cuentasLoading: boolean
+  refreshCuentas: () => Promise<void>
 }
 
 const GastosRefreshContext = createContext<GastosRefreshContextValue | null>(null)
@@ -37,6 +43,8 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [optimisticGastos, setOptimisticGastos] = useState<OptimisticGasto[]>([])
+  const [cuentas, setCuentas] = useState<Cuenta[]>([])
+  const [cuentasLoading, setCuentasLoading] = useState(true)
 
   const refresh = useCallback(() => {
     setRefreshKey((key) => key + 1)
@@ -53,6 +61,37 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
       current.filter((gasto) => gasto.tempId !== tempId),
     )
   }, [])
+
+  const removeOptimisticGastos = useCallback((tempIds: string[]) => {
+    const ids = new Set(tempIds)
+    setOptimisticGastos((current) => current.filter((gasto) => !ids.has(gasto.tempId)))
+  }, [])
+
+  const refreshCuentas = useCallback(async () => {
+    if (!user) {
+      setCuentas([])
+      setCuentasLoading(false)
+      return
+    }
+
+    setCuentasLoading(true)
+    const { data, error } = await listCuentas(user.id)
+
+    if (error && data.length === 0) {
+      setCuentas([])
+      setCuentasLoading(false)
+      return
+    }
+
+    let result = data
+    if (result.length === 0 && navigator.onLine) {
+      const ensured = await ensureCuentaEfectivo(user.id)
+      if (ensured.data) result = [ensured.data]
+    }
+
+    setCuentas(result)
+    setCuentasLoading(false)
+  }, [user])
 
   const updatePendingCount = useCallback(async () => {
     const pending = await getPendingGastos()
@@ -80,6 +119,10 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
       const result = await syncPendingGastos()
       await updatePendingCount()
 
+      if (result.optimisticTempIdsRemoved.length > 0) {
+        removeOptimisticGastos(result.optimisticTempIdsRemoved)
+      }
+
       if (result.synced > 0) {
         showSuccess(
           `${result.synced} gasto(s) sincronizado(s) desde modo offline.`,
@@ -97,7 +140,7 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
     } finally {
       setIsSyncing(false)
     }
-  }, [user, refresh, updatePendingCount])
+  }, [user, refresh, updatePendingCount, removeOptimisticGastos])
 
   useEffect(() => {
     if (!user) return
@@ -132,6 +175,10 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
     if (user) updatePendingCount()
   }, [user, refreshKey, updatePendingCount])
 
+  useEffect(() => {
+    refreshCuentas()
+  }, [refreshCuentas, refreshKey])
+
   return (
     <GastosRefreshContext.Provider
       value={{
@@ -142,7 +189,11 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
         optimisticGastos,
         addOptimisticGasto,
         removeOptimisticGasto,
+        removeOptimisticGastos,
         syncOffline,
+        cuentas,
+        cuentasLoading,
+        refreshCuentas,
       }}
     >
       {children}

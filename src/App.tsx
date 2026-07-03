@@ -7,6 +7,7 @@ import {
   GastosRecurrentes,
   Historial,
   Layout,
+  ListaCuentas,
   LoginForm,
 } from './components'
 import { showError } from './utils/toast'
@@ -116,6 +117,9 @@ function AppContent() {
             )}
             {tab === 'resumen' && (
               <>
+                <ErrorBoundary title="Error en cuentas">
+                  <ListaCuentas />
+                </ErrorBoundary>
                 <ErrorBoundary title="Error en el Dashboard">
                   <Dashboard />
                 </ErrorBoundary>
