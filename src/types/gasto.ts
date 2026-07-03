@@ -1,3 +1,13 @@
+export const CATEGORIAS = [
+  'Comida',
+  'Transporte',
+  'Casa',
+  'Suscripciones',
+  'Otros',
+] as const
+
+export type Categoria = (typeof CATEGORIAS)[number]
+
 export interface Gasto {
   id: number
   monto: number
@@ -35,11 +45,8 @@ export interface PendingGasto {
   retryCount: number
 }
 
-export interface GastoInsertFields {
-  monto: number
-  categoria: string
+export type GastoInsertFields = Omit<Gasto, 'id' | 'descripcion' | 'cuenta_id' | 'es_msi' | 'grupo_msi_id'> & {
   descripcion: string
-  fecha: string
   cuenta_id: string | null
   es_msi: boolean
   grupo_msi_id: string | null
@@ -57,14 +64,6 @@ export interface CategoriaResumen {
   porcentaje: number
   cantidad?: number
 }
-
-export const CATEGORIAS = [
-  'Comida',
-  'Transporte',
-  'Casa',
-  'Suscripciones',
-  'Otros',
-] as const
 
 export const COLORES_CATEGORIA: Record<string, string> = {
   Comida: 'bg-amber-500',
@@ -90,12 +89,10 @@ export interface GastoRecurrente {
   ultimo_registro: string | null
 }
 
-export interface GastoRecurrenteInput {
-  descripcion: string
-  monto: number
-  categoria: string
-  dia_mes: number
-}
+export type GastoRecurrenteInput = Pick<
+  GastoRecurrente,
+  'descripcion' | 'monto' | 'categoria' | 'dia_mes'
+>
 
 export const CHART_COLORS_HEX: Record<string, string> = {
   Comida: '#f59e0b',

@@ -1,5 +1,7 @@
 import { lazy, Suspense, memo, type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
-import { useAuthContext, useGastosRefresh } from '../contexts'
+import { useAuthContext, useGastosData, useOfflineSync, useQuietMode, useFocusMode } from '../contexts'
+import { usePresupuestoDiario } from '../hooks/usePresupuestoDiario'
+import { useStableArray } from '../hooks/useStableArray'
 import { getLimiteMensual, saveLimiteMensual } from '../services/presupuesto'
 import { listGastosRecurrentes, createGastoRecurrente } from '../services/gastosRecurrentes'
 import {
@@ -15,7 +17,6 @@ import { formatCurrency } from '../utils/formatCurrency'
 import {
   formatMonthLabel,
   getDaysRemainingInMonth,
-  getDaysRemainingInQuincena,
   getMonthRange,
   getQuincenaPeriodo,
   isCurrentMonth,
@@ -27,11 +28,11 @@ import { getMetaProgress } from '../utils/metaProgress'
 import { calcularCompromisosMsi } from '../utils/msiCompromisos'
 import { calcularSaludAhorro, type SaludNivel } from '../utils/saludAhorro'
 import { shouldShowBurnRateAlert } from '../utils/burnRate'
-import { calcSafeToSpend, sumRecibosPendientes } from '../utils/safeToSpend'
 import { calcMeAlcanza } from '../utils/meAlcanza'
-import { getQuincenaRange, isDateInQuincena, sumRecibosPendientesQuincena } from '../utils/quincena'
+import { isDateInQuincena, getQuincenaRange } from '../utils/quincena'
 import { isVistaQuincenal, setVistaQuincenal } from '../utils/vistaQuincenal'
 import { proyectarDiaAgotamiento } from '../utils/limitProjection'
+import { calcProyeccionCierre } from '../utils/proyeccionCierre'
 import {
   buildResumenFinMes,
   mesParaResumenFinMes,
@@ -47,7 +48,8 @@ import { isModoViaje, setModoViaje } from '../utils/travelMode'
 import { showError, showSuccess, showWarning } from '../utils/toast'
 import { validateMonto, validateNombre } from '../utils/validation'
 import MonthSelector from './MonthSelector'
-import { cardClassName, inputClassName } from './formStyles'
+import ProyeccionCierre from './ProyeccionCierre'
+import { cardClassName, formWithKeyboardClassName, inputClassName, buttonEmeraldClassName, buttonEmeraldFlexClassName, buttonEmeraldFullClassName, buttonGhostClassName, buttonSecondaryClassName, buttonSkyClassName, chartToggleClassName, togglePillClassName } from './formStyles'
 
 const GastoChart = lazy(() => import('./GastoChart'))
 const GastoBarChart = lazy(() => import('./GastoBarChart'))
@@ -85,8 +87,10 @@ interface ResumenMensual {
 
 export default memo(function Dashboard() {
   const { user } = useAuthContext()
-  const { refreshKey, isSyncing, pendingCount, optimisticGastos, pendingGastos, refresh } =
-    useGastosRefresh()
+  const { refreshKey, optimisticGastos, refresh } = useGastosData()
+  const { isSyncing, pendingCount, pendingGastos } = useOfflineSync()
+  const { modoTranquilo, toggleModoTranquilo, reportDisponible } = useQuietMode()
+  const { isFocusMode, toggleFocusMode } = useFocusMode()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -147,11 +151,6 @@ export default memo(function Dashboard() {
     [esMesActual, selectedMonth],
   )
 
-  const diasRestantesQuincena = useMemo(
-    () => (esMesActual ? getDaysRemainingInQuincena() : 0),
-    [esMesActual],
-  )
-
   const quincenaPeriodo = useMemo(
     () => (esMesActual ? getQuincenaPeriodo() : null),
     [esMesActual],
@@ -172,42 +171,46 @@ export default memo(function Dashboard() {
 
   const diaActual = useMemo(() => new Date().getDate(), [])
 
-  const recibosPendientes = useMemo(
-    () => (esMesActual ? sumRecibosPendientes(recurrentes, diaActual) : 0),
-    [esMesActual, recurrentes, diaActual],
+  const stableRecurrentes = useStableArray(recurrentes)
+  const stableGastosMsi = useStableArray(gastosMsi)
+  const stableOptimisticGastos = useStableArray(optimisticGastos)
+  const stablePendingGastos = useStableArray(pendingGastos)
+
+  const presupuesto = usePresupuestoDiario({
+    limiteMensual,
+    gastoTotal,
+    gastoQuincena,
+    recurrentes: stableRecurrentes,
+    gastosMsi: stableGastosMsi,
+    optimisticGastos: stableOptimisticGastos,
+    pendingGastos: stablePendingGastos,
+    vistaQuincenal,
+    esMesActual,
+    diaActual,
+  })
+
+  const disponible = presupuesto.disponible
+  const presupuestoDiario = presupuesto.presupuestoDiario
+  const diasRestantesEfectivos = presupuesto.diasRestantesEfectivos
+  const recibosEfectivos = presupuesto.recibosEfectivos
+  const msiPendientes = presupuesto.msiPendientes
+
+  useEffect(() => {
+    if (esMesActual && !cargando) {
+      reportDisponible(disponible)
+    } else {
+      reportDisponible(null)
+    }
+  }, [disponible, esMesActual, cargando, reportDisponible])
+
+  const focusView = useMemo(
+    () => ({
+      presupuestoDiario: formatCurrency(presupuestoDiario),
+      disponible: formatCurrency(disponible),
+      puedeGastar: disponible >= 0 || modoTranquilo,
+    }),
+    [presupuestoDiario, disponible, modoTranquilo],
   )
-
-  const recibosPendientesQuincena = useMemo(
-    () => (esMesActual ? sumRecibosPendientesQuincena(recurrentes, diaActual) : 0),
-    [esMesActual, recurrentes, diaActual],
-  )
-
-  const usarVistaQuincenal = vistaQuincenal && esMesActual
-
-  const safeToSpend = useMemo(
-    () =>
-      calcSafeToSpend({
-        limiteMensual: usarVistaQuincenal ? limiteMensual / 2 : limiteMensual,
-        gastoTotal: usarVistaQuincenal ? gastoQuincena : gastoTotal,
-        recibosPendientes: usarVistaQuincenal ? recibosPendientesQuincena : recibosPendientes,
-        diasRestantes: usarVistaQuincenal ? diasRestantesQuincena : diasRestantes,
-      }),
-    [
-      limiteMensual,
-      gastoTotal,
-      gastoQuincena,
-      recibosPendientes,
-      recibosPendientesQuincena,
-      diasRestantes,
-      diasRestantesQuincena,
-      usarVistaQuincenal,
-    ],
-  )
-
-  const disponible = safeToSpend.disponible
-  const presupuestoDiario = esMesActual ? safeToSpend.presupuestoDiario : 0
-  const diasRestantesEfectivos = usarVistaQuincenal ? diasRestantesQuincena : diasRestantes
-  const recibosEfectivos = usarVistaQuincenal ? recibosPendientesQuincena : recibosPendientes
 
   const meAlcanzaResult = useMemo(() => {
     const monto = Number(montoMeAlcanza)
@@ -222,17 +225,31 @@ export default memo(function Dashboard() {
   const burnRateAlerta = useMemo(
     () =>
       !modoViaje &&
+      !modoTranquilo &&
       esMesActual &&
       shouldShowBurnRateAlert(gastoTotal, limiteMensual, diaActual),
-    [modoViaje, esMesActual, gastoTotal, limiteMensual, diaActual],
+    [modoViaje, modoTranquilo, esMesActual, gastoTotal, limiteMensual, diaActual],
   )
 
   const diaAgotamiento = useMemo(
     () =>
-      !modoViaje && esMesActual
+      !modoViaje && !modoTranquilo && esMesActual
         ? proyectarDiaAgotamiento(gastoTotal, limiteMensual, diaActual)
         : null,
-    [modoViaje, esMesActual, gastoTotal, limiteMensual, diaActual],
+    [modoViaje, modoTranquilo, esMesActual, gastoTotal, limiteMensual, diaActual],
+  )
+
+  const proyeccionCierre = useMemo(
+    () =>
+      esMesActual
+        ? calcProyeccionCierre({
+            limiteMensual,
+            gastoTotal,
+            diaActual,
+            diasRestantes,
+          })
+        : null,
+    [esMesActual, limiteMensual, gastoTotal, diaActual, diasRestantes],
   )
 
   const mostrarResumenFinMes = useMemo(
@@ -612,8 +629,75 @@ export default memo(function Dashboard() {
   }
 
   return (
-    <section className={cardClassName}>
-      <div className="flex items-start justify-between gap-3">
+    <section className={`${cardClassName} ${formWithKeyboardClassName} transition-all duration-300`}>
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={toggleFocusMode}
+          aria-pressed={isFocusMode}
+          aria-label={isFocusMode ? 'Salir de modo focus' : 'Activar modo focus'}
+          title={isFocusMode ? 'Salir de modo focus' : 'Modo focus'}
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border p-2.5 text-sm touch-manipulation transition-all duration-300 active:scale-[0.98] ${
+            isFocusMode
+              ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300 active:bg-indigo-500/25'
+              : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
+          }`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+            aria-hidden="true"
+          >
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+          </svg>
+        </button>
+      </div>
+
+      {isFocusMode ? (
+        <div className="space-y-10 py-8 text-center transition-all duration-300">
+          {esMesActual && !cargando ? (
+            <>
+              <div className="space-y-2">
+                <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+                  Presupuesto diario
+                </p>
+                <p
+                  className={`text-5xl font-bold transition-all duration-300 ${
+                    focusView.puedeGastar ? 'text-emerald-400' : 'text-amber-400'
+                  }`}
+                >
+                  {focusView.presupuestoDiario}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+                  Disponible
+                </p>
+                <p
+                  className={`text-5xl font-bold transition-all duration-300 ${
+                    focusView.puedeGastar ? 'text-white' : 'text-amber-300'
+                  }`}
+                >
+                  {focusView.disponible}
+                </p>
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-slate-400">
+              {cargando ? 'Cargando...' : 'Modo focus disponible solo para el mes actual.'}
+            </p>
+          )}
+        </div>
+      ) : (
+        <>
+      <div className="flex items-start justify-between gap-3 transition-all duration-300">
         <div className="min-w-0 flex-1 space-y-3">
           <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
           <div className="space-y-1 text-center">
@@ -630,18 +714,32 @@ export default memo(function Dashboard() {
             )}
           </div>
         </div>
-        <button
-          type="button"
-          onClick={handleToggleModoViaje}
-          className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-            modoViaje
-              ? 'border-sky-500/50 bg-sky-500/15 text-sky-300'
-              : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white'
-          }`}
-          aria-pressed={modoViaje}
-        >
-          {modoViaje ? '✈ Modo viaje' : 'Modo viaje'}
-        </button>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <button
+            type="button"
+            onClick={handleToggleModoViaje}
+            className={`${togglePillClassName} ${
+              modoViaje
+                ? 'border-sky-500/50 bg-sky-500/15 text-sky-300 active:bg-sky-500/25'
+                : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
+            }`}
+            aria-pressed={modoViaje}
+          >
+            {modoViaje ? '✈ Modo viaje' : 'Modo viaje'}
+          </button>
+          <button
+            type="button"
+            onClick={toggleModoTranquilo}
+            className={`${togglePillClassName} ${
+              modoTranquilo
+                ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300 active:bg-indigo-500/25'
+                : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
+            }`}
+            aria-pressed={modoTranquilo}
+          >
+            {modoTranquilo ? '🌙 Modo tranquilo' : 'Modo tranquilo'}
+          </button>
+        </div>
       </div>
 
       {recurrenteSugerido && (
@@ -655,14 +753,14 @@ export default memo(function Dashboard() {
               type="button"
               onClick={handleMarcarRecurrente}
               disabled={marcandoRecurrente}
-              className="rounded-lg bg-sky-500 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-400 disabled:opacity-60"
+              className={buttonSkyClassName}
             >
               {marcandoRecurrente ? 'Guardando...' : 'Sí, marcar'}
             </button>
             <button
               type="button"
               onClick={handleDescartarRecurrente}
-              className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs text-slate-300 transition hover:text-white"
+              className={buttonGhostClassName}
             >
               Ahora no
             </button>
@@ -708,10 +806,10 @@ export default memo(function Dashboard() {
               <button
                 type="button"
                 onClick={() => vistaQuincenal && handleToggleVistaQuincenal()}
-                className={`rounded-full px-2 py-0.5 font-medium transition ${
+                className={`rounded-full px-3 py-1.5 font-medium min-h-9 touch-manipulation transition active:scale-[0.98] ${
                   !vistaQuincenal
-                    ? 'bg-blue-500/20 text-blue-300'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-500/20 text-blue-300 active:bg-blue-500/30'
+                    : 'text-slate-400 hover:text-slate-200 active:bg-slate-700'
                 }`}
               >
                 Mensual
@@ -719,10 +817,10 @@ export default memo(function Dashboard() {
               <button
                 type="button"
                 onClick={() => !vistaQuincenal && handleToggleVistaQuincenal()}
-                className={`rounded-full px-2 py-0.5 font-medium transition ${
+                className={`rounded-full px-3 py-1.5 font-medium min-h-9 touch-manipulation transition active:scale-[0.98] ${
                   vistaQuincenal
-                    ? 'bg-blue-500/20 text-blue-300'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-blue-500/20 text-blue-300 active:bg-blue-500/30'
+                    : 'text-slate-400 hover:text-slate-200 active:bg-slate-700'
                 }`}
               >
                 Quincenal
@@ -731,10 +829,10 @@ export default memo(function Dashboard() {
           </div>
           <p
             className={`mt-1 text-2xl font-bold ${
-              disponible >= 0 ? 'text-emerald-400' : 'text-amber-400'
+              disponible >= 0 || modoTranquilo ? 'text-emerald-400' : 'text-amber-400'
             }`}
           >
-            {disponible >= 0
+            {disponible >= 0 || modoTranquilo
               ? `Puedes gastar ${formatCurrency(presupuestoDiario)} hoy`
               : `Apretado: ${formatCurrency(Math.abs(disponible))} sobre tu límite`}
           </p>
@@ -750,9 +848,12 @@ export default memo(function Dashboard() {
               </>
             )}
           </p>
-          {recibosEfectivos > 0 && (
+          {(recibosEfectivos > 0 || msiPendientes > 0) && (
             <p className="mt-1 text-xs text-slate-400">
-              Excluyendo {formatCurrency(recibosEfectivos)} en recibos próximos
+              Excluyendo
+              {recibosEfectivos > 0 && ` ${formatCurrency(recibosEfectivos)} en recibos próximos`}
+              {recibosEfectivos > 0 && msiPendientes > 0 && ' y'}
+              {msiPendientes > 0 && ` ${formatCurrency(msiPendientes)} en MSI pendientes`}
             </p>
           )}
           {diaAgotamiento != null && !vistaQuincenal && (
@@ -763,12 +864,19 @@ export default memo(function Dashboard() {
         </div>
       )}
 
+      {proyeccionCierre && !cargando && (
+        <ProyeccionCierre
+          proyeccion={proyeccionCierre}
+          ocultarAdvertencias={modoTranquilo}
+        />
+      )}
+
       {esMesActual && !cargando && (
         <div className="rounded-xl border border-slate-700/60 bg-slate-900/40">
           <button
             type="button"
             onClick={() => setMostrarMeAlcanza((current) => !current)}
-            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:text-white"
+            className="flex w-full min-h-11 items-center justify-between px-4 py-3 text-left text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:bg-slate-700/50 hover:text-white"
             aria-expanded={mostrarMeAlcanza}
           >
             <span>¿Me alcanza para...?</span>
@@ -868,7 +976,7 @@ export default memo(function Dashboard() {
       )}
 
       {esMesActual && (
-        <form onSubmit={handleGuardarLimite} className="flex gap-2">
+        <form onSubmit={handleGuardarLimite} className={`flex gap-2 ${formWithKeyboardClassName}`}>
           <div className="min-w-0 flex-1">
             <label htmlFor="limite" className="sr-only">
               Límite mensual
@@ -876,18 +984,19 @@ export default memo(function Dashboard() {
             <input
               id="limite"
               type="number"
+              inputMode="decimal"
               min="1"
               step="100"
               value={limiteInput}
               onChange={(e) => setLimiteInput(e.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2.5 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              className={inputClassName}
               placeholder="Límite mensual"
             />
           </div>
           <button
             type="submit"
             disabled={guardandoLimite}
-            className="shrink-0 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-600 disabled:opacity-60"
+            className={`shrink-0 ${buttonSecondaryClassName}`}
           >
             {guardandoLimite ? '...' : 'Guardar'}
           </button>
@@ -915,11 +1024,11 @@ export default memo(function Dashboard() {
       )}
 
       {!cargando && tieneDatosAnalisis && (
-        <div className="space-y-3">
+        <div className="space-y-3 transition-all duration-300">
           <button
             type="button"
             onClick={() => setMostrarGraficas((v) => !v)}
-            className="flex w-full items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-600 hover:text-white"
+            className="flex w-full min-h-11 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-2.5 text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:bg-slate-700/50 hover:border-slate-600 hover:text-white"
           >
             <span>{mostrarGraficas ? 'Ocultar análisis' : 'Ver análisis de gastos'}</span>
             <span className="text-slate-500">{mostrarGraficas ? '▲' : '▼'}</span>
@@ -937,11 +1046,7 @@ export default memo(function Dashboard() {
                   role="tab"
                   aria-selected={chartView === 'categoria'}
                   onClick={() => setChartView('categoria')}
-                  className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition ${
-                    chartView === 'categoria'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={chartToggleClassName(chartView === 'categoria')}
                 >
                   Por categoría
                 </button>
@@ -950,11 +1055,7 @@ export default memo(function Dashboard() {
                   role="tab"
                   aria-selected={chartView === 'evolucion'}
                   onClick={() => setChartView('evolucion')}
-                  className={`flex-1 rounded-md px-3 py-2 text-xs font-semibold transition ${
-                    chartView === 'evolucion'
-                      ? 'bg-slate-700 text-white'
-                      : 'text-slate-400 hover:text-white'
-                  }`}
+                  className={chartToggleClassName(chartView === 'evolucion')}
                 >
                   Evolución mensual
                 </button>
@@ -1007,7 +1108,7 @@ export default memo(function Dashboard() {
         </div>
       )}
 
-      <div className="space-y-4 border-t border-slate-700/60 pt-5">
+      <div className="space-y-4 border-t border-slate-700/60 pt-5 transition-all duration-300">
         <div className="space-y-1">
           <h3 className="text-sm font-semibold text-slate-300">Metas de ahorro</h3>
           <p className="text-xs text-slate-500">
@@ -1038,14 +1139,15 @@ export default memo(function Dashboard() {
               <button
                 type="button"
                 onClick={() => setMostrarFormMeta(true)}
-                className="w-full rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400"
+                className={buttonEmeraldFullClassName}
               >
                 Crear meta
               </button>
             ) : (
-              <form onSubmit={handleCrearMeta} className="space-y-3">
+              <form onSubmit={handleCrearMeta} className={`space-y-3 ${formWithKeyboardClassName}`}>
                 <input
                   type="text"
+                  inputMode="text"
                   value={metaNombre}
                   onChange={(e) => setMetaNombre(e.target.value)}
                   placeholder="Nombre (ej. Vacaciones)"
@@ -1068,14 +1170,14 @@ export default memo(function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setMostrarFormMeta(false)}
-                    className="flex-1 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-600"
+                    className={buttonSecondaryFlexClassName}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={guardandoMeta}
-                    className="flex-1 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-60"
+                    className={buttonEmeraldFlexClassName}
                   >
                     {guardandoMeta ? 'Guardando...' : 'Crear'}
                   </button>
@@ -1125,14 +1227,14 @@ export default memo(function Dashboard() {
                         }))
                       }
                       placeholder="Sumar..."
-                      className="min-w-0 flex-1 rounded-xl border border-slate-600 bg-slate-900/80 px-3 py-2 text-sm text-white outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30"
+                      className={`min-w-0 flex-1 ${inputClassName}`}
                       aria-label={`Sumar ahorro a ${meta.nombre}`}
                     />
                     <button
                       type="button"
                       onClick={() => handleSumarAhorro(meta)}
                       disabled={isSumando}
-                      className="shrink-0 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-60"
+                      className={`shrink-0 ${buttonEmeraldClassName}`}
                     >
                       {isSumando ? '...' : 'Sumar'}
                     </button>
@@ -1145,14 +1247,15 @@ export default memo(function Dashboard() {
               <button
                 type="button"
                 onClick={() => setMostrarFormMeta(true)}
-                className="w-full rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
+                className={`w-full ${buttonGhostClassName}`}
               >
                 + Añadir otra meta
               </button>
             ) : (
-              <form onSubmit={handleCrearMeta} className="space-y-3 border-t border-slate-700/60 pt-4">
+              <form onSubmit={handleCrearMeta} className={`space-y-3 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}>
                 <input
                   type="text"
+                  inputMode="text"
                   value={metaNombre}
                   onChange={(e) => setMetaNombre(e.target.value)}
                   placeholder="Nombre de la nueva meta"
@@ -1175,14 +1278,14 @@ export default memo(function Dashboard() {
                   <button
                     type="button"
                     onClick={() => setMostrarFormMeta(false)}
-                    className="flex-1 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-600"
+                    className={buttonSecondaryFlexClassName}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={guardandoMeta}
-                    className="flex-1 rounded-xl bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-60"
+                    className={buttonEmeraldFlexClassName}
                   >
                     {guardandoMeta ? 'Guardando...' : 'Crear meta'}
                   </button>
@@ -1192,6 +1295,8 @@ export default memo(function Dashboard() {
           </div>
         )}
       </div>
+        </>
+      )}
     </section>
   )
 })

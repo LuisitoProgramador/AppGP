@@ -24,5 +24,19 @@ describe('safeToSpend', () => {
     expect(result.disponibleBruto).toBe(7000)
     expect(result.disponible).toBe(6500)
     expect(result.presupuestoDiario).toBe(650)
+    expect(result.msiPendientes).toBe(0)
+  })
+
+  it('resta MSI pendientes del disponible', () => {
+    const result = calcSafeToSpend({
+      limiteMensual: 10000,
+      gastoTotal: 3000,
+      recibosPendientes: 500,
+      msiPendientes: 800,
+      diasRestantes: 10,
+    })
+
+    expect(result.disponible).toBe(5700)
+    expect(result.presupuestoDiario).toBe(570)
   })
 })

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AuthProvider, GastosRefreshProvider, useAuthContext } from './contexts'
+import { AuthProvider, GastosProviders, QuietModeProvider, FocusModeProvider, useAuthContext } from './contexts'
 import {
   Dashboard,
   ErrorBoundary,
@@ -12,6 +12,7 @@ import {
   OnboardingFlow,
   SalidasTimelineSection,
 } from './components'
+import { navTabClassName, signOutButtonClassName } from './components/formStyles'
 import { checkNeedsOnboarding } from './services/onboarding'
 import { readSessionStorage, writeSessionStorage } from './utils/storage'
 import { showError } from './utils/toast'
@@ -115,15 +116,16 @@ function AppContent() {
   }
 
   return (
-    <GastosRefreshProvider>
-      <Layout>
-        <section className="space-y-6">
+    <GastosProviders>
+      <QuietModeProvider>
+        <Layout>
+          <section className="space-y-6">
           <div className="flex items-start justify-between gap-4">
             <h1 className="text-3xl font-bold">Mi Presupuesto</h1>
             <button
               type="button"
               onClick={handleSignOut}
-              className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-slate-400 transition hover:bg-slate-800 hover:text-white"
+              className={signOutButtonClassName}
             >
               Salir
             </button>
@@ -150,11 +152,7 @@ function AppContent() {
                 aria-selected={tab === id}
                 aria-controls={`panel-${id}`}
                 onClick={() => handleTabChange(id)}
-                className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                  tab === id
-                    ? 'bg-blue-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                className={navTabClassName(tab === id)}
               >
                 {label}
               </button>
@@ -181,18 +179,20 @@ function AppContent() {
               hidden={tab !== 'resumen'}
               className={tab === 'resumen' ? 'space-y-6' : undefined}
             >
-              <ErrorBoundary title="Error en cuentas">
-                <ListaCuentas />
-              </ErrorBoundary>
-              <ErrorBoundary title="Error en el Dashboard">
-                <Dashboard />
-              </ErrorBoundary>
-              <ErrorBoundary title="Error en salidas del mes">
-                <SalidasTimelineSection />
-              </ErrorBoundary>
-              <ErrorBoundary title="Error en gastos recurrentes">
-                <GastosRecurrentes />
-              </ErrorBoundary>
+              <FocusModeProvider>
+                <ErrorBoundary title="Error en cuentas">
+                  <ListaCuentas />
+                </ErrorBoundary>
+                <ErrorBoundary title="Error en el Dashboard">
+                  <Dashboard />
+                </ErrorBoundary>
+                <ErrorBoundary title="Error en salidas del mes">
+                  <SalidasTimelineSection />
+                </ErrorBoundary>
+                <ErrorBoundary title="Error en gastos recurrentes">
+                  <GastosRecurrentes />
+                </ErrorBoundary>
+              </FocusModeProvider>
             </div>
 
             <div
@@ -207,9 +207,10 @@ function AppContent() {
               </ErrorBoundary>
             </div>
           </div>
-        </section>
-      </Layout>
-    </GastosRefreshProvider>
+          </section>
+        </Layout>
+      </QuietModeProvider>
+    </GastosProviders>
   )
 }
 

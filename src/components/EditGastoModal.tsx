@@ -1,11 +1,12 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useGastosRefresh } from '../contexts'
+import { useCuentas, useGastosData } from '../contexts'
 import { updateMsiGrupo, type MsiGrupoUndoSnapshot } from '../services/msiGrupo'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS, type Gasto } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { saldoDeltaAlCorregirMsiGrupo, sumMsiGrupoMontos } from '../utils/gastoSaldo'
 import { buildMsiGastos, parseMsiDescripcion, toMsiInstallmentUpdates } from '../utils/msi'
+import { isGastoFechaPasada } from '../utils/date'
 import { showError, showInfo, showSuccess, showSuccessWithUndo } from '../utils/toast'
 import {
   validateDescripcion,
@@ -14,7 +15,7 @@ import {
   validateNombre,
 } from '../utils/validation'
 import ModalPortal from './ModalPortal'
-import { cardClassName, inputClassName } from './formStyles'
+import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName } from './formStyles'
 
 interface GrupoMsiRow {
   id: number
@@ -37,7 +38,8 @@ export default function EditGastoModal({
   onClose,
   modoInicial = 'cuota',
 }: EditGastoModalProps) {
-  const { refresh, applyGastoSaldo, revertGastoSaldo } = useGastosRefresh()
+  const { refresh } = useGastosData()
+  const { applyGastoSaldo, revertGastoSaldo } = useCuentas()
   const [monto, setMonto] = useState(String(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [descripcion, setDescripcion] = useState(gasto.descripcion ?? '')
@@ -50,6 +52,10 @@ export default function EditGastoModal({
   const [descripcionBase, setDescripcionBase] = useState('')
 
   const esMsi = Boolean(gasto.es_msi && gasto.grupo_msi_id)
+  const cuotaPasada = useMemo(
+    () => esMsi && !corregirTotal && isGastoFechaPasada(gasto.fecha),
+    [esMsi, corregirTotal, gasto.fecha],
+  )
   const msiInfo = parseMsiDescripcion(gasto.descripcion ?? '')
   const totalGrupo = sumMsiGrupoMontos(grupoRows.length > 0 ? grupoRows : [{ monto: gasto.monto }])
 
@@ -254,6 +260,13 @@ export default function EditGastoModal({
   }
 
   async function guardarCuotaIndividual(): Promise<boolean> {
+    if (cuotaPasada) {
+      showError(
+        'No puedes editar cuotas pasadas. Usa "Editar compra MSI completa" para ajustar el total.',
+      )
+      return false
+    }
+
     const montoError = validateMonto(monto)
     if (montoError) {
       showError(montoError)
@@ -363,7 +376,7 @@ export default function EditGastoModal({
     <ModalPortal onClose={onClose} ariaLabelledBy="edit-gasto-title">
       <form
         onSubmit={handleSubmit}
-        className={`${cardClassName} max-h-[90svh] w-full max-w-lg overflow-y-auto`}
+        className={`${cardClassName} max-h-[90svh] w-full max-w-lg overflow-y-auto ${formWithKeyboardClassName}`}
       >
         <div className="space-y-1">
           <h2 id="edit-gasto-title" className="text-lg font-semibold text-white">
@@ -396,6 +409,12 @@ export default function EditGastoModal({
               />
               Editar compra MSI completa (total, meses y saldo de crédito)
             </label>
+            {cuotaPasada && (
+              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+                No puedes editar cuotas pasadas, el gasto ya ocurrió. Si quieres ajustar el total,
+                debes editar el grupo MSI completo.
+              </p>
+            )}
           </div>
         )}
 
@@ -408,6 +427,7 @@ export default function EditGastoModal({
               <input
                 id="edit-descripcion-base"
                 type="text"
+                inputMode="text"
                 maxLength={200}
                 value={descripcionBase}
                 onChange={(e) => setDescripcionBase(e.target.value)}
@@ -484,6 +504,7 @@ export default function EditGastoModal({
               onChange={(e) => setMonto(e.target.value)}
               className={inputClassName}
               required
+              disabled={cuotaPasada}
             />
           </div>
         )}
@@ -517,11 +538,13 @@ export default function EditGastoModal({
             <input
               id="edit-descripcion"
               type="text"
+              inputMode="text"
               maxLength={200}
               value={descripcion}
               onChange={(e) => setDescripcion(e.target.value)}
               className={inputClassName}
               required
+              disabled={cuotaPasada}
             />
           </div>
         )}
@@ -530,14 +553,14 @@ export default function EditGastoModal({
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl bg-slate-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-600"
+            className={buttonSecondaryFlexClassName}
           >
             Cancelar
           </button>
           <button
             type="submit"
-            disabled={guardando || (esMsi && cargandoGrupo)}
-            className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:opacity-60"
+            disabled={guardando || (esMsi && cargandoGrupo) || cuotaPasada}
+            className={`flex-1 ${buttonPrimaryClassName}`}
           >
             {guardando ? 'Guardando...' : 'Guardar cambios'}
           </button>

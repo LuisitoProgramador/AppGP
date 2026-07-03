@@ -6,9 +6,7 @@ export interface MetaAhorro {
   fecha_limite: string | null
 }
 
-export interface MetaAhorroInput {
-  nombre: string
-  monto_objetivo: number
+export type MetaAhorroInput = Pick<MetaAhorro, 'nombre' | 'monto_objetivo'> & {
   fecha_limite?: string | null
 }
 

@@ -49,6 +49,14 @@ export function isCurrentMonth(date: Date): boolean {
   )
 }
 
+/** True si la fecha del gasto es anterior al día de hoy (solo lectura histórica). */
+export function isGastoFechaPasada(fecha: string | Date, hoy = new Date()): boolean {
+  const gasto = new Date(fecha)
+  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+  const inicioGasto = new Date(gasto.getFullYear(), gasto.getMonth(), gasto.getDate())
+  return inicioGasto < inicioHoy
+}
+
 export function shiftMonth(date: Date, delta: number): Date {
   return new Date(date.getFullYear(), date.getMonth() + delta, 1)
 }

@@ -8,9 +8,23 @@ import {
   type OnboardingTarjeta,
 } from '../services/onboarding'
 import { formatCurrency } from '../utils/formatCurrency'
+import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
-import { cardClassName, inputClassName } from './formStyles'
+import {
+  buttonEmeraldFlexClassName,
+  buttonGhostFlexClassName,
+  buttonGhostSmClassName,
+  buttonGhostSmFlexClassName,
+  buttonPrimaryClassName,
+  buttonPrimaryFlexClassName,
+  buttonVioletFlexClassName,
+  buttonVioletClassName,
+  cardClassName,
+  formSubmitStickyClassName,
+  formWithKeyboardClassName,
+  inputClassName,
+} from './formStyles'
 
 const TOTAL_STEPS = 4
 
@@ -193,7 +207,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    if (!navigator.onLine) {
+    if (!isOnline()) {
       showError('Sin conexión. Conéctate a internet para completar la configuración.')
       return
     }
@@ -314,7 +328,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <button
               type="button"
               onClick={handleStep1Next}
-              className="w-full rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 active:scale-[0.98]"
+              className={buttonPrimaryClassName}
             >
               Continuar
             </button>
@@ -369,7 +383,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               ))}
             </div>
 
-            <form onSubmit={handleAddGasto} className="space-y-3 border-t border-slate-700/60 pt-4">
+            <form onSubmit={handleAddGasto} className={`space-y-3 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}>
               <div className="grid gap-2 sm:grid-cols-2">
                 <input
                   type="text"
@@ -394,7 +408,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
               <button
                 type="submit"
-                className="w-full rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-700/60"
+                className={`w-full ${buttonGhostSmClassName}`}
               >
                 Añadir gasto
               </button>
@@ -404,14 +418,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <button
                 type="button"
                 onClick={() => goToStep(1)}
-                className="flex-1 rounded-xl border border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700/60"
+                className={buttonGhostSmFlexClassName}
               >
                 Atrás
               </button>
               <button
                 type="button"
                 onClick={() => goToStep(3)}
-                className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400"
+                className={buttonPrimaryFlexClassName}
               >
                 {gastosFijos.length === 0 ? 'Omitir' : 'Continuar'}
               </button>
@@ -466,14 +480,14 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <button
                 type="button"
                 onClick={() => goToStep(2)}
-                className="flex-1 rounded-xl border border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700/60"
+                className={buttonGhostSmFlexClassName}
               >
                 Atrás
               </button>
               <button
                 type="button"
                 onClick={() => goToStep(4)}
-                className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400"
+                className={buttonPrimaryFlexClassName}
               >
                 Continuar
               </button>
@@ -527,7 +541,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 + Añadir tarjeta
               </button>
             ) : (
-              <form onSubmit={handleAddTarjeta} className="space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
+              <form onSubmit={handleAddTarjeta} className={`space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 ${formWithKeyboardClassName}`}>
                 <div className="space-y-2">
                   <label htmlFor="onb-tarjeta-nombre" className="block text-sm font-medium text-slate-300">
                     Nombre
@@ -614,13 +628,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         saldo_actual: '0',
                       })
                     }}
-                    className="flex-1 rounded-xl border border-slate-600 px-4 py-2.5 text-sm font-semibold text-slate-300 transition hover:bg-slate-700/60"
+                    className={buttonGhostSmFlexClassName}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-400"
+                    className={buttonVioletFlexClassName}
                   >
                     Guardar tarjeta
                   </button>
@@ -632,7 +646,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <button
                 type="button"
                 onClick={() => goToStep(3)}
-                className="flex-1 rounded-xl border border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700/60"
+                className={buttonGhostSmFlexClassName}
               >
                 Atrás
               </button>
@@ -640,7 +654,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 type="button"
                 onClick={handleFinish}
                 disabled={guardando}
-                className="flex-1 rounded-xl bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400 disabled:opacity-60"
+                className={buttonEmeraldFlexClassName}
               >
                 {guardando ? 'Configurando...' : 'Finalizar'}
               </button>

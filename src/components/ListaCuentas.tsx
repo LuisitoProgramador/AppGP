@@ -1,13 +1,14 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import { useAuthContext, useGastosRefresh } from '../contexts'
+import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { createCuenta } from '../services/cuentas'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
 import { getCorteEstado } from '../utils/diaCorte'
 import { getCreditUtilization, utilizationColor } from '../utils/creditUtilization'
+import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import ModalPortal from './ModalPortal'
-import { cardClassName, inputClassName } from './formStyles'
+import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryCompactClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName, buttonGhostFlexClassName, modalFormClassName } from './formStyles'
 
 const initialForm = {
   nombre: '',
@@ -77,7 +78,8 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
 
 export default function ListaCuentas() {
   const { user } = useAuthContext()
-  const { cuentas, cuentasLoading, refreshCuentas, refresh } = useGastosRefresh()
+  const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
+  const { refresh } = useGastosData()
   const [modalOpen, setModalOpen] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
@@ -139,7 +141,7 @@ export default function ListaCuentas() {
       }
     }
 
-    if (!navigator.onLine) {
+    if (!isOnline()) {
       showError('Sin conexión. Conéctate para registrar una cuenta.')
       return
     }
@@ -177,7 +179,7 @@ export default function ListaCuentas() {
         <button
           type="button"
           onClick={openModal}
-          className="shrink-0 rounded-lg bg-blue-500 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
+          className={buttonPrimaryCompactClassName}
         >
           + Nueva
         </button>
@@ -205,7 +207,7 @@ export default function ListaCuentas() {
         <ModalPortal onClose={closeModal} ariaLabelledBy="nueva-cuenta-title">
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-md space-y-4 rounded-2xl border border-slate-700/80 bg-slate-800 p-5 shadow-2xl"
+            className={`${modalFormClassName} ${formWithKeyboardClassName}`}
           >
             <div className="space-y-1">
               <h3 id="nueva-cuenta-title" className="text-lg font-semibold text-white">
@@ -223,6 +225,7 @@ export default function ListaCuentas() {
               <input
                 id="cuenta-nombre"
                 type="text"
+                inputMode="text"
                 maxLength={60}
                 placeholder="Ej. Banamex, Efectivo..."
                 value={form.nombre}
@@ -326,14 +329,14 @@ export default function ListaCuentas() {
               <button
                 type="button"
                 onClick={closeModal}
-                className="flex-1 rounded-xl border border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-700/60"
+                className={buttonGhostFlexClassName}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
                 disabled={guardando}
-                className="flex-1 rounded-xl bg-blue-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-blue-400 disabled:opacity-60"
+                className={`flex-1 ${buttonPrimaryClassName}`}
               >
                 {guardando ? 'Guardando...' : 'Guardar'}
               </button>

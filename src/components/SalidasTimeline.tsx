@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { SalidaTimelineItem } from '../utils/salidasTimeline'
 import { formatSalidaMonto } from '../utils/salidasTimeline'
 import { cardClassName } from './formStyles'
@@ -6,7 +7,7 @@ interface SalidasTimelineProps {
   items: SalidaTimelineItem[]
 }
 
-export default function SalidasTimeline({ items }: SalidasTimelineProps) {
+function SalidasTimeline({ items }: SalidasTimelineProps) {
   if (items.length === 0) return null
 
   return (
@@ -44,3 +45,5 @@ export default function SalidasTimeline({ items }: SalidasTimelineProps) {
     </section>
   )
 }
+
+export default memo(SalidasTimeline)

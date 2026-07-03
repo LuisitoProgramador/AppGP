@@ -37,4 +37,13 @@ describe('parseGastoInput', () => {
   it('retorna null si no hay monto', () => {
     expect(parseGastoInput('solo texto')).toBeNull()
   })
+
+  it('usa historial cuando no hay keyword', () => {
+    const historial = [{ descripcion: 'Oxxo Centro', categoria: 'Comida' as const }]
+    expect(parseGastoInput('35 Oxxo Centro', historial)).toEqual({
+      monto: 35,
+      categoria: 'Comida',
+      descripcion: 'Oxxo Centro',
+    })
+  })
 })

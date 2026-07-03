@@ -1,7 +1,7 @@
 import { type FormEvent, useState } from 'react'
 import { useAuthContext } from '../contexts'
 import { showError, showInfo } from '../utils/toast'
-import { cardClassName, inputClassName } from './formStyles'
+import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, textLinkClassName } from './formStyles'
 
 type ModoAuth = 'login' | 'register'
 
@@ -32,7 +32,7 @@ export default function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cardClassName}>
+    <form onSubmit={handleSubmit} className={`${cardClassName} ${formWithKeyboardClassName}`}>
       <div className="space-y-1 text-center">
         <h2 className="text-lg font-semibold text-white">
           {modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
@@ -80,7 +80,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={enviando}
-        className="w-full rounded-xl bg-blue-500 px-4 py-3.5 text-base font-semibold text-white transition hover:bg-blue-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
+        className={buttonPrimaryClassName}
       >
         {enviando
           ? 'Procesando...'
@@ -92,7 +92,7 @@ export default function LoginForm() {
       <button
         type="button"
         onClick={() => setModo(modo === 'login' ? 'register' : 'login')}
-        className="w-full text-sm text-slate-400 transition hover:text-white"
+        className={textLinkClassName}
       >
         {modo === 'login'
           ? '¿No tienes cuenta? Regístrate'

@@ -10,3 +10,19 @@ body {
   min-height: 100svh;
   font-family: system-ui, -apple-system, sans-serif;
 }
+
+/* Evita zoom automático en iOS al enfocar inputs (< 16px dispara el zoom) */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+/* Ayuda a mantener campos visibles cuando el teclado virtual está abierto */
+@media (max-width: 640px) {
+  input:focus,
+  select:focus,
+  textarea:focus {
+    scroll-margin-bottom: 8rem;
+  }
+}

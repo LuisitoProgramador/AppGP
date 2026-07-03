@@ -1,6 +1,6 @@
-import { useEffect, useState, memo } from 'react'
-import { useAuthContext, useGastosRefresh } from '../contexts'
-import { removePendingGasto } from '../services/offlineQueue'
+import { useEffect, useState, memo, useCallback } from 'react'
+import { useAuthContext, useCuentas, useGastosData, useOfflineSync } from '../contexts'
+import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import {
   CATEGORIAS,
@@ -12,11 +12,16 @@ import {
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatShortDate, getMonthRange } from '../utils/date'
 import { filterOptimisticGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
-import { showError, showSuccess } from '../utils/toast'
+import {
+  buildGastoEliminadoSnapshot,
+  montoSaldoAlRestaurar,
+  type GastoEliminadoSnapshot,
+} from '../utils/historialUndo'
+import { showError, showInfo, showSuccessWithUndo } from '../utils/toast'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
 import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
-import { cardClassName, inputClassName } from './formStyles'
+import { cardClassName, iconButtonDangerClassName, iconButtonEditClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
 
 type HistorialItem =
   | (Gasto & { pendiente?: false; optimistic?: false })
@@ -90,16 +95,93 @@ function EditIcon() {
   )
 }
 
+interface HistorialItemRowProps {
+  item: HistorialItem
+  isBusy: boolean
+  isOptimistic: boolean
+  onEdit: (gasto: Gasto, modo: EditGastoModo) => void
+  onDelete: (item: HistorialItem) => void
+}
+
+const HistorialItemRow = memo(function HistorialItemRow({
+  item,
+  isBusy,
+  isOptimistic,
+  onEdit,
+  onDelete,
+}: HistorialItemRowProps) {
+  return (
+    <div className="flex items-center gap-3 bg-slate-900/40 px-3 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-medium text-white">
+            {item.descripcion || item.categoria}
+          </p>
+          {isOptimistic && (
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+              <SpinnerIcon />
+              Guardando...
+            </span>
+          )}
+          {item.pendiente && (
+            <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
+              Pendiente
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-400">
+          {item.categoria} · {formatShortDate(item.fecha)}
+        </p>
+      </div>
+      <p className="shrink-0 text-sm font-semibold text-slate-200">
+        {formatCurrency(Number(item.monto))}
+      </p>
+      {!item.pendiente && !isOptimistic && (
+        <div className="flex shrink-0 items-center gap-1">
+          <button
+            type="button"
+            onClick={() => onEdit(item as Gasto, 'cuota')}
+            disabled={isBusy}
+            aria-label="Editar gasto"
+            className={iconButtonEditClassName}
+          >
+            <EditIcon />
+          </button>
+          {item.es_msi && item.grupo_msi_id && (
+            <button
+              type="button"
+              onClick={() => onEdit(item as Gasto, 'compra')}
+              disabled={isBusy}
+              aria-label="Editar compra MSI"
+              title="Editar compra MSI"
+              className={iconButtonMsiClassName}
+            >
+              MSI
+            </button>
+          )}
+        </div>
+      )}
+      {!isOptimistic && (
+        <button
+          type="button"
+          onClick={() => onDelete(item)}
+          disabled={isBusy}
+          aria-label="Eliminar gasto"
+          className={iconButtonDangerClassName}
+        >
+          <TrashIcon />
+        </button>
+      )}
+    </div>
+  )
+})
+
 export default memo(function Historial() {
   const { user } = useAuthContext()
-  const {
-    refreshKey,
-    refresh,
-    optimisticGastos,
-    pendingGastos,
-    revertGastoSaldo,
-    removeOptimisticGastos,
-  } = useGastosRefresh()
+  const { refreshKey, refresh, optimisticGastos, removeOptimisticGastos, addOptimisticGasto } =
+    useGastosData()
+  const { pendingGastos } = useOfflineSync()
+  const { revertGastoSaldo, applyGastoSaldo } = useCuentas()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -119,6 +201,85 @@ export default memo(function Historial() {
     setEditModo(modo)
     setGastoEditando(gastoItem)
   }
+
+  const restaurarGastoEliminado = useCallback(
+    async (snapshot: GastoEliminadoSnapshot) => {
+      const { error } = await supabase.from('gastos').insert(snapshot.row)
+      if (error) {
+        showError(`No se pudo restaurar: ${error.message}`)
+        return
+      }
+
+      const cuentaId = snapshot.saldoAplicado?.cuentaId ?? snapshot.row.cuenta_id
+      if (cuentaId && snapshot.saldoAplicado) {
+        const montoSaldo = montoSaldoAlRestaurar(snapshot)
+        const { error: saldoError } = await applyGastoSaldo(cuentaId, montoSaldo)
+        if (saldoError) {
+          showError(`Gasto restaurado, pero el saldo no se actualizó: ${saldoError}`)
+          refresh()
+          return
+        }
+      }
+
+      refresh()
+      showInfo('Gasto restaurado.')
+    },
+    [applyGastoSaldo, refresh],
+  )
+
+  const restaurarGastoPendiente = useCallback(
+    async (pending: PendingGasto) => {
+      const rows =
+        pending.msiInstallments ??
+        [
+          {
+            monto: pending.monto,
+            categoria: pending.categoria,
+            descripcion: pending.descripcion,
+            fecha: pending.fecha,
+            cuenta_id: pending.cuenta_id ?? null,
+            es_msi: pending.es_msi ?? false,
+            grupo_msi_id: pending.grupo_msi_id ?? null,
+          },
+        ]
+
+      const tempIds = rows.map((row) =>
+        addOptimisticGasto({
+          monto: row.monto,
+          categoria: row.categoria,
+          descripcion: row.descripcion,
+          fecha: row.fecha,
+          cuenta_id: row.cuenta_id,
+          es_msi: row.es_msi,
+          grupo_msi_id: row.grupo_msi_id,
+        }),
+      )
+
+      await addPendingGasto({
+        monto: pending.monto,
+        categoria: pending.categoria,
+        descripcion: pending.descripcion,
+        fecha: pending.fecha,
+        cuenta_id: pending.cuenta_id,
+        es_msi: pending.es_msi,
+        grupo_msi_id: pending.grupo_msi_id,
+        msiInstallments: pending.msiInstallments,
+        optimisticTempIds: tempIds,
+      })
+
+      if (pending.cuenta_id) {
+        const montoSaldo = montoSaldoAlEliminarPendiente(pending)
+        const { error: saldoError } = await applyGastoSaldo(pending.cuenta_id, montoSaldo)
+        if (saldoError) {
+          showError(`Gasto restaurado, pero el saldo no se actualizó: ${saldoError}`)
+        }
+      }
+
+      refresh()
+      showInfo('Gasto restaurado.')
+    },
+    [addOptimisticGasto, applyGastoSaldo, refresh],
+  )
 
   useEffect(() => {
     setPage(0)
@@ -223,6 +384,7 @@ export default memo(function Historial() {
     setAccionId(item.id)
 
     if (item.pendiente) {
+      const pendingBackup = { ...item }
       if (item.cuenta_id) {
         const montoRevert = montoSaldoAlEliminarPendiente(item)
         const { error: saldoError } = await revertGastoSaldo(item.cuenta_id, montoRevert)
@@ -238,7 +400,11 @@ export default memo(function Historial() {
       await removePendingGasto(item.id)
       setAccionId(null)
       refresh()
-      showSuccess('Gasto pendiente eliminado.')
+      const esMsi = Boolean(pendingBackup.msiInstallments?.length)
+      showSuccessWithUndo(
+        esMsi ? 'Compra MSI pendiente eliminada.' : 'Gasto pendiente eliminado.',
+        () => restaurarGastoPendiente(pendingBackup),
+      )
       return
     }
 
@@ -252,6 +418,8 @@ export default memo(function Historial() {
         saldoRevert = saldoRevertAlEliminar(item, grupoRows)
       }
     }
+
+    const snapshot = buildGastoEliminadoSnapshot(item, saldoRevert)
 
     const { error: deleteError } = await supabase.from('gastos').delete().eq('id', item.id)
 
@@ -275,7 +443,10 @@ export default memo(function Historial() {
     }
 
     refresh()
-    showSuccess('Gasto eliminado.')
+    showSuccessWithUndo(
+      item.es_msi ? 'Cuota MSI eliminada.' : 'Gasto eliminado.',
+      () => restaurarGastoEliminado(snapshot),
+    )
   }
 
   return (
@@ -303,6 +474,7 @@ export default memo(function Historial() {
         </select>
         <input
           type="search"
+          inputMode="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar descripción..."
@@ -335,77 +507,18 @@ export default memo(function Historial() {
                   ? `pending-${item.id}`
                   : `gasto-${item.id}`
             const isBusy =
-              'optimistic' in item
-                ? false
-                : accionId === item.id
+              'optimistic' in item ? false : accionId === item.id
             const isOptimistic = 'optimistic' in item && item.optimistic
 
             return (
-              <div
+              <HistorialItemRow
                 key={itemKey}
-                className="flex items-center gap-3 bg-slate-900/40 px-3 py-3"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-sm font-medium text-white">
-                      {item.descripcion || item.categoria}
-                    </p>
-                    {isOptimistic && (
-                      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
-                        <SpinnerIcon />
-                        Guardando...
-                      </span>
-                    )}
-                    {item.pendiente && (
-                      <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
-                        Pendiente
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-400">
-                    {item.categoria} · {formatShortDate(item.fecha)}
-                  </p>
-                </div>
-                <p className="shrink-0 text-sm font-semibold text-slate-200">
-                  {formatCurrency(Number(item.monto))}
-                </p>
-                {!item.pendiente && !isOptimistic && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => abrirEdicion(item, 'cuota')}
-                      disabled={isBusy}
-                      aria-label="Editar gasto"
-                      className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-blue-500/10 hover:text-blue-400 disabled:opacity-50"
-                    >
-                      <EditIcon />
-                    </button>
-                    {item.es_msi && item.grupo_msi_id && (
-                      <button
-                        type="button"
-                        onClick={() => abrirEdicion(item, 'compra')}
-                        disabled={isBusy}
-                        aria-label="Editar compra MSI"
-                        title="Editar compra MSI"
-                        className="shrink-0 rounded-lg px-2 py-1 text-[10px] font-semibold text-violet-300 transition hover:bg-violet-500/15 disabled:opacity-50"
-                      >
-                        MSI
-                      </button>
-                    )}
-                  </>
-                )}
-                {!isOptimistic && (
-                  <button
-                    type="button"
-                    onClick={() => handleEliminar(item)}
-                    disabled={isBusy}
-                    aria-label="Eliminar gasto"
-                    className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                  >
-                    <TrashIcon />
-                  </button>
-                )}
-              </div>
+                item={item}
+                isBusy={isBusy}
+                isOptimistic={isOptimistic}
+                onEdit={abrirEdicion}
+                onDelete={handleEliminar}
+              />
             )
           })}
         </div>
@@ -416,7 +529,7 @@ export default memo(function Historial() {
           type="button"
           onClick={() => setPage((current) => current + 1)}
           disabled={cargandoMas}
-          className="w-full rounded-xl bg-slate-700 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-600 disabled:opacity-60"
+          className={`w-full ${buttonSecondaryClassName}`}
         >
           {cargandoMas ? 'Cargando...' : 'Cargar más'}
         </button>

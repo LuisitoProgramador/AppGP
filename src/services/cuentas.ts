@@ -1,5 +1,6 @@
 import type { Cuenta, CuentaInput } from '../types/cuenta'
 import { calcSaldoAfterGasto, revertSaldoAfterGasto } from '../utils/cuentaSaldo'
+import { isOnline, offlineServiceError } from '../utils/network'
 import { getPendingGastos } from './offlineQueue'
 import { supabase } from './supabase'
 
@@ -74,7 +75,7 @@ function mapCuenta(row: Record<string, unknown>): Cuenta {
 export async function listCuentas(
   userId: string,
 ): Promise<{ data: Cuenta[]; error: string | null; fromCache: boolean }> {
-  if (!navigator.onLine) {
+  if (!isOnline()) {
     return { data: readCache(userId), error: null, fromCache: true }
   }
 
@@ -119,8 +120,8 @@ export async function createCuenta(
   userId: string,
   input: CuentaInput,
 ): Promise<{ data: Cuenta | null; error: string | null }> {
-  if (!navigator.onLine) {
-    return { data: null, error: 'Sin conexión. Conéctate para registrar una cuenta.' }
+  if (!isOnline()) {
+    return offlineServiceError('Sin conexión. Conéctate para registrar una cuenta.')
   }
 
   const row: Record<string, unknown> = {
@@ -180,7 +181,7 @@ export async function persistCuentaSaldo(
   cuentaId: string,
   saldoActual: number,
 ): Promise<{ error: string | null }> {
-  if (!navigator.onLine) return { error: null }
+  if (!isOnline()) return { error: null }
 
   const { error } = await supabase
     .from('cuentas')

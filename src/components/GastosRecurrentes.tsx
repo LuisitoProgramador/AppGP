@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import { useAuthContext, useGastosRefresh } from '../contexts'
+import { useAuthContext, useGastosData } from '../contexts'
 import {
   createGastoRecurrente,
   deleteGastoRecurrente,
@@ -7,9 +7,10 @@ import {
 } from '../services/gastosRecurrentes'
 import { CATEGORIAS, type GastoRecurrente } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
+import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateDiaMes, validateMonto } from '../utils/validation'
-import { cardClassName, inputClassName } from './formStyles'
+import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, inputClassName, buttonVioletClassName } from './formStyles'
 
 const initialForm = {
   descripcion: '',
@@ -42,7 +43,7 @@ function TrashIcon() {
 
 export default function GastosRecurrentes() {
   const { user } = useAuthContext()
-  const { refreshKey, refresh } = useGastosRefresh()
+  const { refreshKey, refresh } = useGastosData()
   const [items, setItems] = useState<GastoRecurrente[]>([])
   const [form, setForm] = useState(initialForm)
   const [cargando, setCargando] = useState(true)
@@ -99,7 +100,7 @@ export default function GastosRecurrentes() {
       return
     }
 
-    if (!navigator.onLine) {
+    if (!isOnline()) {
       showError('Sin conexión. Conéctate a internet para gestionar gastos recurrentes.')
       return
     }
@@ -129,7 +130,7 @@ export default function GastosRecurrentes() {
   async function handleEliminar(item: GastoRecurrente) {
     if (!confirm(`¿Eliminar el gasto recurrente "${item.descripcion}"?`)) return
 
-    if (!navigator.onLine) {
+    if (!isOnline()) {
       showError('Sin conexión. Conéctate a internet para eliminar gastos recurrentes.')
       return
     }
@@ -187,7 +188,7 @@ export default function GastosRecurrentes() {
                 onClick={() => handleEliminar(item)}
                 disabled={eliminandoId === item.id}
                 aria-label="Eliminar gasto recurrente"
-                className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                className={iconButtonDangerClassName}
               >
                 <TrashIcon />
               </button>
@@ -202,7 +203,7 @@ export default function GastosRecurrentes() {
         </p>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4 border-t border-slate-700/60 pt-4">
+      <form onSubmit={handleSubmit} className={`space-y-4 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}>
         <h3 className="text-sm font-semibold text-slate-300">Añadir recurrente</h3>
 
         <div className="space-y-2">
@@ -212,6 +213,7 @@ export default function GastosRecurrentes() {
           <input
             id="rec-descripcion"
             type="text"
+            inputMode="text"
             maxLength={200}
             placeholder="Ej. Netflix, Internet..."
             value={form.descripcion}
@@ -282,13 +284,15 @@ export default function GastosRecurrentes() {
           </select>
         </div>
 
-        <button
-          type="submit"
-          disabled={guardando}
-          className="w-full rounded-xl bg-violet-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-violet-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {guardando ? 'Guardando...' : 'Añadir recurrente'}
-        </button>
+        <div className={formSubmitStickyClassName}>
+          <button
+            type="submit"
+            disabled={guardando}
+            className={buttonVioletClassName}
+          >
+            {guardando ? 'Guardando...' : 'Añadir recurrente'}
+          </button>
+        </div>
       </form>
     </section>
   )

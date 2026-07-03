@@ -1,4 +1,5 @@
 import type { MetaAhorro, MetaAhorroInput, PendingMetaAhorroUpdate } from '../types/metaAhorro'
+import { isOnline, offlineServiceError } from '../utils/network'
 import { supabase } from './supabase'
 
 const META_SELECT = 'id, nombre, monto_objetivo, monto_actual, fecha_limite' as const
@@ -52,7 +53,7 @@ function mapMeta(row: Record<string, unknown>): MetaAhorro {
 export async function listMetasAhorro(
   userId: string,
 ): Promise<{ data: MetaAhorro[]; error: string | null; fromCache: boolean }> {
-  if (!navigator.onLine) {
+  if (!isOnline()) {
     return { data: readCache(userId), error: null, fromCache: true }
   }
 
@@ -79,8 +80,8 @@ export async function createMetaAhorro(
   userId: string,
   input: MetaAhorroInput,
 ): Promise<{ data: MetaAhorro | null; error: string | null }> {
-  if (!navigator.onLine) {
-    return { data: null, error: 'Sin conexión. Conéctate para crear una meta de ahorro.' }
+  if (!isOnline()) {
+    return offlineServiceError('Sin conexión. Conéctate para crear una meta de ahorro.')
   }
 
   const { data, error } = await supabase
@@ -113,7 +114,7 @@ export async function addAhorroToMeta(
   )
   writeCache(userId, optimistic)
 
-  if (!navigator.onLine) {
+  if (!isOnline()) {
     const pending = readPending(userId)
     writePending(userId, [
       ...pending,
@@ -145,7 +146,7 @@ export async function addAhorroToMeta(
 }
 
 export async function syncPendingMetaAhorro(userId: string): Promise<number> {
-  if (!navigator.onLine) return 0
+  if (!isOnline()) return 0
 
   const pending = readPending(userId)
   if (pending.length === 0) return 0

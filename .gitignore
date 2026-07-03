@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dev-dist
+*.tsbuildinfo
 *.local
 .env
 .env.*
@@ -19,6 +21,7 @@ dist-ssr
 .vscode/*
 !.vscode/extensions.json
 .idea
+.cursor/
 .DS_Store
 *.suo
 *.ntvs*
@@ -27,3 +30,6 @@ dist-ssr
 *.sw?
 
 .vercel
+
+# Repomix / exports de análisis (no son parte de la app)
+repomix-output*.xml

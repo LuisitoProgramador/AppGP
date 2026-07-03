@@ -1,3 +1,5 @@
+import { isOnline } from '../utils/network'
+
 interface NotifyPayload {
   monto: number
   categoria: string
@@ -5,7 +7,7 @@ interface NotifyPayload {
 }
 
 export async function notifyTelegram(payload: NotifyPayload): Promise<void> {
-  if (!navigator.onLine) return
+  if (!isOnline()) return
 
   try {
     await fetch('/api/notify', {

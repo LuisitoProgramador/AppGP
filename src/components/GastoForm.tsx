@@ -1,5 +1,5 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
-import { useAuthContext, useGastosRefresh } from '../contexts'
+import { type FormEvent, useEffect, useMemo, useRef, useState, memo } from 'react'
+import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { getDefaultCuentaId } from '../services/cuentas'
 import {
   getMerchantMemory,
@@ -17,9 +17,10 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
 import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
 import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
+import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
 import { validateCuentaId, validateDescripcion, validateMonto, validateMsiMeses } from '../utils/validation'
-import { cardClassName, inputClassName } from './formStyles'
+import { cardClassName, chipButtonClassName, formSubmitStickyClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName } from './formStyles'
 
 const initialForm = {
   monto: '',
@@ -53,19 +54,11 @@ const QUICK_TAPS: QuickTap[] = [
   { label: '🛒 Super', monto: 250, categoria: 'Comida', descripcion: 'Supermercado' },
 ]
 
-export default function GastoForm() {
+export default memo(function GastoForm() {
   const { user } = useAuthContext()
-  const {
-    refresh,
-    refreshKey,
-    addOptimisticGasto,
-    removeOptimisticGastos,
-    optimisticGastos,
-    cuentas,
-    cuentasLoading,
-    applyGastoSaldo,
-    revertGastoSaldo,
-  } = useGastosRefresh()
+  const { refresh, refreshKey, addOptimisticGasto, removeOptimisticGastos, optimisticGastos } =
+    useGastosData()
+  const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
   const [merchantMemory, setMerchantMemory] = useState<MerchantMemoryEntry[]>([])
@@ -80,7 +73,7 @@ export default function GastoForm() {
     if (!user) return
     const cached = getMerchantMemory(user.id)
     setMerchantMemory(cached)
-    if (navigator.onLine) {
+    if (isOnline()) {
       refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
     }
   }, [user])
@@ -165,7 +158,11 @@ export default function GastoForm() {
     window.history.replaceState({}, '', cleanUrl)
 
     if (query.trim()) {
-      const parsed = parseGastoInput(query)
+      const historial = merchantMemory.map((entry) => ({
+        descripcion: entry.descripcion,
+        categoria: entry.categoria,
+      }))
+      const parsed = parseGastoInput(query, historial)
       if (parsed) {
         setForm((prev) => ({
           ...prev,
@@ -269,7 +266,7 @@ export default function GastoForm() {
         .map((gasto) => ({ descripcion: gasto.descripcion, monto: gasto.monto })),
     ]
 
-    if (navigator.onLine) {
+    if (isOnline()) {
       const hoy = new Date()
       const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
       const fin = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1)
@@ -360,7 +357,7 @@ export default function GastoForm() {
       }),
     )
 
-    if (!navigator.onLine) {
+    if (!isOnline()) {
       setGuardando(true)
       const pending = await addPendingGasto({ ...offlinePayload, optimisticTempIds: tempIds })
       setGuardando(false)
@@ -460,7 +457,7 @@ export default function GastoForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={cardClassName}>
+    <form onSubmit={handleSubmit} className={`${cardClassName} ${formWithKeyboardClassName}`}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
         <p className="text-sm text-slate-400">Registra un movimiento rápido</p>
@@ -473,7 +470,7 @@ export default function GastoForm() {
             type="button"
             disabled={guardando || cuentasLoading || cuentas.length === 0}
             onClick={() => handleQuickTap(tap)}
-            className="rounded-full border border-slate-600 bg-slate-900/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+            className={chipButtonClassName}
           >
             {tap.label} ({formatCurrency(tap.monto)})
           </button>
@@ -541,7 +538,7 @@ export default function GastoForm() {
               role="switch"
               aria-checked={form.esMsi}
               onClick={() => setForm((prev) => ({ ...prev, esMsi: !prev.esMsi }))}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition ${
+              className={`relative h-7 w-12 shrink-0 rounded-full transition active:scale-[0.98] ${
                 form.esMsi ? 'bg-blue-500' : 'bg-slate-600'
               }`}
             >
@@ -611,7 +608,7 @@ export default function GastoForm() {
           <button
             type="button"
             onClick={handleRepetirUltimo}
-            className="rounded-full border border-slate-600 bg-slate-900/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-white"
+            className={chipButtonClassName}
           >
             Repetir: {ultimoGasto.descripcion} — {formatCurrency(ultimoGasto.monto)}
           </button>
@@ -625,6 +622,7 @@ export default function GastoForm() {
         <input
           id="descripcion"
           type="text"
+          inputMode="text"
           maxLength={200}
           placeholder="Ej. Supermercado, Uber, Netflix..."
           value={form.descripcion}
@@ -636,13 +634,15 @@ export default function GastoForm() {
         />
       </div>
 
-      <button
-        type="submit"
-        disabled={guardando || cuentas.length === 0}
-        className="w-full rounded-xl bg-blue-500 px-4 py-3.5 text-base font-semibold text-white transition hover:bg-blue-400 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {guardando ? 'Guardando...' : form.esMsi ? 'Registrar compra MSI' : 'Guardar Gasto'}
-      </button>
+      <div className={formSubmitStickyClassName}>
+        <button
+          type="submit"
+          disabled={guardando || cuentas.length === 0}
+          className={buttonPrimaryClassName}
+        >
+          {guardando ? 'Guardando...' : form.esMsi ? 'Registrar compra MSI' : 'Guardar Gasto'}
+        </button>
+      </div>
     </form>
   )
-}
+})

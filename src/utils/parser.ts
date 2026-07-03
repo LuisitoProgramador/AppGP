@@ -1,6 +1,6 @@
-import { CATEGORIAS } from '../types/gasto'
+import { CATEGORIAS, type Categoria } from '../types/gasto'
 
-export type Categoria = (typeof CATEGORIAS)[number]
+export type { Categoria }
 
 export interface ParsedGasto {
   monto: number
@@ -87,7 +87,38 @@ function parseMontoToken(token: string): number | null {
   return monto
 }
 
-function detectCategoria(text: string): Categoria {
+export interface CategoriaMemoryEntry {
+  descripcion: string
+  categoria: Categoria
+}
+
+function normalizeDescripcionKey(descripcion: string): string {
+  return normalizeText(descripcion.trim())
+}
+
+export function inferCategoriaFromHistorial(
+  descripcion: string,
+  historial: CategoriaMemoryEntry[],
+): Categoria | null {
+  const key = normalizeDescripcionKey(descripcion)
+  if (key.length < 2 || historial.length === 0) return null
+
+  const exact = historial.find(
+    (entry) => normalizeDescripcionKey(entry.descripcion) === key,
+  )
+  if (exact) return exact.categoria
+
+  const partial = historial.find((entry) => {
+    const entryKey = normalizeDescripcionKey(entry.descripcion)
+    return entryKey.startsWith(key) || key.startsWith(entryKey)
+  })
+  return partial?.categoria ?? null
+}
+
+function detectCategoria(text: string, historial: CategoriaMemoryEntry[] = []): Categoria {
+  const fromHistorial = inferCategoriaFromHistorial(text, historial)
+  if (fromHistorial) return fromHistorial
+
   const normalized = normalizeText(text)
 
   for (const categoria of CATEGORIAS) {
@@ -104,7 +135,10 @@ function detectCategoria(text: string): Categoria {
   return DEFAULT_CATEGORIA
 }
 
-export function parseGastoInput(input: string): ParsedGasto | null {
+export function parseGastoInput(
+  input: string,
+  historial: CategoriaMemoryEntry[] = [],
+): ParsedGasto | null {
   const trimmed = input.trim()
   if (!trimmed) return null
 
@@ -128,7 +162,7 @@ export function parseGastoInput(input: string): ParsedGasto | null {
 
   return {
     monto,
-    categoria: detectCategoria(trimmed),
+    categoria: detectCategoria(trimmed, historial),
     descripcion,
   }
 }
