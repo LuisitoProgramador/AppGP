@@ -47,3 +47,4 @@ for each row execute function public.set_gasto_user_id();
 
 create index gastos_user_id_idx on public.gastos (user_id);
 create index gastos_fecha_idx on public.gastos (fecha desc);
+create index gastos_user_id_fecha_idx on public.gastos (user_id, fecha desc);

@@ -6,6 +6,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { OptimisticGasto } from '../types/gasto'
 import { getPendingGastos } from '../services/offlineQueue'
 import { syncPendingGastos } from '../services/syncGastos'
 import { showError, showSuccess, showWarning } from '../utils/toast'
@@ -16,6 +17,9 @@ interface GastosRefreshContextValue {
   refresh: () => void
   isSyncing: boolean
   pendingCount: number
+  optimisticGastos: OptimisticGasto[]
+  addOptimisticGasto: (gasto: Omit<OptimisticGasto, 'tempId'>) => string
+  removeOptimisticGasto: (tempId: string) => void
   syncOffline: () => Promise<void>
 }
 
@@ -30,9 +34,22 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
   const [refreshKey, setRefreshKey] = useState(0)
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
+  const [optimisticGastos, setOptimisticGastos] = useState<OptimisticGasto[]>([])
 
   const refresh = useCallback(() => {
     setRefreshKey((key) => key + 1)
+  }, [])
+
+  const addOptimisticGasto = useCallback((gasto: Omit<OptimisticGasto, 'tempId'>) => {
+    const tempId = crypto.randomUUID()
+    setOptimisticGastos((current) => [{ ...gasto, tempId }, ...current])
+    return tempId
+  }, [])
+
+  const removeOptimisticGasto = useCallback((tempId: string) => {
+    setOptimisticGastos((current) =>
+      current.filter((gasto) => gasto.tempId !== tempId),
+    )
   }, [])
 
   const updatePendingCount = useCallback(async () => {
@@ -86,7 +103,16 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
 
   return (
     <GastosRefreshContext.Provider
-      value={{ refreshKey, refresh, isSyncing, pendingCount, syncOffline }}
+      value={{
+        refreshKey,
+        refresh,
+        isSyncing,
+        pendingCount,
+        optimisticGastos,
+        addOptimisticGasto,
+        removeOptimisticGasto,
+        syncOffline,
+      }}
     >
       {children}
     </GastosRefreshContext.Provider>

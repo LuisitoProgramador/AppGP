@@ -6,18 +6,21 @@ import {
   CATEGORIAS,
   HISTORIAL_PAGE_SIZE,
   type Gasto,
+  type OptimisticGasto,
   type PendingGasto,
 } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatShortDate, getMonthRange } from '../utils/date'
+import { filterOptimisticGastos } from '../utils/optimisticGastos'
 import { showError, showSuccess } from '../utils/toast'
 import EditGastoModal from './EditGastoModal'
 import MonthSelector from './MonthSelector'
 import { cardClassName, inputClassName } from './formStyles'
 
 type HistorialItem =
-  | (Gasto & { pendiente?: false })
+  | (Gasto & { pendiente?: false; optimistic?: false })
   | (PendingGasto & { pendiente: true })
+  | (OptimisticGasto & { optimistic: true })
 
 function TrashIcon() {
   return (
@@ -62,7 +65,7 @@ function EditIcon() {
 
 export default function Historial() {
   const { user } = useAuthContext()
-  const { refreshKey, refresh } = useGastosRefresh()
+  const { refreshKey, refresh, optimisticGastos } = useGastosRefresh()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -143,7 +146,17 @@ export default function Historial() {
           pendiente: true as const,
         }))
 
-        const combinados = [...pendientes, ...sincronizados].sort(
+        const optimistas: HistorialItem[] = filterOptimisticGastos(
+          optimisticGastos,
+          selectedMonth,
+          categoriaFiltro,
+          busqueda,
+        ).map((gasto) => ({
+          ...gasto,
+          optimistic: true as const,
+        }))
+
+        const combinados = [...optimistas, ...pendientes, ...sincronizados].sort(
           (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
         )
         setItems(combinados)
@@ -159,9 +172,11 @@ export default function Historial() {
     }
 
     cargarHistorial()
-  }, [user, refreshKey, selectedMonth, categoriaFiltro, busqueda, page])
+  }, [user, refreshKey, selectedMonth, categoriaFiltro, busqueda, page, optimisticGastos])
 
   async function handleEliminar(item: HistorialItem) {
+    if ('optimistic' in item && item.optimistic) return
+
     const etiqueta = item.descripcion || item.categoria
     if (!confirm(`¿Eliminar el gasto "${etiqueta}"?`)) return
 
@@ -238,8 +253,17 @@ export default function Historial() {
       {!cargando && items.length > 0 && (
         <div className="divide-y divide-slate-700/80 overflow-hidden rounded-xl border border-slate-700/60">
           {items.map((item) => {
-            const itemKey = item.pendiente ? `pending-${item.id}` : `gasto-${item.id}`
-            const isBusy = accionId === item.id
+            const itemKey =
+              'optimistic' in item && item.optimistic
+                ? `optimistic-${item.tempId}`
+                : item.pendiente
+                  ? `pending-${item.id}`
+                  : `gasto-${item.id}`
+            const isBusy =
+              'optimistic' in item
+                ? false
+                : accionId === item.id
+            const isOptimistic = 'optimistic' in item && item.optimistic
 
             return (
               <div
@@ -251,6 +275,11 @@ export default function Historial() {
                     <p className="truncate text-sm font-medium text-white">
                       {item.descripcion || item.categoria}
                     </p>
+                    {isOptimistic && (
+                      <span className="shrink-0 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+                        Guardando...
+                      </span>
+                    )}
                     {item.pendiente && (
                       <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
                         Pendiente
@@ -264,7 +293,7 @@ export default function Historial() {
                 <p className="shrink-0 text-sm font-semibold text-slate-200">
                   {formatCurrency(Number(item.monto))}
                 </p>
-                {!item.pendiente && (
+                {!item.pendiente && !isOptimistic && (
                   <button
                     type="button"
                     onClick={() => setGastoEditando(item)}
@@ -275,15 +304,17 @@ export default function Historial() {
                     <EditIcon />
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handleEliminar(item)}
-                  disabled={isBusy}
-                  aria-label="Eliminar gasto"
-                  className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
-                >
-                  <TrashIcon />
-                </button>
+                {!isOptimistic && (
+                  <button
+                    type="button"
+                    onClick={() => handleEliminar(item)}
+                    disabled={isBusy}
+                    aria-label="Eliminar gasto"
+                    className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400 disabled:opacity-50"
+                  >
+                    <TrashIcon />
+                  </button>
+                )}
               </div>
             )
           })}

@@ -4,7 +4,7 @@ import { notifyTelegram } from '../services/notifyTelegram'
 import { addPendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS } from '../types/gasto'
-import { showError, showSuccess, showWarning } from '../utils/toast'
+import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import { cardClassName, inputClassName } from './formStyles'
 
@@ -16,7 +16,7 @@ const initialForm = {
 
 export default function GastoForm() {
   const { user } = useAuthContext()
-  const { refresh } = useGastosRefresh()
+  const { refresh, addOptimisticGasto, removeOptimisticGasto } = useGastosRefresh()
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
 
@@ -41,26 +41,32 @@ export default function GastoForm() {
     }
 
     const monto = Number(form.monto)
+    const categoria = form.categoria
     const descripcion = form.descripcion.trim()
     const payload = {
       monto,
-      categoria: form.categoria,
+      categoria,
       descripcion,
       fecha: new Date().toISOString(),
     }
-
-    setGuardando(true)
+    const formBackup = { monto: form.monto, categoria, descripcion: form.descripcion }
 
     if (!navigator.onLine) {
+      setGuardando(true)
       await addPendingGasto(payload)
       setGuardando(false)
+      setForm(initialForm)
       refresh()
       showWarning(
         'Sin conexión. Gasto guardado localmente y se sincronizará al volver internet.',
       )
-      setForm(initialForm)
       return
     }
+
+    setForm(initialForm)
+    const tempId = addOptimisticGasto(payload)
+    showInfo('Guardando gasto...')
+    setGuardando(true)
 
     const { error } = await supabase.from('gastos').insert({
       monto: payload.monto,
@@ -68,22 +74,19 @@ export default function GastoForm() {
       descripcion: payload.descripcion,
     })
 
+    setGuardando(false)
+
     if (error) {
-      setGuardando(false)
+      removeOptimisticGasto(tempId)
+      setForm(formBackup)
       showError(`Error al guardar el gasto: ${error.message}`)
       return
     }
 
-    await notifyTelegram({
-      monto,
-      categoria: form.categoria,
-      descripcion,
-    })
-
-    setGuardando(false)
+    removeOptimisticGasto(tempId)
+    await notifyTelegram({ monto, categoria, descripcion })
     refresh()
     showSuccess('Gasto guardado correctamente.')
-    setForm(initialForm)
   }
 
   return (
@@ -127,9 +130,9 @@ export default function GastoForm() {
           className={inputClassName}
           required
         >
-          {CATEGORIAS.map((categoria) => (
-            <option key={categoria} value={categoria}>
-              {categoria}
+          {CATEGORIAS.map((item) => (
+            <option key={item} value={item}>
+              {item}
             </option>
           ))}
         </select>

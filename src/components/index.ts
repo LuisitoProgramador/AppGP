@@ -1,7 +1,6 @@
 export { default as Dashboard } from './Dashboard'
 export { default as EditGastoModal } from './EditGastoModal'
 export { default as ErrorBoundary } from './ErrorBoundary'
-export { default as GastoChart } from './GastoChart'
 export { default as GastoForm } from './GastoForm'
 export { default as Historial } from './Historial'
 export { default as LoginForm } from './LoginForm'

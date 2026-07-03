@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useAuthContext, useGastosRefresh } from '../contexts'
 import { getLimiteMensual, saveLimiteMensual } from '../services/presupuesto'
 import { supabase } from '../services/supabase'
@@ -11,11 +11,13 @@ import {
   getMonthRange,
   isCurrentMonth,
 } from '../utils/date'
+import { mergeResumenWithOptimistic } from '../utils/optimisticGastos'
 import { showError, showSuccess } from '../utils/toast'
 import { validateMonto } from '../utils/validation'
-import GastoChart from './GastoChart'
 import MonthSelector from './MonthSelector'
 import { cardClassName } from './formStyles'
+
+const GastoChart = lazy(() => import('./GastoChart'))
 
 interface ResumenMensual {
   categoria: string
@@ -25,7 +27,7 @@ interface ResumenMensual {
 
 export default function Dashboard() {
   const { user } = useAuthContext()
-  const { refreshKey, isSyncing, pendingCount } = useGastosRefresh()
+  const { refreshKey, isSyncing, pendingCount, optimisticGastos } = useGastosRefresh()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -42,12 +44,9 @@ export default function Dashboard() {
   const resumen = useMemo(
     () =>
       agruparPorCategoria(
-        resumenMensual.map((item) => ({
-          monto: Number(item.total),
-          categoria: item.categoria,
-        })),
+        mergeResumenWithOptimistic(resumenMensual, optimisticGastos, selectedMonth),
       ),
-    [resumenMensual],
+    [resumenMensual, optimisticGastos, selectedMonth],
   )
 
   const gastoTotal = useMemo(
@@ -218,7 +217,13 @@ export default function Dashboard() {
 
       {!cargando && resumen.length > 0 && (
         <div className="space-y-4">
-          <GastoChart data={resumen} />
+          <Suspense
+            fallback={
+              <p className="text-center text-sm text-slate-400">Cargando gráfica...</p>
+            }
+          >
+            <GastoChart data={resumen} />
+          </Suspense>
           <h3 className="text-sm font-semibold text-slate-300">Por categoría</h3>
           {resumen.map((item) => (
             <div key={item.categoria} className="space-y-2">

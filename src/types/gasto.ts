@@ -6,6 +6,14 @@ export interface Gasto {
   fecha: string
 }
 
+export interface OptimisticGasto {
+  tempId: string
+  monto: number
+  categoria: string
+  descripcion: string
+  fecha: string
+}
+
 export interface PendingGasto {
   id: string
   monto: number
