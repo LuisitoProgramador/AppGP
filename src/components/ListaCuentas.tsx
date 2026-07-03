@@ -3,6 +3,8 @@ import { useAuthContext, useGastosRefresh } from '../contexts'
 import { createCuenta } from '../services/cuentas'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
+import { getCorteEstado } from '../utils/diaCorte'
+import { getCreditUtilization, utilizationColor } from '../utils/creditUtilization'
 import { showError, showSuccess } from '../utils/toast'
 import ModalPortal from './ModalPortal'
 import { cardClassName, inputClassName } from './formStyles'
@@ -12,6 +14,7 @@ const initialForm = {
   tipo: 'efectivo' as CuentaTipo,
   limite_credito: '',
   saldo_actual: '0',
+  dia_corte: '',
 }
 
 function tipoLabel(tipo: CuentaTipo): string {
@@ -22,6 +25,8 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
   const isCredito = cuenta.tipo === 'credito'
   const limite = cuenta.limite_credito ?? 0
   const disponible = isCredito ? limite - cuenta.saldo_actual : null
+  const corteEstado = isCredito ? getCorteEstado(cuenta.dia_corte) : null
+  const utilizacion = getCreditUtilization(cuenta)
 
   return (
     <div className="rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
@@ -30,16 +35,35 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
         <p className="text-xs text-slate-400">{tipoLabel(cuenta.tipo)}</p>
       </div>
 
+      {corteEstado === 'proximo' && cuenta.dia_corte != null && (
+        <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
+          Corte próximo (Día {cuenta.dia_corte}). Considera posponer compras grandes
+        </p>
+      )}
+
+      {corteEstado === 'mejor_momento' && (
+        <p className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">
+          Mejor momento para comprar (Máximo financiamiento)
+        </p>
+      )}
+
       {isCredito ? (
         <div className="mt-2 space-y-0.5">
           <p className="text-sm text-red-300">
             Deuda: {formatCurrency(cuenta.saldo_actual)}
           </p>
           {limite > 0 && (
-            <p className="text-xs text-emerald-400">
-              Disponible: {formatCurrency(Math.max(disponible ?? 0, 0))} /{' '}
-              {formatCurrency(limite)}
-            </p>
+            <>
+              <p className="text-xs text-emerald-400">
+                Disponible: {formatCurrency(Math.max(disponible ?? 0, 0))} /{' '}
+                {formatCurrency(limite)}
+              </p>
+              {utilizacion != null && (
+                <p className={`text-xs ${utilizationColor(utilizacion)}`}>
+                  Usas {utilizacion}% de tu límite
+                </p>
+              )}
+            </>
           )}
         </div>
       ) : (
@@ -106,6 +130,15 @@ export default function ListaCuentas() {
       }
     }
 
+    let dia_corte: number | null = null
+    if (form.tipo === 'credito' && form.dia_corte.trim()) {
+      dia_corte = Number(form.dia_corte)
+      if (!Number.isInteger(dia_corte) || dia_corte < 1 || dia_corte > 31) {
+        showError('El día de corte debe estar entre 1 y 31.')
+        return
+      }
+    }
+
     if (!navigator.onLine) {
       showError('Sin conexión. Conéctate para registrar una cuenta.')
       return
@@ -117,6 +150,7 @@ export default function ListaCuentas() {
       tipo: form.tipo,
       saldo_actual: saldo,
       limite_credito,
+      dia_corte,
     })
     setGuardando(false)
 
@@ -241,27 +275,51 @@ export default function ListaCuentas() {
             </div>
 
             {form.tipo === 'credito' && (
-              <div className="space-y-2">
-                <label
-                  htmlFor="cuenta-limite"
-                  className="block text-sm font-medium text-slate-300"
-                >
-                  Límite de crédito
-                </label>
-                <input
-                  id="cuenta-limite"
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder="Opcional"
-                  value={form.limite_credito}
-                  onChange={(e) =>
-                    setForm((prev) => ({ ...prev, limite_credito: e.target.value }))
-                  }
-                  className={inputClassName}
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="cuenta-limite"
+                    className="block text-sm font-medium text-slate-300"
+                  >
+                    Límite de crédito
+                  </label>
+                  <input
+                    id="cuenta-limite"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.01"
+                    placeholder="Opcional"
+                    value={form.limite_credito}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, limite_credito: e.target.value }))
+                    }
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="cuenta-corte"
+                    className="block text-sm font-medium text-slate-300"
+                  >
+                    Día de corte
+                  </label>
+                  <input
+                    id="cuenta-corte"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max="31"
+                    step="1"
+                    placeholder="Opcional (ej. 15)"
+                    value={form.dia_corte}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, dia_corte: e.target.value }))
+                    }
+                    className={inputClassName}
+                  />
+                </div>
+              </>
             )}
 
             <div className="flex gap-2 pt-1">

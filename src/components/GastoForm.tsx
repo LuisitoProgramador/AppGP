@@ -1,13 +1,22 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthContext, useGastosRefresh } from '../contexts'
 import { getDefaultCuentaId } from '../services/cuentas'
+import {
+  getMerchantMemory,
+  matchMerchantMemory,
+  recordMerchantMemory,
+  refreshMerchantMemory,
+  type MerchantMemoryEntry,
+} from '../services/merchantMemory'
 import { notifyTelegram } from '../services/notifyTelegram'
 import { addPendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
-import { CATEGORIAS } from '../types/gasto'
+import { CATEGORIAS, type Categoria } from '../types/gasto'
 import { parseGastoInput } from '../utils/parser'
 import { formatCurrency } from '../utils/formatCurrency'
 import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
+import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
+import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
 import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import { cardClassName, inputClassName } from './formStyles'
@@ -21,21 +30,68 @@ const initialForm = {
   mesesMsi: '3',
 }
 
+type FormState = typeof initialForm
+
+interface QuickTap {
+  label: string
+  monto: number
+  categoria: Categoria
+  descripcion: string
+}
+
+const QUICK_TAPS: QuickTap[] = [
+  { label: '☕ Café', monto: 45, categoria: 'Comida', descripcion: 'Café' },
+  { label: '🚌 Transporte', monto: 15, categoria: 'Transporte', descripcion: 'Transporte' },
+  { label: '🌮 Comida rápida', monto: 85, categoria: 'Comida', descripcion: 'Comida rápida' },
+  { label: '🛒 Super', monto: 250, categoria: 'Comida', descripcion: 'Supermercado' },
+]
+
 export default function GastoForm() {
   const { user } = useAuthContext()
   const {
     refresh,
     addOptimisticGasto,
     removeOptimisticGastos,
+    optimisticGastos,
     cuentas,
     cuentasLoading,
+    applyGastoSaldo,
+    revertGastoSaldo,
   } = useGastosRefresh()
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
+  const [merchantMemory, setMerchantMemory] = useState<MerchantMemoryEntry[]>([])
+  const [montoSugerido, setMontoSugerido] = useState<number | null>(null)
   const montoInputRef = useRef<HTMLInputElement>(null)
 
   const selectedCuenta = cuentas.find((c) => String(c.id) === form.cuentaId)
   const isCredito = selectedCuenta?.tipo === 'credito'
+
+  useEffect(() => {
+    if (!user) return
+    const cached = getMerchantMemory(user.id)
+    setMerchantMemory(cached)
+    if (navigator.onLine) {
+      refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
+    }
+  }, [user])
+
+  const merchantMatch = useMemo(
+    () => matchMerchantMemory(form.descripcion, merchantMemory),
+    [form.descripcion, merchantMemory],
+  )
+
+  useEffect(() => {
+    if (!merchantMatch) {
+      setMontoSugerido(null)
+      return
+    }
+    setMontoSugerido(merchantMatch.montoFrecuente)
+    setForm((prev) => {
+      if (prev.categoria === merchantMatch.categoria) return prev
+      return { ...prev, categoria: merchantMatch.categoria }
+    })
+  }, [merchantMatch])
 
   useEffect(() => {
     if (cuentasLoading || cuentas.length === 0 || form.cuentaId) return
@@ -82,22 +138,20 @@ export default function GastoForm() {
     montoInputRef.current?.focus()
   }, [])
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const montoError = validateMonto(form.monto)
+  async function submitGasto(data: FormState) {
+    const montoError = validateMonto(data.monto)
     if (montoError) {
       showError(montoError)
       return
     }
 
-    const descripcionError = validateDescripcion(form.descripcion)
+    const descripcionError = validateDescripcion(data.descripcion)
     if (descripcionError) {
       showError(descripcionError)
       return
     }
 
-    if (!form.cuentaId) {
+    if (!data.cuentaId) {
       showError('Selecciona una cuenta o método de pago.')
       return
     }
@@ -107,16 +161,52 @@ export default function GastoForm() {
       return
     }
 
-    const monto = Number(form.monto)
-    const categoria = form.categoria
-    const descripcion = form.descripcion.trim()
-    const cuentaId = form.cuentaId
-    const formBackup = { ...form }
+    const monto = Number(data.monto)
+    const categoria = data.categoria
+    const descripcion = data.descripcion.trim()
+
+    const gastosHoy = [
+      ...optimisticGastos
+        .filter((gasto) => isToday(gasto.fecha))
+        .map((gasto) => ({ descripcion: gasto.descripcion, monto: gasto.monto })),
+    ]
+
+    if (navigator.onLine) {
+      const hoy = new Date()
+      const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
+      const fin = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1)
+      const { data: hoyData } = await supabase
+        .from('gastos')
+        .select('descripcion, monto')
+        .eq('user_id', user.id)
+        .gte('fecha', inicio.toISOString())
+        .lt('fecha', fin.toISOString())
+
+      for (const row of hoyData ?? []) {
+        gastosHoy.push({
+          descripcion: String(row.descripcion ?? ''),
+          monto: Number(row.monto),
+        })
+      }
+    }
+
+    const duplicado = findDuplicadoHoy(descripcion, monto, gastosHoy)
+    if (duplicado) {
+      showWarning(
+        `Ya registraste algo similar hoy: ${duplicado.descripcion} ${formatCurrency(duplicado.monto)}`,
+      )
+    }
+
+    const cuentaId = data.cuentaId
+    const formBackup = { ...data }
+
+    const selectedCuentaForSubmit = cuentas.find((c) => String(c.id) === cuentaId)
+    const isCreditoForSubmit = selectedCuentaForSubmit?.tipo === 'credito'
 
     let rows = [buildSingleGasto({ monto, categoria, descripcion, cuentaId })]
 
-    if (form.esMsi && isCredito) {
-      const meses = Number(form.mesesMsi)
+    if (data.esMsi && isCreditoForSubmit) {
+      const meses = Number(data.mesesMsi)
       if (!Number.isInteger(meses) || meses < 2 || meses > 48) {
         showError('Los meses sin intereses deben ser un número entre 2 y 48.')
         return
@@ -130,7 +220,7 @@ export default function GastoForm() {
       })
     }
 
-    const offlinePayload = form.esMsi && isCredito
+    const offlinePayload = data.esMsi && isCreditoForSubmit
       ? {
           monto,
           categoria,
@@ -151,32 +241,14 @@ export default function GastoForm() {
           grupo_msi_id: null,
         }
 
-    if (!navigator.onLine) {
-      setGuardando(true)
-      const tempIds = rows.map((row) =>
-        addOptimisticGasto({
-          monto: row.monto,
-          categoria: row.categoria,
-          descripcion: row.descripcion,
-          fecha: row.fecha,
-          cuenta_id: row.cuenta_id,
-          es_msi: row.es_msi,
-          grupo_msi_id: row.grupo_msi_id,
-        }),
-      )
-      await addPendingGasto({ ...offlinePayload, optimisticTempIds: tempIds })
-      setGuardando(false)
-      setForm({ ...initialForm, cuentaId: form.cuentaId })
-      refresh()
-      const msg =
-        rows.length > 1
-          ? `Sin conexión. Compra MSI (${rows.length} pagos) guardada localmente.`
-          : 'Sin conexión. Gasto guardado localmente y se sincronizará al volver internet.'
-      showWarning(msg)
+    const saldoMonto = montoParaSaldoCuenta(monto, data.esMsi && isCreditoForSubmit, monto)
+
+    const { error: saldoError } = await applyGastoSaldo(cuentaId, saldoMonto)
+    if (saldoError) {
+      showError(`No se pudo actualizar el saldo: ${saldoError}`)
       return
     }
 
-    setForm({ ...initialForm, cuentaId: form.cuentaId })
     const tempIds = rows.map((row) =>
       addOptimisticGasto({
         monto: row.monto,
@@ -188,6 +260,24 @@ export default function GastoForm() {
         grupo_msi_id: row.grupo_msi_id,
       }),
     )
+
+    if (!navigator.onLine) {
+      setGuardando(true)
+      await addPendingGasto({ ...offlinePayload, optimisticTempIds: tempIds })
+      setGuardando(false)
+      setForm({ ...initialForm, cuentaId: data.cuentaId })
+      recordMerchantMemory(user.id, descripcion, categoria, monto)
+      setMerchantMemory(getMerchantMemory(user.id))
+      refresh()
+      const msg =
+        rows.length > 1
+          ? `Sin conexión. Compra MSI (${rows.length} pagos) guardada localmente.`
+          : 'Sin conexión. Gasto guardado localmente y se sincronizará al volver internet.'
+      showWarning(msg)
+      return
+    }
+
+    setForm({ ...initialForm, cuentaId: data.cuentaId })
     showInfo(rows.length > 1 ? `Guardando compra MSI (${rows.length} pagos)...` : 'Guardando gasto...')
     setGuardando(true)
 
@@ -197,6 +287,7 @@ export default function GastoForm() {
 
     if (error) {
       removeOptimisticGastos(tempIds)
+      await revertGastoSaldo(cuentaId, saldoMonto)
       setForm(formBackup)
       showError(`Error al guardar el gasto: ${error.message}`)
       return
@@ -209,6 +300,8 @@ export default function GastoForm() {
       descripcion:
         rows.length > 1 ? `${descripcion} (MSI x${rows.length})` : descripcion,
     })
+    recordMerchantMemory(user.id, descripcion, categoria, monto)
+    setMerchantMemory(getMerchantMemory(user.id))
     refresh()
     showSuccess(
       rows.length > 1
@@ -217,11 +310,52 @@ export default function GastoForm() {
     )
   }
 
+  const handleQuickTap = async (tap: QuickTap) => {
+    if (guardando || cuentas.length === 0) return
+
+    const cuentaId = form.cuentaId || String(getDefaultCuentaId(cuentas) ?? '')
+    if (!cuentaId) {
+      showError('Selecciona una cuenta o método de pago.')
+      return
+    }
+
+    const quickForm: FormState = {
+      monto: String(tap.monto),
+      categoria: tap.categoria,
+      descripcion: tap.descripcion,
+      cuentaId,
+      esMsi: false,
+      mesesMsi: '3',
+    }
+
+    setForm(quickForm)
+    await submitGasto(quickForm)
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await submitGasto(form)
+  }
+
   return (
     <form onSubmit={handleSubmit} className={cardClassName}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
         <p className="text-sm text-slate-400">Registra un movimiento rápido</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {QUICK_TAPS.map((tap) => (
+          <button
+            key={tap.label}
+            type="button"
+            disabled={guardando || cuentasLoading || cuentas.length === 0}
+            onClick={() => handleQuickTap(tap)}
+            className="rounded-full border border-slate-600 bg-slate-900/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {tap.label} ({formatCurrency(tap.monto)})
+          </button>
+        ))}
       </div>
 
       <div className="space-y-2">
@@ -235,12 +369,18 @@ export default function GastoForm() {
           inputMode="decimal"
           min="0"
           step="0.01"
-          placeholder="0.00"
+          placeholder={montoSugerido ? `Sugerido: ${formatCurrency(montoSugerido)}` : '0.00'}
           value={form.monto}
           onChange={(e) => setForm((prev) => ({ ...prev, monto: e.target.value }))}
           className={inputClassName}
           required
         />
+        {merchantMatch && (
+          <p className="text-xs text-slate-500">
+            Habituales: {merchantMatch.categoria}
+            {montoSugerido ? ` · ~${formatCurrency(montoSugerido)}` : ''}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">

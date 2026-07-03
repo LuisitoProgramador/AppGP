@@ -13,6 +13,7 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { formatShortDate, getMonthRange } from '../utils/date'
 import { filterOptimisticGastos } from '../utils/optimisticGastos'
 import { showError, showSuccess } from '../utils/toast'
+import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
 import EditGastoModal from './EditGastoModal'
 import MonthSelector from './MonthSelector'
 import { cardClassName, inputClassName } from './formStyles'
@@ -91,7 +92,8 @@ function EditIcon() {
 
 export default function Historial() {
   const { user } = useAuthContext()
-  const { refreshKey, refresh, optimisticGastos } = useGastosRefresh()
+  const { refreshKey, refresh, optimisticGastos, revertGastoSaldo, removeOptimisticGastos } =
+    useGastosRefresh()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -128,7 +130,7 @@ export default function Historial() {
 
       let query = supabase
         .from('gastos')
-        .select('id, monto, categoria, descripcion, fecha')
+        .select('id, monto, categoria, descripcion, fecha, cuenta_id, es_msi, grupo_msi_id')
         .eq('user_id', user.id)
         .gte('fecha', inicio.toISOString())
         .lt('fecha', fin.toISOString())
@@ -209,11 +211,34 @@ export default function Historial() {
     setAccionId(item.id)
 
     if (item.pendiente) {
+      if (item.cuenta_id) {
+        const montoRevert = montoSaldoAlEliminarPendiente(item)
+        const { error: saldoError } = await revertGastoSaldo(item.cuenta_id, montoRevert)
+        if (saldoError) {
+          setAccionId(null)
+          showError(`No se pudo revertir el saldo: ${saldoError}`)
+          return
+        }
+      }
+      if (item.optimisticTempIds?.length) {
+        removeOptimisticGastos(item.optimisticTempIds)
+      }
       await removePendingGasto(item.id)
       setAccionId(null)
       refresh()
       showSuccess('Gasto pendiente eliminado.')
       return
+    }
+
+    let saldoRevert = saldoRevertAlEliminar(item, [{ id: item.id, monto: item.monto }])
+    if (item.es_msi && item.grupo_msi_id) {
+      const { data: grupoRows } = await supabase
+        .from('gastos')
+        .select('id, monto')
+        .eq('grupo_msi_id', item.grupo_msi_id)
+      if (grupoRows) {
+        saldoRevert = saldoRevertAlEliminar(item, grupoRows)
+      }
     }
 
     const { error: deleteError } = await supabase.from('gastos').delete().eq('id', item.id)
@@ -223,6 +248,18 @@ export default function Historial() {
     if (deleteError) {
       showError(`Error al eliminar: ${deleteError.message}`)
       return
+    }
+
+    if (saldoRevert) {
+      const { error: saldoError } = await revertGastoSaldo(
+        saldoRevert.cuentaId,
+        saldoRevert.monto,
+      )
+      if (saldoError) {
+        showError(`Gasto eliminado, pero el saldo no se actualizó: ${saldoError}`)
+        refresh()
+        return
+      }
     }
 
     refresh()

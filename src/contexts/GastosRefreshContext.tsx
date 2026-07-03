@@ -8,7 +8,7 @@ import {
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
 import type { Cuenta } from '../types/cuenta'
-import { ensureCuentaEfectivo, listCuentas } from '../services/cuentas'
+import { ensureCuentaEfectivo, listCuentas, applyGastoSaldoLocal, persistCuentaSaldo, revertGastoSaldoLocal, resolveCuentasBase, setCachedCuentas } from '../services/cuentas'
 import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
 import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import { getPendingGastos } from '../services/offlineQueue'
@@ -29,6 +29,8 @@ interface GastosRefreshContextValue {
   cuentas: Cuenta[]
   cuentasLoading: boolean
   refreshCuentas: () => Promise<void>
+  applyGastoSaldo: (cuentaId: string, monto: number) => Promise<{ error: string | null }>
+  revertGastoSaldo: (cuentaId: string, monto: number) => Promise<{ error: string | null }>
 }
 
 const GastosRefreshContext = createContext<GastosRefreshContextValue | null>(null)
@@ -92,6 +94,65 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
     setCuentas(result)
     setCuentasLoading(false)
   }, [user])
+
+  const applyGastoSaldo = useCallback(
+    async (cuentaId: string, monto: number): Promise<{ error: string | null }> => {
+      if (!user) return { error: 'Sin sesión' }
+
+      const base = resolveCuentasBase(user.id, cuentas)
+      const { cuentas: updated, error: localError } = applyGastoSaldoLocal(
+        user.id,
+        base,
+        cuentaId,
+        monto,
+      )
+      if (localError) return { error: localError }
+
+      setCuentas(updated)
+
+      const cuenta = updated.find((c) => c.id === cuentaId)
+      if (!cuenta) return { error: 'Cuenta no encontrada' }
+
+      const { error: persistError } = await persistCuentaSaldo(
+        user.id,
+        cuentaId,
+        cuenta.saldo_actual,
+      )
+      if (persistError) {
+        setCachedCuentas(user.id, base)
+        setCuentas(base)
+        return { error: persistError }
+      }
+
+      return { error: null }
+    },
+    [user, cuentas],
+  )
+
+  const revertGastoSaldo = useCallback(
+    async (cuentaId: string, monto: number): Promise<{ error: string | null }> => {
+      if (!user) return { error: 'Sin sesión' }
+
+      const base = resolveCuentasBase(user.id, cuentas)
+      const updated = revertGastoSaldoLocal(user.id, base, cuentaId, monto)
+      setCuentas(updated)
+
+      const cuenta = updated.find((c) => c.id === cuentaId)
+      if (!cuenta) return { error: 'Cuenta no encontrada' }
+
+      const { error: persistError } = await persistCuentaSaldo(
+        user.id,
+        cuentaId,
+        cuenta.saldo_actual,
+      )
+      if (persistError) {
+        return { error: persistError }
+      }
+
+      return { error: null }
+    },
+    [user, cuentas],
+  )
 
   const updatePendingCount = useCallback(async () => {
     const pending = await getPendingGastos()
@@ -194,6 +255,8 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
         cuentas,
         cuentasLoading,
         refreshCuentas,
+        applyGastoSaldo,
+        revertGastoSaldo,
       }}
     >
       {children}

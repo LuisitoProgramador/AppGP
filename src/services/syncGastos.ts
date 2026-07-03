@@ -1,8 +1,14 @@
 import { notifyTelegram } from './notifyTelegram'
+import {
+  listCuentas,
+  persistCuentaSaldo,
+  revertGastoSaldoLocal,
+} from './cuentas'
 import { getPendingGastos, removePendingGasto, updatePendingGasto } from './offlineQueue'
 import { shouldDiscardAfterRetry } from './syncPolicy'
 import { supabase } from './supabase'
 import type { GastoInsertFields } from '../types/gasto'
+import { montoSaldoAlEliminarPendiente } from '../utils/gastoSaldo'
 
 export interface SyncFailure {
   id: string
@@ -61,6 +67,28 @@ export async function syncPendingGastos(): Promise<SyncResult> {
       const retryCount = (gasto.retryCount ?? 0) + 1
 
       if (shouldDiscardAfterRetry(retryCount)) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (user && gasto.cuenta_id) {
+          const { data: cuentas } = await listCuentas(user.id)
+          const montoRevert = montoSaldoAlEliminarPendiente(gasto)
+          const updated = revertGastoSaldoLocal(
+            user.id,
+            cuentas,
+            gasto.cuenta_id,
+            montoRevert,
+          )
+          const cuenta = updated.find((c) => c.id === gasto.cuenta_id)
+          if (cuenta) {
+            await persistCuentaSaldo(user.id, gasto.cuenta_id, cuenta.saldo_actual)
+          }
+        }
+
+        if (gasto.optimisticTempIds?.length) {
+          result.optimisticTempIdsRemoved.push(...gasto.optimisticTempIds)
+        }
+
         await removePendingGasto(gasto.id)
         result.discarded += 1
         result.failures.push({
@@ -73,6 +101,17 @@ export async function syncPendingGastos(): Promise<SyncResult> {
       }
 
       continue
+    }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user && gasto.cuenta_id) {
+      const { data: cuentas } = await listCuentas(user.id)
+      const cuenta = cuentas.find((c) => c.id === gasto.cuenta_id)
+      if (cuenta) {
+        await persistCuentaSaldo(user.id, gasto.cuenta_id, cuenta.saldo_actual)
+      }
     }
 
     await removePendingGasto(gasto.id)

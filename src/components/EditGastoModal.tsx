@@ -13,7 +13,7 @@ interface EditGastoModalProps {
 }
 
 export default function EditGastoModal({ gasto, onClose }: EditGastoModalProps) {
-  const { refresh } = useGastosRefresh()
+  const { refresh, applyGastoSaldo, revertGastoSaldo } = useGastosRefresh()
   const [monto, setMonto] = useState(String(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [descripcion, setDescripcion] = useState(gasto.descripcion ?? '')
@@ -45,10 +45,14 @@ export default function EditGastoModal({ gasto, onClose }: EditGastoModalProps) 
 
     setGuardando(true)
 
+    const newMonto = Number(monto)
+    const oldMonto = Number(gasto.monto)
+    const delta = newMonto - oldMonto
+
     const { error } = await supabase
       .from('gastos')
       .update({
-        monto: Number(monto),
+        monto: newMonto,
         categoria,
         descripcion: descripcion.trim(),
       })
@@ -59,6 +63,20 @@ export default function EditGastoModal({ gasto, onClose }: EditGastoModalProps) 
     if (error) {
       showError(`Error al actualizar: ${error.message}`)
       return
+    }
+
+    if (!gasto.es_msi && gasto.cuenta_id && delta !== 0) {
+      const saldoResult =
+        delta > 0
+          ? await applyGastoSaldo(gasto.cuenta_id, delta)
+          : await revertGastoSaldo(gasto.cuenta_id, Math.abs(delta))
+
+      if (saldoResult.error) {
+        showError(`Gasto actualizado, pero el saldo no se ajustó: ${saldoResult.error}`)
+        refresh()
+        onClose()
+        return
+      }
     }
 
     refresh()

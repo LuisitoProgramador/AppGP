@@ -9,6 +9,7 @@ import {
   Layout,
   ListaCuentas,
   LoginForm,
+  SalidasTimelineSection,
 } from './components'
 import { showError } from './utils/toast'
 
@@ -99,7 +100,9 @@ function AppContent() {
                 key={id}
                 type="button"
                 role="tab"
+                id={`tab-${id}`}
                 aria-selected={tab === id}
+                aria-controls={`panel-${id}`}
                 onClick={() => handleTabChange(id)}
                 className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                   tab === id
@@ -112,7 +115,12 @@ function AppContent() {
             ))}
           </div>
 
-          <div className="space-y-6 transition-opacity duration-200">
+          <div
+            className="space-y-6 transition-opacity duration-200"
+            role="tabpanel"
+            id={`panel-${tab}`}
+            aria-labelledby={`tab-${tab}`}
+          >
             {tab === 'registro' && (
               <ErrorBoundary title="Error en el formulario">
                 <GastoForm />
@@ -125,6 +133,9 @@ function AppContent() {
                 </ErrorBoundary>
                 <ErrorBoundary title="Error en el Dashboard">
                   <Dashboard />
+                </ErrorBoundary>
+                <ErrorBoundary title="Error en salidas del mes">
+                  <SalidasTimelineSection />
                 </ErrorBoundary>
                 <ErrorBoundary title="Error en gastos recurrentes">
                   <GastosRecurrentes />

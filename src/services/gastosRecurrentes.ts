@@ -1,5 +1,10 @@
 import type { GastoRecurrente, GastoRecurrenteInput } from '../types/gasto'
 import { shouldRegisterRecurringToday } from '../utils/recurrentesPolicy'
+import {
+  applyGastoToCuenta,
+  getDefaultCuentaId,
+  listCuentas,
+} from './cuentas'
 import { supabase } from './supabase'
 
 const GASTO_RECURRENTE_SELECT =
@@ -77,11 +82,15 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
 
     if (claimError || !claimed) continue
 
+    const { data: cuentas } = await listCuentas(userId)
+    const cuentaId = getDefaultCuentaId(cuentas)
+
     const { error: insertError } = await supabase.from('gastos').insert({
       monto: recurrente.monto,
       categoria: recurrente.categoria,
       descripcion: recurrente.descripcion,
       fecha,
+      cuenta_id: cuentaId,
     })
 
     if (insertError) {
@@ -98,6 +107,10 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
       }
 
       continue
+    }
+
+    if (cuentaId) {
+      await applyGastoToCuenta(userId, cuentas, cuentaId, Number(recurrente.monto))
     }
 
     registered += 1
