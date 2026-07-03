@@ -4,7 +4,7 @@ import { Toaster } from 'sonner'
 import './index.css'
 import App from './App'
 
-const root = document.getElementById('root')!
+const root = createRoot(document.getElementById('root')!)
 root.render(
   <StrictMode>
     <App />
