@@ -4,6 +4,7 @@ import { supabase } from '../services/supabase'
 import { CATEGORIAS, type Gasto } from '../types/gasto'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
+import ModalPortal from './ModalPortal'
 import { cardClassName, inputClassName } from './formStyles'
 
 interface EditGastoModalProps {
@@ -66,18 +67,15 @@ export default function EditGastoModal({ gasto, onClose }: EditGastoModalProps) 
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
-      onClick={onClose}
-      role="presentation"
-    >
+    <ModalPortal onClose={onClose} ariaLabelledBy="edit-gasto-title">
       <form
         onSubmit={handleSubmit}
-        onClick={(e) => e.stopPropagation()}
         className={`${cardClassName} max-h-[90svh] w-full max-w-lg overflow-y-auto`}
       >
         <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">Editar gasto</h2>
+          <h2 id="edit-gasto-title" className="text-lg font-semibold text-white">
+            Editar gasto
+          </h2>
           <p className="text-sm text-slate-400">Corrige los datos del movimiento</p>
         </div>
 
@@ -151,6 +149,6 @@ export default function EditGastoModal({ gasto, onClose }: EditGastoModalProps) 
           </button>
         </div>
       </form>
-    </div>
+    </ModalPortal>
   )
 }

@@ -20,7 +20,10 @@ const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial']
 
 function getInitialTab(): AppTab {
   const params = new URLSearchParams(window.location.search)
-  if (params.has('q')) return 'registro'
+  if (params.has('q')) {
+    sessionStorage.setItem(TAB_STORAGE_KEY, 'registro')
+    return 'registro'
+  }
 
   const saved = sessionStorage.getItem(TAB_STORAGE_KEY)
   if (saved && VALID_TABS.includes(saved as AppTab)) {

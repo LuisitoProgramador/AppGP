@@ -4,6 +4,7 @@ import { createCuenta } from '../services/cuentas'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
 import { showError, showSuccess } from '../utils/toast'
+import ModalPortal from './ModalPortal'
 import { cardClassName, inputClassName } from './formStyles'
 
 const initialForm = {
@@ -167,16 +168,9 @@ export default function ListaCuentas() {
       )}
 
       {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="nueva-cuenta-title"
-          onClick={closeModal}
-        >
+        <ModalPortal onClose={closeModal} ariaLabelledBy="nueva-cuenta-title">
           <form
             onSubmit={handleSubmit}
-            onClick={(e) => e.stopPropagation()}
             className="w-full max-w-md space-y-4 rounded-2xl border border-slate-700/80 bg-slate-800 p-5 shadow-2xl"
           >
             <div className="space-y-1">
@@ -287,7 +281,7 @@ export default function ListaCuentas() {
               </button>
             </div>
           </form>
-        </div>
+        </ModalPortal>
       )}
     </section>
   )
