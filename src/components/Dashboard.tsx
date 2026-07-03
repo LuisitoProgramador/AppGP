@@ -9,7 +9,13 @@ import {
   formatMonthLabel,
   getDaysRemainingInMonth,
   getMonthRange,
+  isCurrentMonth,
 } from '../utils/date'
+import { showError, showSuccess } from '../utils/toast'
+import { validateMonto } from '../utils/validation'
+import GastoChart from './GastoChart'
+import MonthSelector from './MonthSelector'
+import { cardClassName } from './formStyles'
 
 interface ResumenMensual {
   categoria: string
@@ -20,6 +26,9 @@ interface ResumenMensual {
 export default function Dashboard() {
   const { user } = useAuthContext()
   const { refreshKey, isSyncing, pendingCount } = useGastosRefresh()
+  const [selectedMonth, setSelectedMonth] = useState(
+    () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+  )
   const [resumenMensual, setResumenMensual] = useState<ResumenMensual[]>([])
   const [limiteMensual, setLimiteMensual] = useState(10000)
   const [limiteInput, setLimiteInput] = useState('10000')
@@ -27,7 +36,9 @@ export default function Dashboard() {
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const mesActual = useMemo(() => formatMonthLabel(), [])
+  const mesLabel = useMemo(() => formatMonthLabel(selectedMonth), [selectedMonth])
+  const esMesActual = useMemo(() => isCurrentMonth(selectedMonth), [selectedMonth])
+
   const resumen = useMemo(
     () =>
       agruparPorCategoria(
@@ -44,9 +55,12 @@ export default function Dashboard() {
     [resumen],
   )
 
-  const diasRestantes = useMemo(() => getDaysRemainingInMonth(), [])
+  const diasRestantes = useMemo(
+    () => (esMesActual ? getDaysRemainingInMonth(selectedMonth) : 0),
+    [esMesActual, selectedMonth],
+  )
   const disponible = limiteMensual - gastoTotal
-  const presupuestoDiario = disponible / diasRestantes
+  const presupuestoDiario = esMesActual && diasRestantes > 0 ? disponible / diasRestantes : 0
 
   useEffect(() => {
     if (!user) return
@@ -55,7 +69,7 @@ export default function Dashboard() {
       setCargando(true)
       setError(null)
 
-      const { inicio, fin } = getMonthRange()
+      const { inicio, fin } = getMonthRange(selectedMonth)
       const limite = await getLimiteMensual(user.id)
       setLimiteMensual(limite)
       setLimiteInput(String(limite))
@@ -84,45 +98,52 @@ export default function Dashboard() {
     }
 
     cargarDashboard()
-  }, [user, refreshKey])
+  }, [user, refreshKey, selectedMonth])
 
   async function handleGuardarLimite(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!user) return
 
-    const limite = Number(limiteInput)
-    if (!limiteInput || Number.isNaN(limite) || limite <= 0) {
-      alert('Ingresa un límite mensual válido.')
+    const limiteError = validateMonto(limiteInput)
+    if (limiteError) {
+      showError(limiteError)
       return
     }
 
+    const limite = Number(limiteInput)
     setGuardandoLimite(true)
     const { error: saveError } = await saveLimiteMensual(user.id, limite)
     setGuardandoLimite(false)
 
     if (saveError) {
-      alert(`Error al guardar límite: ${saveError}`)
+      showError(`Error al guardar límite: ${saveError}`)
       return
     }
 
     setLimiteMensual(limite)
+    showSuccess('Límite mensual guardado.')
   }
 
   return (
-    <section className="space-y-5 rounded-2xl border border-slate-700/80 bg-slate-800/60 p-5 shadow-xl shadow-black/20 backdrop-blur-sm">
-      <div className="space-y-1 text-center">
-        <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
-          Gasto del mes
-        </p>
-        <p className="text-sm capitalize text-slate-500">{mesActual}</p>
-        {cargando ? (
-          <p className="pt-2 text-4xl font-bold text-slate-500">...</p>
-        ) : (
-          <p className="pt-2 text-4xl font-bold text-white">{formatCurrency(gastoTotal)}</p>
-        )}
+    <section className={cardClassName}>
+      <div className="space-y-3">
+        <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
+        <div className="space-y-1 text-center">
+          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+            Gasto del mes
+          </p>
+          <p className="text-sm capitalize text-slate-500">{mesLabel}</p>
+          {cargando ? (
+            <p className="pt-2 text-4xl font-bold text-slate-500">...</p>
+          ) : (
+            <p className="pt-2 text-4xl font-bold text-white">
+              {formatCurrency(gastoTotal)}
+            </p>
+          )}
+        </div>
       </div>
 
-      {!cargando && (
+      {esMesActual && !cargando && (
         <div
           className={`rounded-xl border px-4 py-3 text-center ${
             disponible >= 0
@@ -148,30 +169,32 @@ export default function Dashboard() {
         </div>
       )}
 
-      <form onSubmit={handleGuardarLimite} className="flex gap-2">
-        <div className="min-w-0 flex-1">
-          <label htmlFor="limite" className="sr-only">
-            Límite mensual
-          </label>
-          <input
-            id="limite"
-            type="number"
-            min="1"
-            step="100"
-            value={limiteInput}
-            onChange={(e) => setLimiteInput(e.target.value)}
-            className="w-full rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2.5 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
-            placeholder="Límite mensual"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={guardandoLimite}
-          className="shrink-0 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-600 disabled:opacity-60"
-        >
-          {guardandoLimite ? '...' : 'Guardar'}
-        </button>
-      </form>
+      {esMesActual && (
+        <form onSubmit={handleGuardarLimite} className="flex gap-2">
+          <div className="min-w-0 flex-1">
+            <label htmlFor="limite" className="sr-only">
+              Límite mensual
+            </label>
+            <input
+              id="limite"
+              type="number"
+              min="1"
+              step="100"
+              value={limiteInput}
+              onChange={(e) => setLimiteInput(e.target.value)}
+              className="w-full rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-2.5 text-sm text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+              placeholder="Límite mensual"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={guardandoLimite}
+            className="shrink-0 rounded-xl bg-slate-700 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-600 disabled:opacity-60"
+          >
+            {guardandoLimite ? '...' : 'Guardar'}
+          </button>
+        </form>
+      )}
 
       {(isSyncing || pendingCount > 0) && (
         <p className="text-center text-xs text-amber-300">
@@ -189,12 +212,13 @@ export default function Dashboard() {
 
       {!cargando && !error && resumen.length === 0 && (
         <p className="text-center text-sm text-slate-400">
-          No hay gastos registrados este mes.
+          No hay gastos registrados en este mes.
         </p>
       )}
 
       {!cargando && resumen.length > 0 && (
         <div className="space-y-4">
+          <GastoChart data={resumen} />
           <h3 className="text-sm font-semibold text-slate-300">Por categoría</h3>
           {resumen.map((item) => (
             <div key={item.categoria} className="space-y-2">

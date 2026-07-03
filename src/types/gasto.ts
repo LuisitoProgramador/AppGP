@@ -13,6 +13,7 @@ export interface PendingGasto {
   descripcion: string
   fecha: string
   createdAt: number
+  retryCount: number
 }
 
 export interface CategoriaResumen {
@@ -39,3 +40,14 @@ export const COLORES_CATEGORIA: Record<string, string> = {
 }
 
 export const LIMITE_MENSUAL_DEFAULT = 10000
+export const MAX_MONTO = 1_000_000
+export const MAX_DESCRIPCION_LENGTH = 200
+export const HISTORIAL_PAGE_SIZE = 20
+
+export const CHART_COLORS_HEX: Record<string, string> = {
+  Comida: '#f59e0b',
+  Transporte: '#3b82f6',
+  Casa: '#10b981',
+  Suscripciones: '#8b5cf6',
+  Otros: '#94a3b8',
+}

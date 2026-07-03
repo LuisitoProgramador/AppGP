@@ -1,10 +1,9 @@
 import { type FormEvent, useState } from 'react'
 import { useAuthContext } from '../contexts'
+import { showError, showInfo } from '../utils/toast'
+import { cardClassName, inputClassName } from './formStyles'
 
 type ModoAuth = 'login' | 'register'
-
-const inputClassName =
-  'w-full rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-base text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30'
 
 export default function LoginForm() {
   const { signIn, signUp } = useAuthContext()
@@ -23,20 +22,17 @@ export default function LoginForm() {
     setEnviando(false)
 
     if (error) {
-      alert(`Error: ${error.message}`)
+      showError(`Error: ${error.message}`)
       return
     }
 
     if (modo === 'register') {
-      alert('Cuenta creada. Revisa tu correo si Supabase requiere confirmación.')
+      showInfo('Cuenta creada. Revisa tu correo si Supabase requiere confirmación.')
     }
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-5 rounded-2xl border border-slate-700/80 bg-slate-800/60 p-5 shadow-xl shadow-black/20 backdrop-blur-sm"
-    >
+    <form onSubmit={handleSubmit} className={cardClassName}>
       <div className="space-y-1 text-center">
         <h2 className="text-lg font-semibold text-white">
           {modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}

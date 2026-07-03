@@ -1,8 +1,12 @@
 import { type FormEvent, useState } from 'react'
 import { useAuthContext, useGastosRefresh } from '../contexts'
+import { notifyTelegram } from '../services/notifyTelegram'
 import { addPendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS } from '../types/gasto'
+import { showError, showSuccess, showWarning } from '../utils/toast'
+import { validateDescripcion, validateMonto } from '../utils/validation'
+import { cardClassName, inputClassName } from './formStyles'
 
 const initialForm = {
   monto: '',
@@ -19,17 +23,24 @@ export default function GastoForm() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    const monto = Number(form.monto)
-    if (!form.monto || Number.isNaN(monto) || monto <= 0) {
-      alert('Ingresa un monto válido.')
+    const montoError = validateMonto(form.monto)
+    if (montoError) {
+      showError(montoError)
+      return
+    }
+
+    const descripcionError = validateDescripcion(form.descripcion)
+    if (descripcionError) {
+      showError(descripcionError)
       return
     }
 
     if (!user) {
-      alert('Debes iniciar sesión para guardar un gasto.')
+      showError('Debes iniciar sesión para guardar un gasto.')
       return
     }
 
+    const monto = Number(form.monto)
     const descripcion = form.descripcion.trim()
     const payload = {
       monto,
@@ -44,7 +55,9 @@ export default function GastoForm() {
       await addPendingGasto(payload)
       setGuardando(false)
       refresh()
-      alert('Sin conexión. Gasto guardado localmente y se sincronizará al volver internet.')
+      showWarning(
+        'Sin conexión. Gasto guardado localmente y se sincronizará al volver internet.',
+      )
       setForm(initialForm)
       return
     }
@@ -57,35 +70,24 @@ export default function GastoForm() {
 
     if (error) {
       setGuardando(false)
-      alert(`Error al guardar el gasto: ${error.message}`)
+      showError(`Error al guardar el gasto: ${error.message}`)
       return
     }
 
-    try {
-      await fetch('/api/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          monto,
-          categoria: form.categoria,
-          descripcion,
-        }),
-      })
-    } catch {
-      // La notificación es opcional; no bloquea el guardado exitoso
-    }
+    await notifyTelegram({
+      monto,
+      categoria: form.categoria,
+      descripcion,
+    })
 
     setGuardando(false)
     refresh()
-    alert('Gasto guardado correctamente.')
+    showSuccess('Gasto guardado correctamente.')
     setForm(initialForm)
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-5 rounded-2xl border border-slate-700/80 bg-slate-800/60 p-5 shadow-xl shadow-black/20 backdrop-blur-sm"
-    >
+    <form onSubmit={handleSubmit} className={cardClassName}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
         <p className="text-sm text-slate-400">Registra un movimiento rápido</p>
@@ -104,7 +106,7 @@ export default function GastoForm() {
           placeholder="0.00"
           value={form.monto}
           onChange={(e) => setForm((prev) => ({ ...prev, monto: e.target.value }))}
-          className="w-full rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-base text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          className={inputClassName}
           required
         />
       </div>
@@ -122,7 +124,7 @@ export default function GastoForm() {
               categoria: e.target.value as (typeof CATEGORIAS)[number],
             }))
           }
-          className="w-full appearance-none rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-base text-white outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          className={inputClassName}
           required
         >
           {CATEGORIAS.map((categoria) => (
@@ -140,12 +142,13 @@ export default function GastoForm() {
         <input
           id="descripcion"
           type="text"
+          maxLength={200}
           placeholder="Ej. Supermercado, Uber, Netflix..."
           value={form.descripcion}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, descripcion: e.target.value }))
           }
-          className="w-full rounded-xl border border-slate-600 bg-slate-900/80 px-4 py-3 text-base text-white placeholder:text-slate-500 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30"
+          className={inputClassName}
           required
         />
       </div>

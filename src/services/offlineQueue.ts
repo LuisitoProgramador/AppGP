@@ -24,14 +24,22 @@ function getDB() {
   return dbPromise
 }
 
+function normalizePending(gasto: PendingGasto): PendingGasto {
+  return {
+    ...gasto,
+    retryCount: gasto.retryCount ?? 0,
+  }
+}
+
 export async function addPendingGasto(
-  gasto: Omit<PendingGasto, 'id' | 'createdAt'>,
+  gasto: Omit<PendingGasto, 'id' | 'createdAt' | 'retryCount'>,
 ): Promise<PendingGasto> {
   const db = await getDB()
   const pending: PendingGasto = {
     ...gasto,
     id: crypto.randomUUID(),
     createdAt: Date.now(),
+    retryCount: 0,
   }
   await db.put(STORE, pending)
   return pending
@@ -40,7 +48,12 @@ export async function addPendingGasto(
 export async function getPendingGastos(): Promise<PendingGasto[]> {
   const db = await getDB()
   const items = await db.getAll(STORE)
-  return items.sort((a, b) => b.createdAt - a.createdAt)
+  return items.map(normalizePending).sort((a, b) => b.createdAt - a.createdAt)
+}
+
+export async function updatePendingGasto(gasto: PendingGasto): Promise<void> {
+  const db = await getDB()
+  await db.put(STORE, normalizePending(gasto))
 }
 
 export async function removePendingGasto(id: string): Promise<void> {

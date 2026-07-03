@@ -8,6 +8,7 @@ import {
 } from 'react'
 import { getPendingGastos } from '../services/offlineQueue'
 import { syncPendingGastos } from '../services/syncGastos'
+import { showError, showSuccess, showWarning } from '../utils/toast'
 import { useAuthContext } from './AuthContext'
 
 interface GastosRefreshContextValue {
@@ -44,9 +45,23 @@ export function GastosRefreshProvider({ children }: GastosRefreshProviderProps) 
 
     setIsSyncing(true)
     try {
-      const synced = await syncPendingGastos()
+      const result = await syncPendingGastos()
       await updatePendingCount()
-      if (synced > 0) refresh()
+
+      if (result.synced > 0) {
+        showSuccess(
+          `${result.synced} gasto(s) sincronizado(s) desde modo offline.`,
+        )
+        refresh()
+      }
+
+      if (result.discarded > 0) {
+        showError(
+          `${result.discarded} gasto(s) no se pudieron sincronizar y se descartaron de la cola.`,
+        )
+      } else if (result.failures.length > 0) {
+        showWarning('Algunos gastos offline fallaron y se reintentarán.')
+      }
     } finally {
       setIsSyncing(false)
     }

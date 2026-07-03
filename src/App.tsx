@@ -1,5 +1,13 @@
 import { AuthProvider, GastosRefreshProvider, useAuthContext } from './contexts'
-import { Dashboard, GastoForm, Historial, Layout, LoginForm } from './components'
+import {
+  Dashboard,
+  ErrorBoundary,
+  GastoForm,
+  Historial,
+  Layout,
+  LoginForm,
+} from './components'
+import { showError } from './utils/toast'
 
 function AppContent() {
   const { user, loading, signOut } = useAuthContext()
@@ -26,7 +34,7 @@ function AppContent() {
   async function handleSignOut() {
     const { error } = await signOut()
     if (error) {
-      alert(`Error al cerrar sesión: ${error.message}`)
+      showError(`Error al cerrar sesión: ${error.message}`)
     }
   }
 
@@ -45,9 +53,15 @@ function AppContent() {
             </button>
           </div>
           <p className="text-sm text-slate-400">{user.email}</p>
-          <Dashboard />
-          <GastoForm />
-          <Historial />
+          <ErrorBoundary title="Error en el Dashboard">
+            <Dashboard />
+          </ErrorBoundary>
+          <ErrorBoundary title="Error en el formulario">
+            <GastoForm />
+          </ErrorBoundary>
+          <ErrorBoundary title="Error en el historial">
+            <Historial />
+          </ErrorBoundary>
         </section>
       </Layout>
     </GastosRefreshProvider>
