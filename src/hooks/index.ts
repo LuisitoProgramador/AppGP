@@ -1,3 +1,5 @@
 export { default as useAuth } from './useAuth'
+export { useDashboardData } from './useDashboardData'
+export { useMetasAhorro } from './useMetasAhorro'
 export { usePresupuestoDiario } from './usePresupuestoDiario'
 export { useStableArray } from './useStableArray'
