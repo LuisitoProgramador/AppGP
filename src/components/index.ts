@@ -1,1 +1,5 @@
+export { default as Dashboard } from './Dashboard'
+export { default as GastoForm } from './GastoForm'
+export { default as Historial } from './Historial'
+export { default as LoginForm } from './LoginForm'
 export { default as Layout } from './Layout'
