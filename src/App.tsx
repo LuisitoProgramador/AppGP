@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { AuthProvider, GastosRefreshProvider, useAuthContext } from './contexts'
 import {
   Dashboard,
@@ -9,8 +9,11 @@ import {
   Layout,
   ListaCuentas,
   LoginForm,
+  OnboardingFlow,
   SalidasTimelineSection,
 } from './components'
+import { checkNeedsOnboarding } from './services/onboarding'
+import { readSessionStorage, writeSessionStorage } from './utils/storage'
 import { showError } from './utils/toast'
 
 type AppTab = 'registro' | 'resumen' | 'historial'
@@ -22,25 +25,47 @@ const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial']
 function getInitialTab(): AppTab {
   const params = new URLSearchParams(window.location.search)
   if (params.has('q')) {
-    sessionStorage.setItem(TAB_STORAGE_KEY, 'registro')
+    writeSessionStorage(TAB_STORAGE_KEY, 'registro')
     return 'registro'
   }
 
-  const saved = sessionStorage.getItem(TAB_STORAGE_KEY)
+  const saved = readSessionStorage(TAB_STORAGE_KEY)
   if (saved && VALID_TABS.includes(saved as AppTab)) {
     return saved as AppTab
   }
   return 'registro'
 }
 
+type OnboardingState = 'loading' | 'needed' | 'done'
+
 function AppContent() {
   const { user, loading, signOut } = useAuthContext()
   const [tab, setTab] = useState<AppTab>(getInitialTab)
+  const [onboardingState, setOnboardingState] = useState<OnboardingState>('loading')
 
   function handleTabChange(nextTab: AppTab) {
     setTab(nextTab)
-    sessionStorage.setItem(TAB_STORAGE_KEY, nextTab)
+    writeSessionStorage(TAB_STORAGE_KEY, nextTab)
   }
+
+  useEffect(() => {
+    if (!user) {
+      setOnboardingState('loading')
+      return
+    }
+
+    let cancelled = false
+
+    checkNeedsOnboarding(user.id).then((needs) => {
+      if (!cancelled) {
+        setOnboardingState(needs ? 'needed' : 'done')
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [user])
 
   if (loading) {
     return (
@@ -66,6 +91,27 @@ function AppContent() {
     if (error) {
       showError(`Error al cerrar sesión: ${error.message}`)
     }
+  }
+
+  if (onboardingState === 'loading') {
+    return (
+      <Layout>
+        <p className="text-center text-slate-400">Preparando tu espacio...</p>
+      </Layout>
+    )
+  }
+
+  if (onboardingState === 'needed') {
+    return (
+      <Layout>
+        <OnboardingFlow
+          onComplete={() => {
+            setOnboardingState('done')
+            handleTabChange('resumen')
+          }}
+        />
+      </Layout>
+    )
   }
 
   return (
@@ -115,38 +161,51 @@ function AppContent() {
             ))}
           </div>
 
-          <div
-            className="space-y-6 transition-opacity duration-200"
-            role="tabpanel"
-            id={`panel-${tab}`}
-            aria-labelledby={`tab-${tab}`}
-          >
-            {tab === 'registro' && (
+          <div className="space-y-6">
+            <div
+              role="tabpanel"
+              id="panel-registro"
+              aria-labelledby="tab-registro"
+              hidden={tab !== 'registro'}
+              className={tab === 'registro' ? 'space-y-6' : undefined}
+            >
               <ErrorBoundary title="Error en el formulario">
                 <GastoForm />
               </ErrorBoundary>
-            )}
-            {tab === 'resumen' && (
-              <>
-                <ErrorBoundary title="Error en cuentas">
-                  <ListaCuentas />
-                </ErrorBoundary>
-                <ErrorBoundary title="Error en el Dashboard">
-                  <Dashboard />
-                </ErrorBoundary>
-                <ErrorBoundary title="Error en salidas del mes">
-                  <SalidasTimelineSection />
-                </ErrorBoundary>
-                <ErrorBoundary title="Error en gastos recurrentes">
-                  <GastosRecurrentes />
-                </ErrorBoundary>
-              </>
-            )}
-            {tab === 'historial' && (
+            </div>
+
+            <div
+              role="tabpanel"
+              id="panel-resumen"
+              aria-labelledby="tab-resumen"
+              hidden={tab !== 'resumen'}
+              className={tab === 'resumen' ? 'space-y-6' : undefined}
+            >
+              <ErrorBoundary title="Error en cuentas">
+                <ListaCuentas />
+              </ErrorBoundary>
+              <ErrorBoundary title="Error en el Dashboard">
+                <Dashboard />
+              </ErrorBoundary>
+              <ErrorBoundary title="Error en salidas del mes">
+                <SalidasTimelineSection />
+              </ErrorBoundary>
+              <ErrorBoundary title="Error en gastos recurrentes">
+                <GastosRecurrentes />
+              </ErrorBoundary>
+            </div>
+
+            <div
+              role="tabpanel"
+              id="panel-historial"
+              aria-labelledby="tab-historial"
+              hidden={tab !== 'historial'}
+              className={tab === 'historial' ? 'space-y-6' : undefined}
+            >
               <ErrorBoundary title="Error en el historial">
                 <Historial />
               </ErrorBoundary>
-            )}
+            </div>
           </div>
         </section>
       </Layout>

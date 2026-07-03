@@ -3,6 +3,9 @@
 create table if not exists public.presupuestos (
   user_id uuid primary key references auth.users on delete cascade,
   limite_mensual decimal not null default 10000 check (limite_mensual > 0),
+  sueldo_semanal decimal check (sueldo_semanal is null or sueldo_semanal > 0),
+  dia_pago smallint check (dia_pago is null or (dia_pago >= 0 and dia_pago <= 6)),
+  porcentaje_ahorro smallint check (porcentaje_ahorro is null or (porcentaje_ahorro >= 1 and porcentaje_ahorro <= 100)),
   updated_at timestamptz default timezone('utc', now()) not null
 );
 
