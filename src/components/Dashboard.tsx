@@ -2,7 +2,8 @@ import { lazy, Suspense, memo, type FormEvent, useCallback, useEffect, useMemo, 
 import { useAuthContext, useGastosData, useOfflineSync, useQuietMode, useFocusMode } from '../contexts'
 import { usePresupuestoDiario } from '../hooks/usePresupuestoDiario'
 import { useStableArray } from '../hooks/useStableArray'
-import { getLimiteMensual, saveLimiteMensual } from '../services/presupuesto'
+import { getLimiteMensual, getPresupuesto, getIngresoMensualTotal, saveLimiteMensual } from '../services/presupuesto'
+import { listCuentas } from '../services/cuentas'
 import { listGastosRecurrentes, createGastoRecurrente } from '../services/gastosRecurrentes'
 import {
   addAhorroToMeta,
@@ -44,10 +45,12 @@ import {
   isRecurrenteSugeridoDismissed,
   type RecurrenteSugerido,
 } from '../utils/detectarRecurrentes'
+import { calcPatrimonioLiquido } from '../utils/patrimonioLiquido'
 import { isModoViaje, setModoViaje } from '../utils/travelMode'
 import { showError, showSuccess, showWarning } from '../utils/toast'
 import { validateMonto, validateNombre } from '../utils/validation'
 import MonthSelector from './MonthSelector'
+import PresupuestoSettings from './PresupuestoSettings'
 import ProyeccionCierre from './ProyeccionCierre'
 import { cardClassName, formWithKeyboardClassName, inputClassName, buttonEmeraldClassName, buttonEmeraldFlexClassName, buttonEmeraldFullClassName, buttonGhostClassName, buttonSecondaryClassName, buttonSkyClassName, chartToggleClassName, togglePillClassName } from './formStyles'
 
@@ -96,6 +99,8 @@ export default memo(function Dashboard() {
   )
   const [resumenMensual, setResumenMensual] = useState<ResumenMensual[]>([])
   const [limiteMensual, setLimiteMensual] = useState(10000)
+  const [ingresoMensualTotal, setIngresoMensualTotal] = useState<number | null>(null)
+  const [patrimonioLiquido, setPatrimonioLiquido] = useState<number | null>(null)
   const [limiteInput, setLimiteInput] = useState('10000')
   const [guardandoLimite, setGuardandoLimite] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -313,9 +318,16 @@ export default memo(function Dashboard() {
       setError(null)
 
       const { inicio, fin } = getMonthRange(selectedMonth)
+      const presupuesto = await getPresupuesto(user.id)
       const limite = await getLimiteMensual(user.id)
       setLimiteMensual(limite)
       setLimiteInput(String(limite))
+      setIngresoMensualTotal(presupuesto ? getIngresoMensualTotal(presupuesto) : null)
+
+      const { data: cuentasData } = await listCuentas(user.id)
+      setPatrimonioLiquido(
+        cuentasData.length > 0 ? calcPatrimonioLiquido(cuentasData) : null,
+      )
 
       const { data: recurrentesData } = await listGastosRecurrentes(user.id)
       setRecurrentes(recurrentesData)
@@ -786,6 +798,37 @@ export default memo(function Dashboard() {
             <p className="mt-1 text-xs text-emerald-400">
               Cumpliste {resumenFinMes.metasCumplidas} de {resumenFinMes.metasTotal} metas.
             </p>
+          )}
+        </div>
+      )}
+
+      {esMesActual && !cargando && (ingresoMensualTotal != null || patrimonioLiquido != null) && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {ingresoMensualTotal != null && (
+            <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 px-4 py-3 text-center">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Ingreso mensual total
+              </p>
+              <p className="mt-1 text-xl font-bold text-blue-300">
+                {formatCurrency(ingresoMensualTotal)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Sueldo + extras · límite gasto {formatCurrency(limiteMensual)}
+              </p>
+            </div>
+          )}
+          {patrimonioLiquido != null && patrimonioLiquido > 0 && (
+            <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-3 text-center">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+                Patrimonio líquido
+              </p>
+              <p className="mt-1 text-xl font-bold text-emerald-300">
+                {formatCurrency(patrimonioLiquido)}
+              </p>
+              <p className="mt-1 text-xs text-slate-500">
+                Efectivo y cuentas de débito/ahorro
+              </p>
+            </div>
           )}
         </div>
       )}
@@ -1295,6 +1338,8 @@ export default memo(function Dashboard() {
           </div>
         )}
       </div>
+
+      <PresupuestoSettings />
         </>
       )}
     </section>

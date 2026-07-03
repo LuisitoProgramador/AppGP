@@ -5,6 +5,21 @@ import { savePresupuesto } from './presupuesto'
 import { supabase } from './supabase'
 import type { CuentaInput } from '../types/cuenta'
 import { CATEGORIAS } from '../types/gasto'
+import {
+  calcLimiteMensual,
+  calcMetaObjetivoAnual,
+  calcPrimerAhorro,
+  calcSueldoSemanalDesdeMensual,
+} from '../utils/finanzas'
+
+export {
+  calcIngresoMensualTotal,
+  calcLimiteMensual,
+  calcMetaObjetivoAnual,
+  calcPrimerAhorro,
+  calcSueldoSemanalDesdeMensual,
+  SEMANAS_POR_MES,
+} from '../utils/finanzas'
 
 export interface OnboardingGastoFijo {
   descripcion: string
@@ -20,26 +35,19 @@ export interface OnboardingTarjeta {
   saldo_actual: number
 }
 
+export interface OnboardingCuentaLiquida {
+  nombre: string
+  saldo_actual: number
+}
+
 export interface OnboardingData {
-  sueldoSemanal: number
+  sueldoMensual: number
+  ingresosExtras: number
   diaPago: number
   porcentajeAhorro: number
   gastosFijos: OnboardingGastoFijo[]
   tarjetas: OnboardingTarjeta[]
-}
-
-export function calcLimiteMensual(sueldoSemanal: number, porcentajeAhorro: number): number {
-  const ingresoMensual = sueldoSemanal * 4.33
-  const disponible = ingresoMensual * (1 - porcentajeAhorro / 100)
-  return Math.round(disponible * 100) / 100
-}
-
-export function calcPrimerAhorro(sueldoSemanal: number, porcentajeAhorro: number): number {
-  return Math.round(sueldoSemanal * (porcentajeAhorro / 100) * 100) / 100
-}
-
-export function calcMetaObjetivoAnual(sueldoSemanal: number, porcentajeAhorro: number): number {
-  return Math.round(sueldoSemanal * (porcentajeAhorro / 100) * 52 * 100) / 100
+  cuentasLiquidas: OnboardingCuentaLiquida[]
 }
 
 export function guessCategoria(descripcion: string): (typeof CATEGORIAS)[number] {
@@ -69,11 +77,18 @@ export async function completeOnboarding(
   userId: string,
   data: OnboardingData,
 ): Promise<{ error: string | null }> {
-  const limiteMensual = calcLimiteMensual(data.sueldoSemanal, data.porcentajeAhorro)
+  const sueldoSemanal = calcSueldoSemanalDesdeMensual(data.sueldoMensual)
+  const limiteMensual = calcLimiteMensual(
+    data.sueldoMensual,
+    data.porcentajeAhorro,
+    data.ingresosExtras,
+  )
 
   const { error: presupuestoError } = await savePresupuesto(userId, {
     limite_mensual: limiteMensual,
-    sueldo_semanal: data.sueldoSemanal,
+    sueldo_mensual: data.sueldoMensual,
+    ingresos_extras: data.ingresosExtras,
+    sueldo_semanal: sueldoSemanal,
     dia_pago: data.diaPago,
     porcentaje_ahorro: data.porcentajeAhorro,
   })
@@ -89,6 +104,16 @@ export async function completeOnboarding(
       categoria: gasto.categoria,
       dia_mes: gasto.dia_mes,
     })
+    if (error) return { error }
+  }
+
+  for (const cuenta of data.cuentasLiquidas) {
+    const input: CuentaInput = {
+      nombre: cuenta.nombre,
+      tipo: 'debito',
+      saldo_actual: cuenta.saldo_actual,
+    }
+    const { error } = await createCuenta(userId, input)
     if (error) return { error }
   }
 
@@ -114,10 +139,10 @@ export async function registrarPrimerAhorro(
   userId: string,
   data: OnboardingData,
 ): Promise<string | null> {
-  const monto = calcPrimerAhorro(data.sueldoSemanal, data.porcentajeAhorro)
+  const monto = calcPrimerAhorro(data.sueldoMensual, data.porcentajeAhorro)
   if (monto <= 0) return null
 
-  const objetivo = calcMetaObjetivoAnual(data.sueldoSemanal, data.porcentajeAhorro)
+  const objetivo = calcMetaObjetivoAnual(data.sueldoMensual, data.porcentajeAhorro)
 
   const { data: meta, error: createError } = await createMetaAhorro(userId, {
     nombre: 'Mi ahorro semanal',

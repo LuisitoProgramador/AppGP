@@ -1,3 +1,4 @@
+export { default as PresupuestoSettings } from './PresupuestoSettings'
 export { default as Dashboard } from './Dashboard'
 export { default as EditGastoModal } from './EditGastoModal'
 export { default as ErrorBoundary } from './ErrorBoundary'
