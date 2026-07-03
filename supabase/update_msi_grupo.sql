@@ -24,6 +24,8 @@ declare
   v_inserted_ids bigint[] := '{}';
   v_deleted_ids bigint[] := '{}';
 begin
+  perform set_config('app.bypass_past_gasto_guard', 'true', true);
+
   v_user_id := auth.uid();
   if v_user_id is null then
     raise exception 'No autenticado';

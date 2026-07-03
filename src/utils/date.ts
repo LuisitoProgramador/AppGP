@@ -49,12 +49,26 @@ export function isCurrentMonth(date: Date): boolean {
   )
 }
 
-/** True si la fecha del gasto es anterior al día de hoy (solo lectura histórica). */
-export function isGastoFechaPasada(fecha: string | Date, hoy = new Date()): boolean {
-  const gasto = new Date(fecha)
-  const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
-  const inicioGasto = new Date(gasto.getFullYear(), gasto.getMonth(), gasto.getDate())
-  return inicioGasto < inicioHoy
+export const APP_TIMEZONE = 'America/Mexico_City'
+
+function getCalendarDateInTimezone(date: Date, timeZone = APP_TIMEZONE): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date)
+}
+
+/** True si la fecha del gasto es anterior al día de hoy en America/Mexico_City. */
+export function isGastoFechaPasada(
+  fecha: string | Date,
+  hoy = new Date(),
+  timeZone = APP_TIMEZONE,
+): boolean {
+  const gastoDate = getCalendarDateInTimezone(new Date(fecha), timeZone)
+  const hoyDate = getCalendarDateInTimezone(hoy, timeZone)
+  return gastoDate < hoyDate
 }
 
 export function shiftMonth(date: Date, delta: number): Date {

@@ -50,9 +50,17 @@ describe('quietModeAuto', () => {
 })
 
 describe('isGastoFechaPasada', () => {
-  it('marca fechas anteriores a hoy como pasadas', () => {
-    const hoy = new Date(2026, 6, 15)
-    expect(isGastoFechaPasada(new Date(2026, 6, 14), hoy)).toBe(true)
-    expect(isGastoFechaPasada(new Date(2026, 6, 15), hoy)).toBe(false)
+  it('marca fechas anteriores a hoy (America/Mexico_City) como pasadas', () => {
+    const hoy = new Date('2026-07-15T14:00:00.000Z')
+    expect(isGastoFechaPasada('2026-07-14T12:00:00.000Z', hoy)).toBe(true)
+    expect(isGastoFechaPasada('2026-07-15T12:00:00.000Z', hoy)).toBe(false)
+  })
+
+  it('usa calendario de Mexico City, no UTC', () => {
+    const hoy = new Date('2026-07-15T14:00:00.000Z')
+    // 05:00 UTC = 23:00 del 14 en Ciudad de México (UTC-6)
+    expect(isGastoFechaPasada('2026-07-15T05:00:00.000Z', hoy)).toBe(true)
+    // 06:00 UTC = 00:00 del 15 en Ciudad de México
+    expect(isGastoFechaPasada('2026-07-15T06:00:00.000Z', hoy)).toBe(false)
   })
 })

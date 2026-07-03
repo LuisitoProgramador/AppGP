@@ -52,9 +52,10 @@ export default function EditGastoModal({
   const [descripcionBase, setDescripcionBase] = useState('')
 
   const esMsi = Boolean(gasto.es_msi && gasto.grupo_msi_id)
-  const cuotaPasada = useMemo(
-    () => esMsi && !corregirTotal && isGastoFechaPasada(gasto.fecha),
-    [esMsi, corregirTotal, gasto.fecha],
+  const gastoPasado = useMemo(() => isGastoFechaPasada(gasto.fecha), [gasto.fecha])
+  const edicionBloqueada = useMemo(
+    () => gastoPasado && (!esMsi || !corregirTotal),
+    [gastoPasado, esMsi, corregirTotal],
   )
   const msiInfo = parseMsiDescripcion(gasto.descripcion ?? '')
   const totalGrupo = sumMsiGrupoMontos(grupoRows.length > 0 ? grupoRows : [{ monto: gasto.monto }])
@@ -260,7 +261,7 @@ export default function EditGastoModal({
   }
 
   async function guardarCuotaIndividual(): Promise<boolean> {
-    if (cuotaPasada) {
+    if (edicionBloqueada) {
       showError(
         'No puedes editar cuotas pasadas. Usa "Editar compra MSI completa" para ajustar el total.',
       )
@@ -297,6 +298,11 @@ export default function EditGastoModal({
   }
 
   async function guardarGastoNormal(): Promise<boolean> {
+    if (gastoPasado) {
+      showError('No puedes editar gastos con fecha pasada.')
+      return false
+    }
+
     const montoError = validateMonto(monto)
     if (montoError) {
       showError(montoError)
@@ -409,13 +415,19 @@ export default function EditGastoModal({
               />
               Editar compra MSI completa (total, meses y saldo de crédito)
             </label>
-            {cuotaPasada && (
+            {edicionBloqueada && esMsi && (
               <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
                 No puedes editar cuotas pasadas, el gasto ya ocurrió. Si quieres ajustar el total,
                 debes editar el grupo MSI completo.
               </p>
             )}
           </div>
+        )}
+
+        {!esMsi && gastoPasado && (
+          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+            No puedes editar gastos con fecha pasada, el movimiento ya ocurrió.
+          </p>
         )}
 
         {esMsi && corregirTotal ? (
@@ -504,7 +516,7 @@ export default function EditGastoModal({
               onChange={(e) => setMonto(e.target.value)}
               className={inputClassName}
               required
-              disabled={cuotaPasada}
+              disabled={edicionBloqueada}
             />
           </div>
         )}
@@ -521,6 +533,7 @@ export default function EditGastoModal({
             }
             className={inputClassName}
             required
+            disabled={edicionBloqueada}
           >
             {CATEGORIAS.map((item) => (
               <option key={item} value={item}>
@@ -544,7 +557,7 @@ export default function EditGastoModal({
               onChange={(e) => setDescripcion(e.target.value)}
               className={inputClassName}
               required
-              disabled={cuotaPasada}
+              disabled={edicionBloqueada}
             />
           </div>
         )}
@@ -559,7 +572,7 @@ export default function EditGastoModal({
           </button>
           <button
             type="submit"
-            disabled={guardando || (esMsi && cargandoGrupo) || cuotaPasada}
+            disabled={guardando || (esMsi && cargandoGrupo) || edicionBloqueada}
             className={`flex-1 ${buttonPrimaryClassName}`}
           >
             {guardando ? 'Guardando...' : 'Guardar cambios'}

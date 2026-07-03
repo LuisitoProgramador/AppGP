@@ -82,6 +82,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       const message =
         err instanceof Error ? err.message : 'Error inesperado al sincronizar gastos offline.'
       showError(message)
+      await updatePendingCount()
     } finally {
       setIsSyncing(false)
     }
