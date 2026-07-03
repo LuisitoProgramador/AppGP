@@ -15,7 +15,9 @@ import { formatCurrency } from '../utils/formatCurrency'
 import {
   formatMonthLabel,
   getDaysRemainingInMonth,
+  getDaysRemainingInQuincena,
   getMonthRange,
+  getQuincenaPeriodo,
   isCurrentMonth,
   shiftMonth,
 } from '../utils/date'
@@ -26,6 +28,9 @@ import { calcularCompromisosMsi } from '../utils/msiCompromisos'
 import { calcularSaludAhorro, type SaludNivel } from '../utils/saludAhorro'
 import { shouldShowBurnRateAlert } from '../utils/burnRate'
 import { calcSafeToSpend, sumRecibosPendientes } from '../utils/safeToSpend'
+import { calcMeAlcanza } from '../utils/meAlcanza'
+import { getQuincenaRange, isDateInQuincena, sumRecibosPendientesQuincena } from '../utils/quincena'
+import { isVistaQuincenal, setVistaQuincenal } from '../utils/vistaQuincenal'
 import { proyectarDiaAgotamiento } from '../utils/limitProjection'
 import {
   buildResumenFinMes,
@@ -110,6 +115,10 @@ export default function Dashboard() {
   const [gastoTotalAntesResumen, setGastoTotalAntesResumen] = useState<number | null>(null)
   const [recurrenteSugerido, setRecurrenteSugerido] = useState<RecurrenteSugerido | null>(null)
   const [marcandoRecurrente, setMarcandoRecurrente] = useState(false)
+  const [vistaQuincenal, setVistaQuincenalState] = useState(() => isVistaQuincenal())
+  const [gastoQuincenaBase, setGastoQuincenaBase] = useState(0)
+  const [mostrarMeAlcanza, setMostrarMeAlcanza] = useState(false)
+  const [montoMeAlcanza, setMontoMeAlcanza] = useState('')
 
   const mesLabel = useMemo(() => formatMonthLabel(selectedMonth), [selectedMonth])
   const esMesActual = useMemo(() => isCurrentMonth(selectedMonth), [selectedMonth])
@@ -132,6 +141,23 @@ export default function Dashboard() {
     [esMesActual, selectedMonth],
   )
 
+  const diasRestantesQuincena = useMemo(
+    () => (esMesActual ? getDaysRemainingInQuincena() : 0),
+    [esMesActual],
+  )
+
+  const quincenaPeriodo = useMemo(
+    () => (esMesActual ? getQuincenaPeriodo() : null),
+    [esMesActual],
+  )
+
+  const gastoQuincena = useMemo(() => {
+    const optimistic = optimisticGastos
+      .filter((gasto) => isDateInQuincena(gasto.fecha))
+      .reduce((sum, gasto) => sum + gasto.monto, 0)
+    return gastoQuincenaBase + optimistic
+  }, [gastoQuincenaBase, optimisticGastos])
+
   const diaActual = useMemo(() => new Date().getDate(), [])
 
   const recibosPendientes = useMemo(
@@ -139,19 +165,47 @@ export default function Dashboard() {
     [esMesActual, recurrentes, diaActual],
   )
 
+  const recibosPendientesQuincena = useMemo(
+    () => (esMesActual ? sumRecibosPendientesQuincena(recurrentes, diaActual) : 0),
+    [esMesActual, recurrentes, diaActual],
+  )
+
+  const usarVistaQuincenal = vistaQuincenal && esMesActual
+
   const safeToSpend = useMemo(
     () =>
       calcSafeToSpend({
-        limiteMensual,
-        gastoTotal,
-        recibosPendientes,
-        diasRestantes,
+        limiteMensual: usarVistaQuincenal ? limiteMensual / 2 : limiteMensual,
+        gastoTotal: usarVistaQuincenal ? gastoQuincena : gastoTotal,
+        recibosPendientes: usarVistaQuincenal ? recibosPendientesQuincena : recibosPendientes,
+        diasRestantes: usarVistaQuincenal ? diasRestantesQuincena : diasRestantes,
       }),
-    [limiteMensual, gastoTotal, recibosPendientes, diasRestantes],
+    [
+      limiteMensual,
+      gastoTotal,
+      gastoQuincena,
+      recibosPendientes,
+      recibosPendientesQuincena,
+      diasRestantes,
+      diasRestantesQuincena,
+      usarVistaQuincenal,
+    ],
   )
 
   const disponible = safeToSpend.disponible
   const presupuestoDiario = esMesActual ? safeToSpend.presupuestoDiario : 0
+  const diasRestantesEfectivos = usarVistaQuincenal ? diasRestantesQuincena : diasRestantes
+  const recibosEfectivos = usarVistaQuincenal ? recibosPendientesQuincena : recibosPendientes
+
+  const meAlcanzaResult = useMemo(() => {
+    const monto = Number(montoMeAlcanza)
+    return calcMeAlcanza({
+      disponible,
+      diasRestantes: diasRestantesEfectivos,
+      montoEstimado: monto,
+      presupuestoDiarioActual: presupuestoDiario,
+    })
+  }, [disponible, diasRestantesEfectivos, montoMeAlcanza, presupuestoDiario])
 
   const burnRateAlerta = useMemo(
     () =>
@@ -250,6 +304,22 @@ export default function Dashboard() {
           cantidad: Number(item.cantidad),
         })),
       )
+
+      if (isCurrentMonth(selectedMonth)) {
+        const { inicio: qInicio, fin: qFin } = getQuincenaRange()
+        const { data: quincenaData } = await supabase
+          .from('gastos')
+          .select('monto')
+          .eq('user_id', user.id)
+          .gte('fecha', qInicio.toISOString())
+          .lt('fecha', qFin.toISOString())
+
+        setGastoQuincenaBase(
+          (quincenaData ?? []).reduce((sum, row) => sum + Number(row.monto), 0),
+        )
+      } else {
+        setGastoQuincenaBase(0)
+      }
 
       const ahora = new Date()
       const inicioMsi = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
@@ -484,6 +554,12 @@ export default function Dashboard() {
     setModoViaje(activo)
   }
 
+  function handleToggleVistaQuincenal() {
+    const activo = !vistaQuincenal
+    setVistaQuincenalState(activo)
+    setVistaQuincenal(activo)
+  }
+
   async function handleMarcarRecurrente() {
     if (!recurrenteSugerido || !user) return
 
@@ -599,33 +675,109 @@ export default function Dashboard() {
           className={`rounded-xl border px-4 py-3 text-center ${
             disponible >= 0
               ? 'border-emerald-500/30 bg-emerald-500/10'
-              : 'border-red-500/30 bg-red-500/10'
+              : 'border-amber-500/30 bg-amber-500/10'
           }`}
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Presupuesto diario
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+              Presupuesto diario
+            </p>
+            <div className="inline-flex rounded-full border border-slate-600/80 bg-slate-900/60 p-0.5 text-[10px]">
+              <button
+                type="button"
+                onClick={() => vistaQuincenal && handleToggleVistaQuincenal()}
+                className={`rounded-full px-2 py-0.5 font-medium transition ${
+                  !vistaQuincenal
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Mensual
+              </button>
+              <button
+                type="button"
+                onClick={() => !vistaQuincenal && handleToggleVistaQuincenal()}
+                className={`rounded-full px-2 py-0.5 font-medium transition ${
+                  vistaQuincenal
+                    ? 'bg-blue-500/20 text-blue-300'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                Quincenal
+              </button>
+            </div>
+          </div>
           <p
             className={`mt-1 text-2xl font-bold ${
-              disponible >= 0 ? 'text-emerald-400' : 'text-red-400'
+              disponible >= 0 ? 'text-emerald-400' : 'text-amber-400'
             }`}
           >
             {disponible >= 0
               ? `Puedes gastar ${formatCurrency(presupuestoDiario)} hoy`
-              : `Excedido por ${formatCurrency(Math.abs(disponible))}`}
+              : `Apretado: ${formatCurrency(Math.abs(disponible))} sobre tu límite`}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Límite {formatCurrency(limiteMensual)} · {diasRestantes} días restantes
+            {vistaQuincenal ? (
+              <>
+                Quincena {quincenaPeriodo} · Límite {formatCurrency(limiteMensual / 2)} ·{' '}
+                {diasRestantesEfectivos} días restantes
+              </>
+            ) : (
+              <>
+                Límite {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días restantes
+              </>
+            )}
           </p>
-          {recibosPendientes > 0 && (
+          {recibosEfectivos > 0 && (
             <p className="mt-1 text-xs text-slate-400">
-              Excluyendo {formatCurrency(recibosPendientes)} en recibos próximos
+              Excluyendo {formatCurrency(recibosEfectivos)} en recibos próximos
             </p>
           )}
-          {diaAgotamiento != null && (
+          {diaAgotamiento != null && !vistaQuincenal && (
             <p className="mt-1 text-xs text-slate-400">
               Al ritmo actual, tu límite se acaba ~el día {diaAgotamiento}
             </p>
+          )}
+        </div>
+      )}
+
+      {esMesActual && !cargando && (
+        <div className="rounded-xl border border-slate-700/60 bg-slate-900/40">
+          <button
+            type="button"
+            onClick={() => setMostrarMeAlcanza((current) => !current)}
+            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-slate-300 transition hover:text-white"
+            aria-expanded={mostrarMeAlcanza}
+          >
+            <span>¿Me alcanza para...?</span>
+            <span className="text-xs text-slate-500">{mostrarMeAlcanza ? '▲' : '▼'}</span>
+          </button>
+          {mostrarMeAlcanza && (
+            <div className="space-y-2 border-t border-slate-700/60 px-4 py-3">
+              <input
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.01"
+                placeholder="Monto estimado"
+                value={montoMeAlcanza}
+                onChange={(e) => setMontoMeAlcanza(e.target.value)}
+                className={inputClassName}
+              />
+              {meAlcanzaResult && (
+                <p
+                  className={`text-sm ${
+                    meAlcanzaResult.tono === 'bien'
+                      ? 'text-emerald-400'
+                      : meAlcanzaResult.tono === 'apretado'
+                        ? 'text-amber-400'
+                        : 'text-amber-300'
+                  }`}
+                >
+                  {meAlcanzaResult.mensaje}
+                </p>
+              )}
+            </div>
           )}
         </div>
       )}

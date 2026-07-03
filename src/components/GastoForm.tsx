@@ -9,7 +9,7 @@ import {
   type MerchantMemoryEntry,
 } from '../services/merchantMemory'
 import { notifyTelegram } from '../services/notifyTelegram'
-import { addPendingGasto } from '../services/offlineQueue'
+import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS, type Categoria } from '../types/gasto'
 import { parseGastoInput } from '../utils/parser'
@@ -17,7 +17,7 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
 import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
 import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
-import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
+import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import { cardClassName, inputClassName } from './formStyles'
 
@@ -31,6 +31,13 @@ const initialForm = {
 }
 
 type FormState = typeof initialForm
+
+interface UltimoGastoChip {
+  descripcion: string
+  monto: number
+  categoria: Categoria
+  cuentaId: string
+}
 
 interface QuickTap {
   label: string
@@ -50,6 +57,7 @@ export default function GastoForm() {
   const { user } = useAuthContext()
   const {
     refresh,
+    refreshKey,
     addOptimisticGasto,
     removeOptimisticGastos,
     optimisticGastos,
@@ -62,6 +70,7 @@ export default function GastoForm() {
   const [guardando, setGuardando] = useState(false)
   const [merchantMemory, setMerchantMemory] = useState<MerchantMemoryEntry[]>([])
   const [montoSugerido, setMontoSugerido] = useState<number | null>(null)
+  const [ultimoGasto, setUltimoGasto] = useState<UltimoGastoChip | null>(null)
   const montoInputRef = useRef<HTMLInputElement>(null)
 
   const selectedCuenta = cuentas.find((c) => String(c.id) === form.cuentaId)
@@ -75,6 +84,42 @@ export default function GastoForm() {
       refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
     }
   }, [user])
+
+  useEffect(() => {
+    if (!user) return
+
+    if (optimisticGastos.length > 0) {
+      const gasto = optimisticGastos[0]
+      setUltimoGasto({
+        descripcion: gasto.descripcion,
+        monto: gasto.monto,
+        categoria: gasto.categoria as Categoria,
+        cuentaId: gasto.cuenta_id ?? '',
+      })
+      return
+    }
+
+    supabase
+      .from('gastos')
+      .select('descripcion, monto, categoria, cuenta_id')
+      .eq('user_id', user.id)
+      .order('fecha', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) {
+          setUltimoGasto(null)
+          return
+        }
+        setUltimoGasto({
+          descripcion: data.descripcion ?? '',
+          monto: Number(data.monto),
+          categoria: data.categoria as Categoria,
+          cuentaId: data.cuenta_id ?? '',
+        })
+      })
+      .catch(() => {})
+  }, [user, refreshKey, optimisticGastos])
 
   const merchantMatch = useMemo(
     () => matchMerchantMemory(form.descripcion, merchantMemory),
@@ -137,6 +182,58 @@ export default function GastoForm() {
 
     montoInputRef.current?.focus()
   }, [])
+
+  async function deshacerGasto(params: {
+    gastoIds: number[]
+    pendingId?: string
+    optimisticTempIds: string[]
+    cuentaId: string
+    saldoMonto: number
+  }) {
+    if (!user) return
+
+    if (params.pendingId) {
+      await removePendingGasto(params.pendingId)
+    } else if (params.gastoIds.length > 0) {
+      const { error } = await supabase
+        .from('gastos')
+        .delete()
+        .in('id', params.gastoIds)
+        .eq('user_id', user.id)
+
+      if (error) {
+        showError(`No se pudo deshacer: ${error.message}`)
+        return
+      }
+    }
+
+    if (params.optimisticTempIds.length > 0) {
+      removeOptimisticGastos(params.optimisticTempIds)
+    }
+
+    const { error: saldoError } = await revertGastoSaldo(params.cuentaId, params.saldoMonto)
+    if (saldoError) {
+      showError(`Gasto eliminado, pero el saldo no se revirtió: ${saldoError}`)
+      refresh()
+      return
+    }
+
+    refresh()
+    showInfo('Gasto deshecho.')
+  }
+
+  function handleRepetirUltimo() {
+    if (!ultimoGasto) return
+
+    setForm((prev) => ({
+      ...prev,
+      monto: String(ultimoGasto.monto),
+      categoria: ultimoGasto.categoria,
+      descripcion: ultimoGasto.descripcion,
+      cuentaId: ultimoGasto.cuentaId || prev.cuentaId,
+      esMsi: false,
+    }))
+  }
 
   async function submitGasto(data: FormState) {
     const montoError = validateMonto(data.monto)
@@ -263,7 +360,7 @@ export default function GastoForm() {
 
     if (!navigator.onLine) {
       setGuardando(true)
-      await addPendingGasto({ ...offlinePayload, optimisticTempIds: tempIds })
+      const pending = await addPendingGasto({ ...offlinePayload, optimisticTempIds: tempIds })
       setGuardando(false)
       setForm({ ...initialForm, cuentaId: data.cuentaId })
       recordMerchantMemory(user.id, descripcion, categoria, monto)
@@ -273,7 +370,15 @@ export default function GastoForm() {
         rows.length > 1
           ? `Sin conexión. Compra MSI (${rows.length} pagos) guardada localmente.`
           : 'Sin conexión. Gasto guardado localmente y se sincronizará al volver internet.'
-      showWarning(msg)
+      showSuccessWithUndo(msg, () =>
+        deshacerGasto({
+          pendingId: pending.id,
+          optimisticTempIds: tempIds,
+          gastoIds: [],
+          cuentaId,
+          saldoMonto,
+        }),
+      )
       return
     }
 
@@ -281,7 +386,7 @@ export default function GastoForm() {
     showInfo(rows.length > 1 ? `Guardando compra MSI (${rows.length} pagos)...` : 'Guardando gasto...')
     setGuardando(true)
 
-    const { error } = await supabase.from('gastos').insert(rows)
+    const { data: inserted, error } = await supabase.from('gastos').insert(rows).select('id')
 
     setGuardando(false)
 
@@ -294,6 +399,8 @@ export default function GastoForm() {
     }
 
     removeOptimisticGastos(tempIds)
+    const gastoIds = (inserted ?? []).map((row) => row.id as number)
+
     await notifyTelegram({
       monto,
       categoria,
@@ -303,10 +410,17 @@ export default function GastoForm() {
     recordMerchantMemory(user.id, descripcion, categoria, monto)
     setMerchantMemory(getMerchantMemory(user.id))
     refresh()
-    showSuccess(
+    showSuccessWithUndo(
       rows.length > 1
         ? `Compra MSI registrada: ${rows.length} mensualidades.`
         : 'Gasto guardado correctamente.',
+      () =>
+        deshacerGasto({
+          gastoIds,
+          optimisticTempIds: [],
+          cuentaId,
+          saldoMonto,
+        }),
     )
   }
 
@@ -485,6 +599,15 @@ export default function GastoForm() {
             </option>
           ))}
         </select>
+        {ultimoGasto && (
+          <button
+            type="button"
+            onClick={handleRepetirUltimo}
+            className="rounded-full border border-slate-600 bg-slate-900/60 px-3 py-1.5 text-xs font-medium text-slate-200 transition hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-white"
+          >
+            Repetir: {ultimoGasto.descripcion} — {formatCurrency(ultimoGasto.monto)}
+          </button>
+        )}
       </div>
 
       <div className="space-y-2">

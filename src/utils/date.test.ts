@@ -3,6 +3,7 @@ import {
   addMonths,
   fromMonthInputValue,
   getDaysRemainingInMonth,
+  getDaysRemainingInQuincena,
   getMonthRange,
   isCurrentMonth,
   shiftMonth,
@@ -21,6 +22,11 @@ describe('date utils', () => {
   it('calcula días restantes incluyendo hoy', () => {
     const fecha = new Date(2026, 2, 15)
     expect(getDaysRemainingInMonth(fecha)).toBe(17)
+  })
+
+  it('calcula días restantes de la quincena', () => {
+    expect(getDaysRemainingInQuincena(new Date(2026, 6, 10))).toBe(6)
+    expect(getDaysRemainingInQuincena(new Date(2026, 6, 20))).toBe(12)
   })
 
   it('detecta si es el mes actual', () => {

@@ -9,6 +9,24 @@ export function getDaysRemainingInMonth(date = new Date()): number {
   return Math.max(lastDay - date.getDate() + 1, 1)
 }
 
+export type QuincenaPeriodo = 1 | 2
+
+export function getQuincenaPeriodo(date = new Date()): QuincenaPeriodo {
+  return date.getDate() <= 15 ? 1 : 2
+}
+
+export function getDaysRemainingInQuincena(date = new Date()): number {
+  const year = date.getFullYear()
+  const month = date.getMonth()
+  const day = date.getDate()
+  const lastDay = new Date(year, month + 1, 0).getDate()
+
+  if (day <= 15) {
+    return Math.max(15 - day + 1, 1)
+  }
+  return Math.max(lastDay - day + 1, 1)
+}
+
 export function formatMonthLabel(date = new Date(), locale = 'es-MX'): string {
   return new Intl.DateTimeFormat(locale, {
     month: 'long',
