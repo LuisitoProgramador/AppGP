@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useAuthContext } from '../contexts'
 import {
   calcLimiteMensual,
@@ -14,15 +14,12 @@ import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import {
   buttonEmeraldFlexClassName,
-  buttonGhostFlexClassName,
   buttonGhostSmClassName,
   buttonGhostSmFlexClassName,
   buttonPrimaryClassName,
   buttonPrimaryFlexClassName,
   buttonVioletFlexClassName,
-  buttonVioletClassName,
   cardClassName,
-  formSubmitStickyClassName,
   formWithKeyboardClassName,
   inputClassName,
 } from './formStyles'
@@ -37,6 +34,7 @@ interface GastoFijoDraft {
   id: string
   descripcion: string
   monto: string
+  cuenta_id: string
 }
 
 interface TarjetaDraft {
@@ -51,6 +49,11 @@ interface CuentaLiquidaDraft {
   id: string
   nombre: string
   saldo_actual: string
+}
+
+interface CuentaOption {
+  id: string
+  label: string
 }
 
 interface OnboardingFlowProps {
@@ -77,6 +80,8 @@ function StepIndicator({ step }: { step: number }) {
   )
 }
 
+const STEP_TITLES = ['Tus ingresos', 'Tus cuentas', 'Gastos fijos', 'Tu ahorro']
+
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const { user } = useAuthContext()
   const [step, setStep] = useState(1)
@@ -88,7 +93,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [porcentajeAhorro, setPorcentajeAhorro] = useState(15)
 
   const [gastosFijos, setGastosFijos] = useState<GastoFijoDraft[]>([])
-  const [gastoForm, setGastoForm] = useState({ descripcion: '', monto: '' })
+  const [gastoForm, setGastoForm] = useState({
+    descripcion: '',
+    monto: '',
+    cuenta_id: '',
+  })
 
   const [tarjetas, setTarjetas] = useState<TarjetaDraft[]>([])
   const [cuentasLiquidas, setCuentasLiquidas] = useState<CuentaLiquidaDraft[]>([])
@@ -104,6 +113,41 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     saldo_actual: '0',
   })
   const [showTarjetaForm, setShowTarjetaForm] = useState(false)
+
+  const cuentaOptions = useMemo<CuentaOption[]>(
+    () => [
+      ...cuentasLiquidas.map((cuenta) => ({
+        id: cuenta.id,
+        label: `Débito · ${cuenta.nombre}`,
+      })),
+      ...tarjetas.map((tarjeta) => ({
+        id: tarjeta.id,
+        label: `Crédito · ${tarjeta.nombre}`,
+      })),
+    ],
+    [cuentasLiquidas, tarjetas],
+  )
+
+  const totalCuentas = cuentaOptions.length
+
+  const cuentaLabelById = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const option of cuentaOptions) {
+      map.set(option.id, option.label)
+    }
+    return map
+  }, [cuentaOptions])
+
+  useEffect(() => {
+    if (step !== 3 || cuentaOptions.length === 0) return
+
+    setGastoForm((prev) => {
+      if (prev.cuenta_id && cuentaOptions.some((option) => option.id === prev.cuenta_id)) {
+        return prev
+      }
+      return { ...prev, cuenta_id: cuentaOptions[0].id }
+    })
+  }, [step, cuentaOptions])
 
   function goToStep(next: number) {
     setAnimating(true)
@@ -122,8 +166,31 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     goToStep(2)
   }
 
+  function handleStep2Next() {
+    if (totalCuentas === 0) {
+      showError('Añade al menos una cuenta de débito o crédito para continuar.')
+      return
+    }
+    goToStep(3)
+  }
+
+  function handleStep3Next() {
+    if (totalCuentas === 0) {
+      showError('Configura tus cuentas antes de registrar gastos fijos.')
+      goToStep(2)
+      return
+    }
+    goToStep(4)
+  }
+
   function handleAddGasto(event: FormEvent) {
     event.preventDefault()
+
+    const descripcionError = validateDescripcion(gastoForm.descripcion)
+    if (descripcionError) {
+      showError(descripcionError)
+      return
+    }
 
     const montoError = validateMonto(gastoForm.monto)
     if (montoError) {
@@ -131,9 +198,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    const descripcionError = validateDescripcion(gastoForm.descripcion)
-    if (descripcionError) {
-      showError(descripcionError)
+    if (!gastoForm.cuenta_id) {
+      showError('Selecciona la cuenta de pago del gasto fijo.')
       return
     }
 
@@ -143,14 +209,23 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         id: crypto.randomUUID(),
         descripcion: gastoForm.descripcion.trim(),
         monto: gastoForm.monto,
+        cuenta_id: gastoForm.cuenta_id,
       },
     ])
-    setGastoForm({ descripcion: '', monto: '' })
+    setGastoForm({
+      descripcion: '',
+      monto: '',
+      cuenta_id: gastoForm.cuenta_id,
+    })
   }
 
   function addSugerencia(nombre: string) {
     if (gastosFijos.some((g) => g.descripcion.toLowerCase() === nombre.toLowerCase())) return
-    setGastoForm({ descripcion: nombre, monto: '' })
+    setGastoForm((prev) => ({
+      descripcion: nombre,
+      monto: prev.monto,
+      cuenta_id: prev.cuenta_id || cuentaOptions[0]?.id || '',
+    }))
   }
 
   function removeGasto(id: string) {
@@ -172,7 +247,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    let limite: string | null = tarjetaForm.limite_credito
+    const limite = tarjetaForm.limite_credito
     if (limite.trim()) {
       const limiteNum = Number(limite)
       if (Number.isNaN(limiteNum) || limiteNum <= 0) {
@@ -181,7 +256,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       }
     }
 
-    let diaCorte: string | null = tarjetaForm.dia_corte
+    const diaCorte = tarjetaForm.dia_corte
     if (diaCorte.trim()) {
       const dia = Number(diaCorte)
       if (!Number.isInteger(dia) || dia < 1 || dia > 31) {
@@ -255,9 +330,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
+    if (totalCuentas === 0) {
+      showError('Debes configurar al menos una cuenta antes de finalizar.')
+      goToStep(2)
+      return
+    }
+
     setGuardando(true)
 
     const tarjetasData: OnboardingTarjeta[] = tarjetas.map((t) => ({
+      draftId: t.id,
       nombre: t.nombre.trim(),
       saldo_actual: Number(t.saldo_actual) || 0,
       limite_credito: t.limite_credito.trim() ? Number(t.limite_credito) : null,
@@ -265,6 +347,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }))
 
     const cuentasLiquidasData: OnboardingCuentaLiquida[] = cuentasLiquidas.map((c) => ({
+      draftId: c.id,
       nombre: c.nombre.trim(),
       saldo_actual: Number(c.saldo_actual) || 0,
     }))
@@ -278,6 +361,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         monto: Number(g.monto),
         categoria: guessCategoria(g.descripcion),
         dia_mes: 1,
+        cuenta_id: g.cuenta_id,
       })),
       tarjetas: tarjetasData,
       cuentasLiquidas: cuentasLiquidasData,
@@ -304,8 +388,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     sueldoNum > 0 ? calcLimiteMensual(sueldoNum, porcentajeAhorro) : null
   const ahorroPreview = sueldoNum > 0 ? calcPrimerAhorro(sueldoNum, porcentajeAhorro) : null
 
-  const stepTitles = ['Tus ingresos', 'Gastos fijos', 'Tu ahorro', 'Tus cuentas']
-
   return (
     <section className="space-y-6">
       <div className="space-y-3 text-center">
@@ -313,7 +395,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
           Paso {step} de {TOTAL_STEPS}
         </p>
         <h1 className="text-2xl font-bold">Configura tu presupuesto</h1>
-        <p className="text-sm text-slate-400">{stepTitles[step - 1]}</p>
+        <p className="text-sm text-slate-400">{STEP_TITLES[step - 1]}</p>
         <StepIndicator step={step} />
       </div>
 
@@ -377,11 +459,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={handleStep1Next}
-              className={buttonPrimaryClassName}
-            >
+            <button type="button" onClick={handleStep1Next} className={buttonPrimaryClassName}>
               Continuar
             </button>
           </div>
@@ -390,172 +468,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         {step === 2 && (
           <div className={cardClassName}>
             <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-white">Gastos fijos del mes</h2>
-              <p className="text-sm text-slate-400">
-                Renta, suscripciones y pagos que se repiten cada mes
-              </p>
-            </div>
-
-            {gastosFijos.length > 0 && (
-              <div className="divide-y divide-slate-700/80 overflow-hidden rounded-xl border border-slate-700/60">
-                {gastosFijos.map((gasto) => (
-                  <div
-                    key={gasto.id}
-                    className="flex items-center gap-3 bg-slate-900/40 px-3 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-white">{gasto.descripcion}</p>
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold text-slate-200">
-                      {formatCurrency(Number(gasto.monto))}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => removeGasto(gasto.id)}
-                      aria-label={`Eliminar ${gasto.descripcion}`}
-                      className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {SUGERENCIAS.map((nombre) => (
-                <button
-                  key={nombre}
-                  type="button"
-                  onClick={() => addSugerencia(nombre)}
-                  className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-blue-500/50 hover:text-white"
-                >
-                  + {nombre}
-                </button>
-              ))}
-            </div>
-
-            <form onSubmit={handleAddGasto} className={`space-y-3 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <input
-                  type="text"
-                  maxLength={200}
-                  placeholder="Descripción"
-                  value={gastoForm.descripcion}
-                  onChange={(e) =>
-                    setGastoForm((prev) => ({ ...prev, descripcion: e.target.value }))
-                  }
-                  className={inputClassName}
-                />
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="0"
-                  step="0.01"
-                  placeholder="Monto"
-                  value={gastoForm.monto}
-                  onChange={(e) => setGastoForm((prev) => ({ ...prev, monto: e.target.value }))}
-                  className={inputClassName}
-                />
-              </div>
-              <button
-                type="submit"
-                className={`w-full ${buttonGhostSmClassName}`}
-              >
-                Añadir gasto
-              </button>
-            </form>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => goToStep(1)}
-                className={buttonGhostSmFlexClassName}
-              >
-                Atrás
-              </button>
-              <button
-                type="button"
-                onClick={() => goToStep(3)}
-                className={buttonPrimaryFlexClassName}
-              >
-                {gastosFijos.length === 0 ? 'Omitir' : 'Continuar'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className={cardClassName}>
-            <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-white">¿Cuánto quieres ahorrar?</h2>
-              <p className="text-sm text-slate-400">
-                Reservaremos este porcentaje de tu sueldo cada semana
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold text-emerald-400">{porcentajeAhorro}%</span>
-                {ahorroPreview != null && ahorroPreview > 0 && (
-                  <span className="text-sm text-slate-400">
-                    ≈ {formatCurrency(ahorroPreview)}/semana
-                  </span>
-                )}
-              </div>
-
-              <input
-                type="range"
-                min={5}
-                max={50}
-                step={5}
-                value={porcentajeAhorro}
-                onChange={(e) => setPorcentajeAhorro(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-500"
-                aria-label="Porcentaje de ahorro semanal"
-              />
-
-              <div className="flex justify-between text-xs text-slate-500">
-                <span>5%</span>
-                <span>50%</span>
-              </div>
-            </div>
-
-            {limitePreview != null && sueldoNum > 0 && (
-              <p className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300">
-                Con {porcentajeAhorro}% de ahorro, tu presupuesto mensual para gastar será de{' '}
-                <strong className="text-white">{formatCurrency(limitePreview)}</strong>
-                <span className="mt-1 block text-xs text-blue-200/80">
-                  Basado en {formatCurrency(sueldoNum)} de sueldo mensual
-                </span>
-              </p>
-            )}
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => goToStep(2)}
-                className={buttonGhostSmFlexClassName}
-              >
-                Atrás
-              </button>
-              <button
-                type="button"
-                onClick={() => goToStep(4)}
-                className={buttonPrimaryFlexClassName}
-              >
-                Continuar
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className={cardClassName}>
-            <div className="space-y-1">
               <h2 className="text-lg font-semibold text-white">Tus cuentas</h2>
               <p className="text-sm text-slate-400">
-                Opcional: registra cuentas de débito, ahorro y crédito para un control más preciso
+                Crea al menos una cuenta para asignar tus gastos fijos en el siguiente paso
               </p>
             </div>
 
@@ -673,144 +588,399 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <h3 className="text-sm font-semibold text-slate-200">Tarjetas de crédito</h3>
               </div>
 
-            {tarjetas.length > 0 && (
-              <div className="grid gap-2">
-                {tarjetas.map((tarjeta) => (
-                  <div
-                    key={tarjeta.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-3 py-3"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-white">{tarjeta.nombre}</p>
-                      {tarjeta.limite_credito && (
-                        <p className="text-xs text-slate-400">
-                          Límite: {formatCurrency(Number(tarjeta.limite_credito))}
-                        </p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeTarjeta(tarjeta.id)}
-                      aria-label={`Eliminar ${tarjeta.nombre}`}
-                      className="rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+              {tarjetas.length > 0 && (
+                <div className="grid gap-2">
+                  {tarjetas.map((tarjeta) => (
+                    <div
+                      key={tarjeta.id}
+                      className="flex items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/50 px-3 py-3"
                     >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {!showTarjetaForm ? (
-              <button
-                type="button"
-                onClick={() => setShowTarjetaForm(true)}
-                className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-blue-500/50 hover:text-white"
-              >
-                + Añadir tarjeta
-              </button>
-            ) : (
-              <form onSubmit={handleAddTarjeta} className={`space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 ${formWithKeyboardClassName}`}>
-                <div className="space-y-2">
-                  <label htmlFor="onb-tarjeta-nombre" className="block text-sm font-medium text-slate-300">
-                    Nombre
-                  </label>
-                  <input
-                    id="onb-tarjeta-nombre"
-                    type="text"
-                    maxLength={60}
-                    placeholder="Ej. Tarjeta A, Crédito"
-                    value={tarjetaForm.nombre}
-                    onChange={(e) =>
-                      setTarjetaForm((prev) => ({ ...prev, nombre: e.target.value }))
-                    }
-                    className={inputClassName}
-                    required
-                  />
+                      <div>
+                        <p className="text-sm font-semibold text-white">{tarjeta.nombre}</p>
+                        {tarjeta.limite_credito && (
+                          <p className="text-xs text-slate-400">
+                            Límite: {formatCurrency(Number(tarjeta.limite_credito))}
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTarjeta(tarjeta.id)}
+                        aria-label={`Eliminar ${tarjeta.nombre}`}
+                        className="rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
+              )}
 
-                <div className="grid gap-2 sm:grid-cols-2">
+              {!showTarjetaForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowTarjetaForm(true)}
+                  className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-blue-500/50 hover:text-white"
+                >
+                  + Añadir tarjeta
+                </button>
+              ) : (
+                <form
+                  onSubmit={handleAddTarjeta}
+                  className={`space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4 ${formWithKeyboardClassName}`}
+                >
                   <div className="space-y-2">
-                    <label htmlFor="onb-tarjeta-limite" className="block text-sm font-medium text-slate-300">
-                      Límite
+                    <label
+                      htmlFor="onb-tarjeta-nombre"
+                      className="block text-sm font-medium text-slate-300"
+                    >
+                      Nombre
                     </label>
                     <input
-                      id="onb-tarjeta-limite"
+                      id="onb-tarjeta-nombre"
+                      type="text"
+                      maxLength={60}
+                      placeholder="Ej. Tarjeta A, Crédito"
+                      value={tarjetaForm.nombre}
+                      onChange={(e) =>
+                        setTarjetaForm((prev) => ({ ...prev, nombre: e.target.value }))
+                      }
+                      className={inputClassName}
+                      required
+                    />
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="onb-tarjeta-limite"
+                        className="block text-sm font-medium text-slate-300"
+                      >
+                        Límite
+                      </label>
+                      <input
+                        id="onb-tarjeta-limite"
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        placeholder="Opcional"
+                        value={tarjetaForm.limite_credito}
+                        onChange={(e) =>
+                          setTarjetaForm((prev) => ({ ...prev, limite_credito: e.target.value }))
+                        }
+                        className={inputClassName}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label
+                        htmlFor="onb-tarjeta-corte"
+                        className="block text-sm font-medium text-slate-300"
+                      >
+                        Día de corte
+                      </label>
+                      <input
+                        id="onb-tarjeta-corte"
+                        type="number"
+                        inputMode="numeric"
+                        min="1"
+                        max="31"
+                        placeholder="Opcional"
+                        value={tarjetaForm.dia_corte}
+                        onChange={(e) =>
+                          setTarjetaForm((prev) => ({ ...prev, dia_corte: e.target.value }))
+                        }
+                        className={inputClassName}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="onb-tarjeta-deuda"
+                      className="block text-sm font-medium text-slate-300"
+                    >
+                      Deuda actual
+                    </label>
+                    <input
+                      id="onb-tarjeta-deuda"
                       type="number"
                       inputMode="decimal"
-                      min="0"
                       step="0.01"
-                      placeholder="Opcional"
-                      value={tarjetaForm.limite_credito}
+                      value={tarjetaForm.saldo_actual}
                       onChange={(e) =>
-                        setTarjetaForm((prev) => ({ ...prev, limite_credito: e.target.value }))
+                        setTarjetaForm((prev) => ({ ...prev, saldo_actual: e.target.value }))
                       }
                       className={inputClassName}
                     />
                   </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowTarjetaForm(false)
+                        setTarjetaForm({
+                          nombre: '',
+                          limite_credito: '',
+                          dia_corte: '',
+                          saldo_actual: '0',
+                        })
+                      }}
+                      className={buttonGhostSmFlexClassName}
+                    >
+                      Cancelar
+                    </button>
+                    <button type="submit" className={buttonVioletFlexClassName}>
+                      Guardar tarjeta
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {totalCuentas === 0 && (
+              <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                Necesitas al menos una cuenta para continuar y asignar gastos fijos.
+              </p>
+            )}
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => goToStep(1)}
+                className={buttonGhostSmFlexClassName}
+              >
+                Atrás
+              </button>
+              <button
+                type="button"
+                onClick={handleStep2Next}
+                disabled={totalCuentas === 0}
+                className={buttonPrimaryFlexClassName}
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {step === 3 && (
+          <div className={cardClassName}>
+            {totalCuentas === 0 ? (
+              <>
+                <div className="space-y-3">
+                  <h2 className="text-lg font-semibold text-white">Primero configura tus cuentas</h2>
+                  <p className="text-sm text-slate-400">
+                    Los gastos fijos deben vincularse a una cuenta de débito o crédito.
+                  </p>
+                  <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                    No hay cuentas disponibles. Vuelve al paso anterior y crea al menos una.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => goToStep(2)}
+                  className={buttonPrimaryClassName}
+                >
+                  Ir a configurar cuentas
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="space-y-1">
+                  <h2 className="text-lg font-semibold text-white">Gastos fijos del mes</h2>
+                  <p className="text-sm text-slate-400">
+                    Renta, suscripciones y pagos que se repiten cada mes
+                  </p>
+                </div>
+
+                {gastosFijos.length > 0 && (
+                  <div className="divide-y divide-slate-700/80 overflow-hidden rounded-xl border border-slate-700/60">
+                    {gastosFijos.map((gasto) => (
+                      <div
+                        key={gasto.id}
+                        className="flex items-center gap-3 bg-slate-900/40 px-3 py-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-white">
+                            {gasto.descripcion}
+                          </p>
+                          <p className="truncate text-xs text-slate-500">
+                            {cuentaLabelById.get(gasto.cuenta_id) ?? 'Cuenta'}
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-sm font-semibold text-slate-200">
+                          {formatCurrency(Number(gasto.monto))}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => removeGasto(gasto.id)}
+                          aria-label={`Eliminar ${gasto.descripcion}`}
+                          className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-2">
+                  {SUGERENCIAS.map((nombre) => (
+                    <button
+                      key={nombre}
+                      type="button"
+                      onClick={() => addSugerencia(nombre)}
+                      className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-blue-500/50 hover:text-white"
+                    >
+                      + {nombre}
+                    </button>
+                  ))}
+                </div>
+
+                <form
+                  onSubmit={handleAddGasto}
+                  className={`space-y-3 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}
+                >
                   <div className="space-y-2">
-                    <label htmlFor="onb-tarjeta-corte" className="block text-sm font-medium text-slate-300">
-                      Día de corte
+                    <label
+                      htmlFor="onb-gasto-descripcion"
+                      className="block text-sm font-medium text-slate-300"
+                    >
+                      Descripción
                     </label>
                     <input
-                      id="onb-tarjeta-corte"
-                      type="number"
-                      inputMode="numeric"
-                      min="1"
-                      max="31"
-                      placeholder="Opcional"
-                      value={tarjetaForm.dia_corte}
+                      id="onb-gasto-descripcion"
+                      type="text"
+                      maxLength={200}
+                      placeholder="Ej. Renta, Netflix, Internet"
+                      value={gastoForm.descripcion}
                       onChange={(e) =>
-                        setTarjetaForm((prev) => ({ ...prev, dia_corte: e.target.value }))
+                        setGastoForm((prev) => ({ ...prev, descripcion: e.target.value }))
+                      }
+                      className={inputClassName}
+                      autoComplete="off"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="onb-gasto-monto"
+                      className="block text-sm font-medium text-slate-300"
+                    >
+                      Monto mensual
+                    </label>
+                    <input
+                      id="onb-gasto-monto"
+                      type="number"
+                      inputMode="decimal"
+                      min="0.01"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={gastoForm.monto}
+                      onChange={(e) =>
+                        setGastoForm((prev) => ({ ...prev, monto: e.target.value }))
                       }
                       className={inputClassName}
                     />
                   </div>
-                </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="onb-tarjeta-deuda" className="block text-sm font-medium text-slate-300">
-                    Deuda actual
-                  </label>
-                  <input
-                    id="onb-tarjeta-deuda"
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    value={tarjetaForm.saldo_actual}
-                    onChange={(e) =>
-                      setTarjetaForm((prev) => ({ ...prev, saldo_actual: e.target.value }))
-                    }
-                    className={inputClassName}
-                  />
-                </div>
+                  <div className="space-y-2">
+                    <label
+                      htmlFor="onb-gasto-cuenta"
+                      className="block text-sm font-medium text-slate-300"
+                    >
+                      Cuenta de pago
+                    </label>
+                    <select
+                      id="onb-gasto-cuenta"
+                      value={gastoForm.cuenta_id}
+                      onChange={(e) =>
+                        setGastoForm((prev) => ({ ...prev, cuenta_id: e.target.value }))
+                      }
+                      className={inputClassName}
+                      required
+                    >
+                      {cuentaOptions.map((option) => (
+                        <option key={option.id} value={option.id}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="flex gap-2">
+                  <button type="submit" className={`w-full ${buttonGhostSmClassName}`}>
+                    Añadir gasto
+                  </button>
+                </form>
+
+                <div className="flex gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => {
-                      setShowTarjetaForm(false)
-                      setTarjetaForm({
-                        nombre: '',
-                        limite_credito: '',
-                        dia_corte: '',
-                        saldo_actual: '0',
-                      })
-                    }}
+                    onClick={() => goToStep(2)}
                     className={buttonGhostSmFlexClassName}
                   >
-                    Cancelar
+                    Atrás
                   </button>
                   <button
-                    type="submit"
-                    className={buttonVioletFlexClassName}
+                    type="button"
+                    onClick={handleStep3Next}
+                    className={buttonPrimaryFlexClassName}
                   >
-                    Guardar tarjeta
+                    {gastosFijos.length === 0 ? 'Omitir' : 'Continuar'}
                   </button>
                 </div>
-              </form>
+              </>
             )}
+          </div>
+        )}
+
+        {step === 4 && (
+          <div className={cardClassName}>
+            <div className="space-y-1">
+              <h2 className="text-lg font-semibold text-white">¿Cuánto quieres ahorrar?</h2>
+              <p className="text-sm text-slate-400">
+                Reservaremos este porcentaje de tu sueldo cada semana
+              </p>
             </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-3xl font-bold text-emerald-400">{porcentajeAhorro}%</span>
+                {ahorroPreview != null && ahorroPreview > 0 && (
+                  <span className="text-sm text-slate-400">
+                    ≈ {formatCurrency(ahorroPreview)}/semana
+                  </span>
+                )}
+              </div>
+
+              <input
+                type="range"
+                min={5}
+                max={50}
+                step={5}
+                value={porcentajeAhorro}
+                onChange={(e) => setPorcentajeAhorro(Number(e.target.value))}
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-500"
+                aria-label="Porcentaje de ahorro semanal"
+              />
+
+              <div className="flex justify-between text-xs text-slate-500">
+                <span>5%</span>
+                <span>50%</span>
+              </div>
+            </div>
+
+            {limitePreview != null && sueldoNum > 0 && (
+              <p className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300">
+                Con {porcentajeAhorro}% de ahorro, tu presupuesto mensual para gastar será de{' '}
+                <strong className="text-white">{formatCurrency(limitePreview)}</strong>
+                <span className="mt-1 block text-xs text-blue-200/80">
+                  Basado en {formatCurrency(sueldoNum)} de sueldo mensual
+                </span>
+              </p>
+            )}
 
             <div className="flex gap-2 pt-1">
               <button

@@ -26,9 +26,11 @@ export interface OnboardingGastoFijo {
   monto: number
   categoria: string
   dia_mes: number
+  cuenta_id: string | null
 }
 
 export interface OnboardingTarjeta {
+  draftId: string
   nombre: string
   limite_credito: number | null
   dia_corte: number | null
@@ -36,6 +38,7 @@ export interface OnboardingTarjeta {
 }
 
 export interface OnboardingCuentaLiquida {
+  draftId: string
   nombre: string
   saldo_actual: number
 }
@@ -89,19 +92,10 @@ export async function completeOnboarding(
   })
   if (presupuestoError) return { error: presupuestoError }
 
-  const { error: efectivoError } = await ensureCuentaEfectivo(userId)
+  const { error: efectivoError, data: efectivo } = await ensureCuentaEfectivo(userId)
   if (efectivoError) return { error: efectivoError }
 
-  for (const gasto of data.gastosFijos) {
-    const { error } = await createGastoRecurrente({
-      descripcion: gasto.descripcion,
-      monto: gasto.monto,
-      categoria: gasto.categoria,
-      dia_mes: gasto.dia_mes,
-      cuenta_id: null,
-    })
-    if (error) return { error }
-  }
+  const cuentaIdByDraft = new Map<string, string>()
 
   for (const cuenta of data.cuentasLiquidas) {
     const input: CuentaInput = {
@@ -109,8 +103,9 @@ export async function completeOnboarding(
       tipo: 'debito',
       saldo_actual: cuenta.saldo_actual,
     }
-    const { error } = await createCuenta(userId, input)
+    const { data: created, error } = await createCuenta(userId, input)
     if (error) return { error }
+    if (created) cuentaIdByDraft.set(cuenta.draftId, created.id)
   }
 
   for (const tarjeta of data.tarjetas) {
@@ -121,7 +116,25 @@ export async function completeOnboarding(
       limite_credito: tarjeta.limite_credito,
       dia_corte: tarjeta.dia_corte,
     }
-    const { error } = await createCuenta(userId, input)
+    const { data: created, error } = await createCuenta(userId, input)
+    if (error) return { error }
+    if (created) cuentaIdByDraft.set(tarjeta.draftId, created.id)
+  }
+
+  const defaultCuentaId = efectivo?.id ?? null
+
+  for (const gasto of data.gastosFijos) {
+    const resolvedCuentaId = gasto.cuenta_id
+      ? cuentaIdByDraft.get(gasto.cuenta_id) ?? defaultCuentaId
+      : defaultCuentaId
+
+    const { error } = await createGastoRecurrente({
+      descripcion: gasto.descripcion,
+      monto: gasto.monto,
+      categoria: gasto.categoria,
+      dia_mes: gasto.dia_mes,
+      cuenta_id: resolvedCuentaId,
+    })
     if (error) return { error }
   }
 
