@@ -105,12 +105,8 @@ function TabPanel({ id, activeTab, children }: TabPanelProps) {
       role="tabpanel"
       id={`panel-${id}`}
       aria-labelledby={`tab-${id}`}
-      aria-hidden={!active}
-      className={`${tabPanelClassName} ${
-        active
-          ? 'relative z-10 opacity-100'
-          : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'
-      }`}
+      hidden={!active}
+      className={active ? tabPanelClassName : undefined}
     >
       {children}
     </div>

@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { AuthError, Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
+import { handleAuthRedirect } from '../services/authRedirect'
 import { requestPersistentStorage } from '../utils/persistentStorage'
+import { showError, showInfo } from '../utils/toast'
+
+const emailRedirectTo = `${window.location.origin}/`
 
 export default function useAuth() {
   const [session, setSession] = useState<Session | null>(null)
@@ -10,12 +14,27 @@ export default function useAuth() {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    async function init() {
+      const redirect = await handleAuthRedirect()
       if (!mounted) return
+
+      if (redirect.status === 'error') {
+        showError(`No se pudo validar el enlace: ${redirect.error}`)
+      } else if (redirect.status === 'confirmed') {
+        showInfo('Correo confirmado. ¡Bienvenido!')
+      }
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (!mounted) return
+
       setSession(session)
       setLoading(false)
       if (session) void requestPersistentStorage()
-    })
+    }
+
+    void init()
 
     const {
       data: { subscription },
@@ -45,7 +64,11 @@ export default function useAuth() {
   }, [])
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const result = await supabase.auth.signUp({ email, password })
+    const result = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo },
+    })
     if (!result.error && result.data.session) {
       await requestPersistentStorage()
     }
