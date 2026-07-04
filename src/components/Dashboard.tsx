@@ -5,8 +5,7 @@ import ListaCuentas from './ListaCuentas'
 import ProyeccionCierre from './ProyeccionCierre'
 import DashboardFocusView from './dashboard/DashboardFocusView'
 import DashboardHeader from './dashboard/DashboardHeader'
-import FocusModeToggle from './dashboard/FocusModeToggle'
-import PresupuestoWidget from './dashboard/PresupuestoWidget'
+import DashboardHeroCard from './dashboard/DashboardHeroCard'
 import BurnRateAlert from './dashboard/BurnRateAlert'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import DashboardStatus from './dashboard/DashboardStatus'
@@ -27,9 +26,6 @@ export default memo(function Dashboard() {
     gastoTotal,
     resumen,
     limiteMensual,
-    limiteInput,
-    setLimiteInput,
-    guardandoLimite,
     disponible,
     presupuestoDiario,
     diasRestantesEfectivos,
@@ -42,37 +38,36 @@ export default memo(function Dashboard() {
     burnRateAlerta,
     diaAgotamiento,
     proyeccionCierre,
-    handleGuardarLimite,
     handleToggleModoViaje,
-    handleToggleVistaQuincenal,
   } = useDashboardData(selectedMonth, [], { lite: isFocusMode })
 
   return (
     <div className={`flex flex-col gap-6 ${formWithKeyboardClassName}`}>
       <section className={dashboardShellClassName}>
-        <FocusModeToggle isFocusMode={isFocusMode} onToggle={toggleFocusMode} />
-
-        {isFocusMode ? (
-          <DashboardFocusView
-            esMesActual={esMesActual}
-            cargando={cargando}
-            focusView={focusView}
+        <div className="flex flex-col gap-6">
+          <DashboardHeader
+            selectedMonth={selectedMonth}
+            onMonthChange={setSelectedMonth}
+            isFocusMode={isFocusMode}
+            onToggleFocusMode={toggleFocusMode}
+            modoViaje={modoViaje}
+            modoTranquilo={modoTranquilo}
+            onToggleModoViaje={handleToggleModoViaje}
+            onToggleModoTranquilo={toggleModoTranquilo}
           />
-        ) : (
-          <div className="flex flex-col gap-6">
-            <DashboardHeader
-              selectedMonth={selectedMonth}
-              onMonthChange={setSelectedMonth}
-              gastoTotal={gastoTotal}
-              cargando={cargando}
-              modoViaje={modoViaje}
-              modoTranquilo={modoTranquilo}
-              onToggleModoViaje={handleToggleModoViaje}
-              onToggleModoTranquilo={toggleModoTranquilo}
-            />
 
-            {esMesActual && !cargando && (
-              <PresupuestoWidget
+          {isFocusMode ? (
+            <DashboardFocusView
+              esMesActual={esMesActual}
+              cargando={cargando}
+              focusView={focusView}
+            />
+          ) : (
+            <>
+              <DashboardHeroCard
+                gastoTotal={gastoTotal}
+                cargando={cargando}
+                esMesActual={esMesActual}
                 disponible={disponible}
                 presupuestoDiario={presupuestoDiario}
                 limiteMensual={limiteMensual}
@@ -83,31 +78,26 @@ export default memo(function Dashboard() {
                 vistaQuincenal={vistaQuincenal}
                 modoTranquilo={modoTranquilo}
                 diaAgotamiento={diaAgotamiento}
-                limiteInput={limiteInput}
-                guardandoLimite={guardandoLimite}
-                onLimiteInputChange={setLimiteInput}
-                onGuardarLimite={handleGuardarLimite}
-                onToggleVistaQuincenal={handleToggleVistaQuincenal}
               />
-            )}
 
-            {!isFocusMode && <ListaCuentas embedded />}
+              <ListaCuentas embedded />
 
-            {burnRateAlerta && <BurnRateAlert />}
+              {burnRateAlerta && <BurnRateAlert />}
 
-            {proyeccionCierre && !cargando && (
-              <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
-            )}
+              {proyeccionCierre && !cargando && (
+                <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
+              )}
 
-            <OfflineSyncStatus isSyncing={isSyncing} pendingCount={pendingCount} />
+              <OfflineSyncStatus isSyncing={isSyncing} pendingCount={pendingCount} />
 
-            <DashboardStatus
-              error={error}
-              cargando={cargando}
-              sinGastos={resumen.length === 0}
-            />
-          </div>
-        )}
+              <DashboardStatus
+                error={error}
+                cargando={cargando}
+                sinGastos={resumen.length === 0}
+              />
+            </>
+          )}
+        </div>
       </section>
     </div>
   )

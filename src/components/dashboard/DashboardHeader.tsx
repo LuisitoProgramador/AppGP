@@ -1,13 +1,12 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { formatCurrency } from '../../utils/formatCurrency'
 import MonthSelector from '../MonthSelector'
 import { iconButtonClassName, togglePillClassName } from '../formStyles'
 
 interface DashboardHeaderProps {
   selectedMonth: Date
   onMonthChange: (month: Date) => void
-  gastoTotal: number
-  cargando: boolean
+  isFocusMode: boolean
+  onToggleFocusMode: () => void
   modoViaje: boolean
   modoTranquilo: boolean
   onToggleModoViaje: () => void
@@ -33,11 +32,30 @@ function SettingsIcon() {
   )
 }
 
+function FocusIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+    </svg>
+  )
+}
+
 export default memo(function DashboardHeader({
   selectedMonth,
   onMonthChange,
-  gastoTotal,
-  cargando,
+  isFocusMode,
+  onToggleFocusMode,
   modoViaje,
   modoTranquilo,
   onToggleModoViaje,
@@ -59,73 +77,88 @@ export default memo(function DashboardHeader({
     return () => window.removeEventListener('mousedown', handlePointerDown)
   }, [menuOpen])
 
+  if (isFocusMode) {
+    return (
+      <div className="flex items-center justify-end">
+        <button
+          type="button"
+          onClick={onToggleFocusMode}
+          aria-pressed={isFocusMode}
+          aria-label="Salir de vista concentrada"
+          title="Salir de vista concentrada"
+          className={`${iconButtonClassName} border border-indigo-500/50 bg-indigo-500/15 text-indigo-300 active:bg-indigo-500/25`}
+        >
+          <FocusIcon />
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1">
-          <MonthSelector value={selectedMonth} onChange={onMonthChange} />
-        </div>
-
-        <div ref={menuRef} className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setMenuOpen((open) => !open)}
-            className={`${iconButtonClassName} text-slate-400 hover:bg-slate-700/60 hover:text-white`}
-            aria-label="Opciones del dashboard"
-            aria-expanded={menuOpen}
-            aria-haspopup="menu"
-          >
-            <SettingsIcon />
-          </button>
-
-          {menuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 z-20 mt-2 w-52 space-y-2 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-xl backdrop-blur-md"
-            >
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onToggleModoViaje()
-                }}
-                className={`w-full ${togglePillClassName} ${
-                  modoViaje
-                    ? 'border-sky-500/50 bg-sky-500/15 text-sky-300'
-                    : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
-                }`}
-                aria-pressed={modoViaje}
-              >
-                {modoViaje ? '✈ Modo viaje activo' : 'Modo viaje'}
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={() => {
-                  onToggleModoTranquilo()
-                }}
-                className={`w-full ${togglePillClassName} ${
-                  modoTranquilo
-                    ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
-                    : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
-                }`}
-                aria-pressed={modoTranquilo}
-              >
-                {modoTranquilo ? '🌙 Modo tranquilo activo' : 'Modo tranquilo'}
-              </button>
-            </div>
-          )}
-        </div>
+    <div className="flex items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <MonthSelector value={selectedMonth} onChange={onMonthChange} />
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-slate-900/30 px-4 py-4 text-center">
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Gastado en el mes</p>
-        {cargando ? (
-          <p className="mt-1 text-3xl font-bold text-slate-500">...</p>
-        ) : (
-          <p className="mt-1 text-3xl font-bold text-white sm:text-4xl">
-            {formatCurrency(gastoTotal)}
-          </p>
+      <button
+        type="button"
+        onClick={onToggleFocusMode}
+        aria-pressed={isFocusMode}
+        aria-label="Activar vista concentrada"
+        title="Vista concentrada"
+        className={`${iconButtonClassName} border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700`}
+      >
+        <FocusIcon />
+      </button>
+
+      <div ref={menuRef} className="relative shrink-0">
+        <button
+          type="button"
+          onClick={() => setMenuOpen((open) => !open)}
+          className={`${iconButtonClassName} border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700`}
+          aria-label="Opciones del dashboard"
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+        >
+          <SettingsIcon />
+        </button>
+
+        {menuOpen && (
+          <div
+            role="menu"
+            className="absolute right-0 z-20 mt-2 w-52 space-y-2 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-xl backdrop-blur-md"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onToggleModoViaje()
+              }}
+              className={`w-full ${togglePillClassName} ${
+                modoViaje
+                  ? 'border-sky-500/50 bg-sky-500/15 text-sky-300'
+                  : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+              }`}
+              aria-pressed={modoViaje}
+            >
+              {modoViaje ? '✈ Modo viaje activo' : 'Modo viaje'}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onToggleModoTranquilo()
+              }}
+              className={`w-full ${togglePillClassName} ${
+                modoTranquilo
+                  ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
+                  : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+              }`}
+              aria-pressed={modoTranquilo}
+            >
+              {modoTranquilo ? '🌙 Modo tranquilo activo' : 'Modo tranquilo'}
+            </button>
+          </div>
         )}
       </div>
     </div>

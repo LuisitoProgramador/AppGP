@@ -81,6 +81,8 @@ export const buttonSkyClassName = `rounded-xl bg-sky-500 px-4 py-3 text-xs font-
 
 export const chipButtonClassName = `rounded-full border border-slate-600/80 bg-slate-900/50 px-4 py-2.5 text-sm font-medium text-slate-200 min-h-11 hover:border-blue-500/50 hover:bg-blue-500/10 hover:text-white active:bg-slate-700 ${interactive}`
 
+export const toolbarButtonClassName = `inline-flex shrink-0 items-center justify-center gap-1.5 min-h-11 rounded-xl border border-slate-600/80 px-3 py-2.5 text-sm font-semibold text-slate-300 hover:border-slate-500 hover:bg-slate-700/40 hover:text-white active:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-50 ${interactive}`
+
 export const togglePillClassName = `rounded-full border px-4 py-2.5 text-xs font-medium min-h-11 ${interactive}`
 
 export const navTabClassName = (active: boolean) =>
