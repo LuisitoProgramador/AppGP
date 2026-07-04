@@ -21,7 +21,7 @@ import { showError, showInfo, showSuccessWithUndo } from '../utils/toast'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
 import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
-import { cardClassName, iconButtonDangerClassName, iconButtonEditClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
+import { cardClassName, iconButtonDangerClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
 
 type HistorialItem =
   | (Gasto & { pendiente?: false; optimistic?: false })
@@ -137,15 +137,17 @@ const HistorialItemRow = memo(function HistorialItemRow({
         {formatCurrency(Number(item.monto))}
       </p>
       {!item.pendiente && !isOptimistic && (
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={() => onEdit(item as Gasto, 'cuota')}
             disabled={isBusy}
             aria-label="Editar gasto"
-            className={iconButtonEditClassName}
+            title="Editar gasto"
+            className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/25 active:bg-blue-500/30 disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <EditIcon />
+            Editar
           </button>
           {item.es_msi && item.grupo_msi_id && (
             <button

@@ -7,8 +7,10 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { saldoDeltaAlCorregirMsiGrupo, sumMsiGrupoMontos } from '../utils/gastoSaldo'
 import { buildMsiGastos, parseMsiDescripcion, toMsiInstallmentUpdates } from '../utils/msi'
 import { isGastoFechaPasada } from '../utils/date'
+import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccess, showSuccessWithUndo } from '../utils/toast'
 import {
+  validateCuentaId,
   validateDescripcion,
   validateMonto,
   validateMsiMeses,
@@ -33,16 +35,20 @@ interface EditGastoModalProps {
   modoInicial?: EditGastoModo
 }
 
+const OFFLINE_CUENTA_MSG =
+  'La edición de cuentas requiere conexión a internet para sincronizar saldos.'
+
 export default function EditGastoModal({
   gasto,
   onClose,
   modoInicial = 'cuota',
 }: EditGastoModalProps) {
   const { refresh } = useGastosData()
-  const { applyGastoSaldo, revertGastoSaldo } = useCuentas()
+  const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
   const [monto, setMonto] = useState(String(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [descripcion, setDescripcion] = useState(gasto.descripcion ?? '')
+  const [cuentaId, setCuentaId] = useState(gasto.cuenta_id ?? '')
   const [guardando, setGuardando] = useState(false)
   const [grupoRows, setGrupoRows] = useState<GrupoMsiRow[]>([])
   const [cargandoGrupo, setCargandoGrupo] = useState(false)
@@ -60,8 +66,11 @@ export default function EditGastoModal({
   const msiInfo = parseMsiDescripcion(gasto.descripcion ?? '')
   const totalGrupo = sumMsiGrupoMontos(grupoRows.length > 0 ? grupoRows : [{ monto: gasto.monto }])
 
+  const cuentaOriginal = gasto.cuenta_id ?? ''
+  const cuentaCambio = cuentaId !== cuentaOriginal
+
   const previewCuotas = useMemo(() => {
-    if (!corregirTotal || !esMsi || !gasto.cuenta_id || grupoRows.length === 0) return []
+    if (!corregirTotal || !esMsi || !cuentaId || grupoRows.length === 0) return []
 
     const totalError = validateMonto(totalCompra)
     const mesesError = validateMsiMeses(mesesMsi)
@@ -79,14 +88,14 @@ export default function EditGastoModal({
       months: meses,
       categoria,
       descripcion: base,
-      cuentaId: gasto.cuenta_id,
+      cuentaId,
       startDate: new Date(grupoRows[0].fecha),
       grupoMsiId: gasto.grupo_msi_id!,
     })
   }, [
     corregirTotal,
     esMsi,
-    gasto.cuenta_id,
+    cuentaId,
     gasto.grupo_msi_id,
     grupoRows,
     totalCompra,
@@ -134,15 +143,82 @@ export default function EditGastoModal({
     cargarGrupo()
   }, [esMsi, gasto.grupo_msi_id, gasto.descripcion])
 
-  async function aplicarDeltaSaldo(cuentaId: string, delta: number): Promise<string | null> {
+  async function aplicarDeltaSaldo(cuentaSaldoId: string, delta: number): Promise<string | null> {
     if (delta === 0) return null
 
     const result =
       delta > 0
-        ? await applyGastoSaldo(cuentaId, delta)
-        : await revertGastoSaldo(cuentaId, Math.abs(delta))
+        ? await applyGastoSaldo(cuentaSaldoId, delta)
+        : await revertGastoSaldo(cuentaSaldoId, Math.abs(delta))
 
     return result.error
+  }
+
+  function validarCambioCuenta(): string | null {
+    if (!cuentaCambio) return null
+    if (!isOnline()) return OFFLINE_CUENTA_MSG
+    return validateCuentaId(cuentaId)
+  }
+
+  async function transferirSaldoEntreCuentas(
+    cuentaOrigenId: string,
+    cuentaDestinoId: string,
+    montoTransferencia: number,
+  ): Promise<string | null> {
+    const revertError = await revertGastoSaldo(cuentaOrigenId, montoTransferencia)
+    if (revertError) return revertError
+
+    const applyError = await applyGastoSaldo(cuentaDestinoId, montoTransferencia)
+    if (applyError) {
+      const rollbackError = await applyGastoSaldo(cuentaOrigenId, montoTransferencia)
+      if (rollbackError) {
+        return `${applyError} (y no se pudo revertir: ${rollbackError})`
+      }
+      return applyError
+    }
+
+    return null
+  }
+
+  async function ajustarSaldoAlEditar(
+    cuentaAnteriorId: string | null,
+    cuentaNuevaId: string | null,
+    montoAnterior: number,
+    montoNuevo: number,
+  ): Promise<string | null> {
+    const cambioCuenta = Boolean(cuentaAnteriorId && cuentaNuevaId && cuentaAnteriorId !== cuentaNuevaId)
+    const cambioMonto = montoAnterior !== montoNuevo
+
+    if (!cambioCuenta && !cambioMonto) return null
+
+    if (cambioCuenta && cuentaAnteriorId && cuentaNuevaId) {
+      const revertError = await revertGastoSaldo(cuentaAnteriorId, montoAnterior)
+      if (revertError) return revertError
+
+      const applyError = await applyGastoSaldo(cuentaNuevaId, montoNuevo)
+      if (applyError) {
+        const rollbackError = await applyGastoSaldo(cuentaAnteriorId, montoAnterior)
+        if (rollbackError) {
+          return `${applyError} (y no se pudo revertir: ${rollbackError})`
+        }
+        return applyError
+      }
+      return null
+    }
+
+    if (!cuentaAnteriorId && cuentaNuevaId) {
+      return (await applyGastoSaldo(cuentaNuevaId, montoNuevo)).error
+    }
+
+    if (cuentaAnteriorId && !cuentaNuevaId) {
+      return (await revertGastoSaldo(cuentaAnteriorId, montoAnterior)).error
+    }
+
+    if (cuentaAnteriorId && cambioMonto) {
+      return aplicarDeltaSaldo(cuentaAnteriorId, montoNuevo - montoAnterior)
+    }
+
+    return null
   }
 
   function buildUndoSnapshot(): MsiGrupoUndoSnapshot | null {
@@ -210,8 +286,20 @@ export default function EditGastoModal({
       return false
     }
 
-    if (!gasto.grupo_msi_id || !gasto.cuenta_id || grupoRows.length === 0) {
+    const cuentaError = validarCambioCuenta()
+    if (cuentaError) {
+      showError(cuentaError)
+      return false
+    }
+
+    if (!gasto.grupo_msi_id || grupoRows.length === 0) {
       showError('No se encontró el grupo MSI para corregir.')
+      return false
+    }
+
+    const cuentaAnteriorId = gasto.cuenta_id
+    if (!cuentaAnteriorId && !cuentaId) {
+      showError('Selecciona la cuenta de pago de la compra.')
       return false
     }
 
@@ -227,28 +315,48 @@ export default function EditGastoModal({
     }
 
     const newTotal = Number(totalCompra)
+    const newCuentaId = cuentaId || cuentaAnteriorId!
+    const cambioCuentaMsi = cuentaAnteriorId !== newCuentaId
     const deltaSaldo = saldoDeltaAlCorregirMsiGrupo(snapshot.totalCompra, newTotal)
     const installments = toMsiInstallmentUpdates(previewCuotas)
+
+    if (cambioCuentaMsi) {
+      const revertError = await revertGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
+      if (revertError) {
+        showError(`No se pudo revertir el saldo de la cuenta original: ${revertError}`)
+        return false
+      }
+
+      const applyError = await applyGastoSaldo(newCuentaId, newTotal)
+      if (applyError) {
+        await applyGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
+        showError(`No se pudo aplicar el saldo a la nueva cuenta: ${applyError}`)
+        return false
+      }
+    } else if (deltaSaldo !== 0) {
+      const saldoError = await aplicarDeltaSaldo(cuentaAnteriorId!, deltaSaldo)
+      if (saldoError) {
+        showError(`No se pudo ajustar el saldo: ${saldoError}`)
+        return false
+      }
+    }
 
     const { error } = await updateMsiGrupo({
       grupoMsiId: gasto.grupo_msi_id,
       categoria,
-      cuentaId: gasto.cuenta_id,
+      cuentaId: newCuentaId,
       installments,
     })
 
     if (error) {
+      if (cambioCuentaMsi) {
+        await revertGastoSaldo(newCuentaId, newTotal)
+        await applyGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
+      } else if (deltaSaldo !== 0) {
+        await aplicarDeltaSaldo(cuentaAnteriorId!, -deltaSaldo)
+      }
       showError(`Error al actualizar compra MSI: ${error}`)
       return false
-    }
-
-    if (deltaSaldo !== 0) {
-      const saldoError = await aplicarDeltaSaldo(gasto.cuenta_id, deltaSaldo)
-      if (saldoError) {
-        showError(`Cuotas actualizadas, pero el saldo no se ajustó: ${saldoError}`)
-        refresh()
-        return false
-      }
     }
 
     refresh()
@@ -261,12 +369,57 @@ export default function EditGastoModal({
   }
 
   async function guardarCuotaIndividual(): Promise<boolean> {
-    if (edicionBloqueada) {
+    const cuentaError = validarCambioCuenta()
+    if (cuentaError) {
+      showError(cuentaError)
+      return false
+    }
+
+    const hayCambiosCuota =
+      !edicionBloqueada &&
+      (Number(monto) !== Number(gasto.monto) ||
+        descripcion.trim() !== (gasto.descripcion ?? '').trim() ||
+        categoria !== gasto.categoria)
+
+    if (edicionBloqueada && !cuentaCambio) {
       showError(
         'No puedes editar cuotas pasadas. Usa "Editar compra MSI completa" para ajustar el total.',
       )
       return false
     }
+
+    if (cuentaCambio) {
+      if (!gasto.cuenta_id || !gasto.grupo_msi_id || grupoRows.length === 0) {
+        showError('No se encontró el grupo MSI para mover la cuenta.')
+        return false
+      }
+
+      const totalGrupo = sumMsiGrupoMontos(grupoRows)
+      const saldoError = await transferirSaldoEntreCuentas(
+        gasto.cuenta_id,
+        cuentaId,
+        totalGrupo,
+      )
+      if (saldoError) {
+        showError(`No se pudo transferir el saldo del grupo MSI: ${saldoError}`)
+        return false
+      }
+
+      const { error: grupoError } = await supabase
+        .from('gastos')
+        .update({ cuenta_id: cuentaId })
+        .eq('grupo_msi_id', gasto.grupo_msi_id)
+
+      if (grupoError) {
+        await transferirSaldoEntreCuentas(cuentaId, gasto.cuenta_id, totalGrupo)
+        showError(`Error al actualizar la cuenta del grupo MSI: ${grupoError.message}`)
+        return false
+      }
+
+      if (!hayCambiosCuota) return true
+    }
+
+    if (!hayCambiosCuota) return true
 
     const montoError = validateMonto(monto)
     if (montoError) {
@@ -298,8 +451,14 @@ export default function EditGastoModal({
   }
 
   async function guardarGastoNormal(): Promise<boolean> {
-    if (gastoPasado) {
+    if (gastoPasado && !cuentaCambio) {
       showError('No puedes editar gastos con fecha pasada.')
+      return false
+    }
+
+    const cuentaError = validarCambioCuenta()
+    if (cuentaError) {
+      showError(cuentaError)
       return false
     }
 
@@ -317,7 +476,19 @@ export default function EditGastoModal({
 
     const newMonto = Number(monto)
     const oldMonto = Number(gasto.monto)
-    const delta = newMonto - oldMonto
+    const oldCuentaId = gasto.cuenta_id ?? null
+    const newCuentaId = cuentaId || null
+
+    const saldoError = await ajustarSaldoAlEditar(
+      oldCuentaId,
+      newCuentaId,
+      oldMonto,
+      newMonto,
+    )
+    if (saldoError) {
+      showError(`No se pudo ajustar el saldo: ${saldoError}`)
+      return false
+    }
 
     const { error } = await supabase
       .from('gastos')
@@ -325,21 +496,14 @@ export default function EditGastoModal({
         monto: newMonto,
         categoria,
         descripcion: descripcion.trim(),
+        cuenta_id: newCuentaId,
       })
       .eq('id', gasto.id)
 
     if (error) {
+      await ajustarSaldoAlEditar(newCuentaId, oldCuentaId, newMonto, oldMonto)
       showError(`Error al actualizar: ${error.message}`)
       return false
-    }
-
-    if (gasto.cuenta_id && delta !== 0) {
-      const saldoError = await aplicarDeltaSaldo(gasto.cuenta_id, delta)
-      if (saldoError) {
-        showError(`Gasto actualizado, pero el saldo no se ajustó: ${saldoError}`)
-        refresh()
-        return false
-      }
     }
 
     return true
@@ -368,10 +532,16 @@ export default function EditGastoModal({
     if (!ok) return
 
     refresh()
-    if (esMsi && Number(monto) !== Number(gasto.monto)) {
+    if (esMsi && cuentaCambio) {
+      showSuccess(
+        `Cuenta de la compra MSI actualizada. Se movieron ${grupoRows.length} cuotas (${formatCurrency(totalGrupo)}).`,
+      )
+    } else if (esMsi && Number(monto) !== Number(gasto.monto)) {
       showInfo(
         'Cuota actualizada. El saldo de crédito no cambia — usa "Editar compra MSI" si el monto total estaba mal.',
       )
+    } else if (cuentaCambio) {
+      showSuccess('Gasto actualizado y cuenta de pago cambiada correctamente.')
     } else {
       showSuccess('Gasto actualizado correctamente.')
     }
@@ -543,6 +713,40 @@ export default function EditGastoModal({
           </select>
         </div>
 
+        <div className="space-y-2">
+          <label htmlFor="edit-cuenta" className="block text-sm font-medium text-slate-300">
+            Cuenta de pago
+          </label>
+          {!isOnline() && (
+            <p className="text-xs text-amber-200">{OFFLINE_CUENTA_MSG}</p>
+          )}
+          <select
+            id="edit-cuenta"
+            value={cuentaId}
+            onChange={(e) => setCuentaId(e.target.value)}
+            className={inputClassName}
+            required
+            disabled={!isOnline() || cuentasLoading || cuentas.length === 0}
+          >
+            {cuentasLoading && <option value="">Cargando cuentas...</option>}
+            {!cuentasLoading && cuentas.length === 0 && (
+              <option value="">No hay cuentas configuradas</option>
+            )}
+            {cuentas.map((cuenta) => (
+              <option key={cuenta.id} value={cuenta.id}>
+                {cuenta.nombre}
+                {cuenta.tipo === 'credito' ? ' (Crédito)' : ''}
+              </option>
+            ))}
+          </select>
+          {esMsi && cuentaCambio && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              Al cambiar la cuenta se moverá toda la compra MSI ({formatCurrency(totalGrupo)}{' '}
+              en {grupoRows.length || '…'} cuotas) a la nueva tarjeta o cuenta.
+            </p>
+          )}
+        </div>
+
         {!corregirTotal && (
           <div className="space-y-2">
             <label htmlFor="edit-descripcion" className="block text-sm font-medium text-slate-300">
@@ -572,7 +776,11 @@ export default function EditGastoModal({
           </button>
           <button
             type="submit"
-            disabled={guardando || (esMsi && cargandoGrupo) || edicionBloqueada}
+            disabled={
+              guardando ||
+              (esMsi && cargandoGrupo) ||
+              (edicionBloqueada && !cuentaCambio)
+            }
             className={`flex-1 ${buttonPrimaryClassName}`}
           >
             {guardando ? 'Guardando...' : 'Guardar cambios'}
