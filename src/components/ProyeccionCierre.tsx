@@ -1,7 +1,7 @@
 import { memo } from 'react'
-import { formatCurrency } from '../utils/formatCurrency'
-import { dashboardCardClassName } from './formStyles'
-import type { ProyeccionCierreResult } from '../utils/proyeccionCierre'
+import { formatCurrency } from '../utils/format/formatCurrency'
+import { dashboardCardClassName } from './ui/formStyles'
+import type { ProyeccionCierreResult } from '../utils/dashboard/proyeccionCierre'
 
 interface ProyeccionCierreProps {
   proyeccion: ProyeccionCierreResult

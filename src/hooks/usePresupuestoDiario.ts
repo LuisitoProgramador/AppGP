@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
 import type { GastoRecurrente, OptimisticGasto, PendingGasto } from '../types/gasto'
 import { getCalendarDay, getDaysRemainingInMonth } from '../utils/date'
-import { expandPendingToLineItems, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
+import { expandPendingToLineItems, filterPendingNotInOptimistic } from '../utils/gastos/optimisticGastos'
 import {
   calcSafeToSpend,
   sumMsiPendientesRestoMes,
   sumRecibosPendientes,
-} from '../utils/safeToSpend'
+} from '../utils/core/safeToSpend'
 
 interface MsiRow {
   monto: number

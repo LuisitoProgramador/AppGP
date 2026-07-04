@@ -9,15 +9,15 @@ import {
 import { getPresupuesto, getIngresoMensualTotal } from '../services/presupuesto'
 import { getLimitesPorCategoria } from '../services/presupuestoCategorias'
 import { REGLA_503020 } from '../constants/regla503020'
-import { calcAhorroMensual503020 } from '../utils/regla503020'
-import { formatCurrency } from '../utils/formatCurrency'
-import { showError, showSuccess } from '../utils/toast'
+import { calcAhorroMensual503020 } from '../utils/finanzas/regla503020'
+import { formatCurrency } from '../utils/format/formatCurrency'
+import { showError, showSuccess } from '../utils/core/toast'
 import {
   buttonPrimaryCompactClassName,
   buttonGhostClassName,
   inputClassName,
   settingsPanelClassName,
-} from './formStyles'
+} from './ui/formStyles'
 
 export default memo(function PersonalAppSettings() {
   const { user } = useAuthSession()

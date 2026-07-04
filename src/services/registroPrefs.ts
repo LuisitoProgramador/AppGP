@@ -1,4 +1,4 @@
-export interface RegistroPrefs {
+interface RegistroPrefs {
   ultimaCuentaId: string | null
 }
 
@@ -10,7 +10,7 @@ function storageKey(userId: string) {
   return `registro_prefs_${userId}`
 }
 
-export function getRegistroPrefs(userId: string): RegistroPrefs {
+function getRegistroPrefs(userId: string): RegistroPrefs {
   try {
     const raw = localStorage.getItem(storageKey(userId))
     if (!raw) return { ...DEFAULT_PREFS }
@@ -20,7 +20,7 @@ export function getRegistroPrefs(userId: string): RegistroPrefs {
   }
 }
 
-export function saveRegistroPrefs(userId: string, patch: Partial<RegistroPrefs>): RegistroPrefs {
+function saveRegistroPrefs(userId: string, patch: Partial<RegistroPrefs>): RegistroPrefs {
   const next = { ...getRegistroPrefs(userId), ...patch }
   localStorage.setItem(storageKey(userId), JSON.stringify(next))
   return next

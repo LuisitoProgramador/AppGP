@@ -8,8 +8,8 @@ import {
   filterMsiForMonth,
   isMonthInMsiCompromisosWindow,
   type GastoMsiTimelineRow,
-} from '../utils/msiTimeline'
-import { buildSalidasTimeline } from '../utils/salidasTimeline'
+} from '../utils/gastos/msiTimeline'
+import { buildSalidasTimeline } from '../utils/dashboard/salidasTimeline'
 import SalidasTimeline from './SalidasTimeline'
 
 interface SalidasTimelineSectionProps {

@@ -1,9 +1,9 @@
-import ModalPortal from '../ModalPortal'
+import ModalPortal from '../ui/ModalPortal'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
   modalFormClassName,
-} from '../formStyles'
+} from '../ui/formStyles'
 import EditGastoFormBody from './EditGastoFormBody'
 import type { EditGastoModalProps } from './types'
 import { useEditGastoModal } from './useEditGastoModal'

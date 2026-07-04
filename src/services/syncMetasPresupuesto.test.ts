@@ -34,17 +34,17 @@ vi.mock('./supabase', () => ({
   },
 }))
 
-vi.mock('../utils/network', () => ({
+vi.mock('../utils/core/network', () => ({
   isOnline: () => isOnlineMock(),
   offlineServiceError: (msg: string) => ({ data: null, error: msg }),
 }))
 
-vi.mock('./presupuesto', () => ({
+vi.mock('./presupuesto/index', () => ({
   getPresupuesto: vi.fn(),
 }))
 
-import { getPresupuesto } from './presupuesto'
-import { syncMetasAnualesConPresupuesto } from './metasAhorro'
+import { getPresupuesto } from './presupuesto/index'
+import { syncMetasAnualesConPresupuesto } from './metasAhorro/index'
 import { calcMetaObjetivoAnual } from '../utils/finanzas'
 
 const USER_ID = 'user-sync-meta'

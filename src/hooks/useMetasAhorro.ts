@@ -7,12 +7,12 @@ import {
   listMetasAhorro,
   updateMetaAhorro,
 } from '../services/metasAhorro'
-import { esMetaAhorroAnual } from '../utils/metaCalendario'
+import { esMetaAhorroAnual } from '../utils/finanzas/metaCalendario'
 import type { MetaAhorro } from '../types/metaAhorro'
-import { formatCurrency } from '../utils/formatCurrency'
-import { parseMontoValue } from '../utils/montoInput'
-import { showError, showSuccess, showWarning } from '../utils/toast'
-import { validateMonto, validateNombre } from '../utils/validation'
+import { formatCurrency } from '../utils/format/formatCurrency'
+import { parseMontoValue } from '../utils/format/montoInput'
+import { showError, showSuccess, showWarning } from '../utils/core/toast'
+import { validateMonto, validateNombre } from '../utils/core/validation'
 
 export function useMetasAhorro(enabled = true) {
   const { user } = useAuthSession()

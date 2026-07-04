@@ -18,8 +18,8 @@ import {
   resolveCuentasBase,
   setCachedCuentas,
 } from '../services/cuentas'
-import { isOnline } from '../utils/network'
-import { showError } from '../utils/toast'
+import { isOnline } from '../utils/core/network'
+import { showError } from '../utils/core/toast'
 import { useAuthSession } from './AuthContext'
 import { useGastosRefreshState } from './GastosDataContext'
 

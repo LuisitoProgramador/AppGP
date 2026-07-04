@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { listGastosRecurrentes } from '../services/gastosRecurrentes'
+import { listGastosRecurrentes } from '../services/gastos/gastosRecurrentes'
 import type { GastoRecurrente } from '../types/gasto'
 import { useAuthSession } from './AuthContext'
 import { useGastosRefreshState } from './GastosDataContext'

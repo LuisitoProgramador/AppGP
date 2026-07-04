@@ -1,10 +1,10 @@
 import { memo } from 'react'
-import PresupuestoSettings from './PresupuestoSettings'
+import PresupuestoSettings from './presupuesto/PresupuestoSettings'
 import PersonalAppSettings from './PersonalAppSettings'
 import {
   dashboardShellClassName,
   settingsPanelClassName,
-} from './formStyles'
+} from './ui/formStyles'
 
 export default memo(function Ajustes() {
   return (

@@ -3,7 +3,7 @@ import type { MsiInstallmentUpdate } from '../types/gasto'
 import {
   msiGrupoMatchesExpected,
   type MsiGrupoServerState,
-} from '../utils/msiGrupoMatch'
+} from '../utils/gastos/msiGrupoMatch'
 
 export type { MsiInstallmentUpdate }
 export { msiGrupoMatchesExpected }

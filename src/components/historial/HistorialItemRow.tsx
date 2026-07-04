@@ -1,14 +1,14 @@
 import { memo } from 'react'
 import type { Gasto } from '../../types/gasto'
-import { formatCurrency } from '../../utils/formatCurrency'
+import { formatCurrency } from '../../utils/format/formatCurrency'
 import { formatShortDate } from '../../utils/date'
-import type { EditGastoModo } from '../EditGastoModal'
-import { EditIcon, SpinnerIcon, TrashIcon } from '../icons'
+import type { EditGastoModo } from '../editGasto/types'
+import { EditIcon, SpinnerIcon, TrashIcon } from '../ui/icons'
 import {
   iconButtonDangerClassName,
   iconButtonEditClassName,
   iconButtonMsiClassName,
-} from '../formStyles'
+} from '../ui/formStyles'
 import { isHistorialPending, isHistorialIngreso, isHistorialPendingIngreso, type HistorialItem } from './historialTypes'
 
 interface HistorialItemRowProps {

@@ -1,6 +1,6 @@
 import { lazy, Suspense, memo } from 'react'
 
-const GastosRecurrentes = lazy(() => import('./GastosRecurrentes'))
+const GastosRecurrentes = lazy(() => import('./recurrentes/GastosRecurrentes'))
 const Metas = lazy(() => import('./Metas'))
 
 function PlanSectionFallback() {

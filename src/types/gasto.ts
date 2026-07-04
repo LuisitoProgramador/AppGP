@@ -7,9 +7,6 @@ export const CATEGORIAS_DEFAULT = [
   'Otros',
 ] as const
 
-/** @deprecated Usar CATEGORIAS_DEFAULT o getCategoriasUsuario */
-export const CATEGORIAS = CATEGORIAS_DEFAULT
-
 export type CategoriaDefault = (typeof CATEGORIAS_DEFAULT)[number]
 export type Categoria = string
 

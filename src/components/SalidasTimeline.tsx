@@ -1,7 +1,7 @@
 import { memo } from 'react'
-import type { SalidaTimelineItem } from '../utils/salidasTimeline'
-import { formatSalidaMonto } from '../utils/salidasTimeline'
-import { cardClassName } from './formStyles'
+import type { SalidaTimelineItem } from '../utils/dashboard/salidasTimeline'
+import { formatSalidaMonto } from '../utils/dashboard/salidasTimeline'
+import { cardClassName } from './ui/formStyles'
 
 interface SalidasTimelineProps {
   items: SalidaTimelineItem[]

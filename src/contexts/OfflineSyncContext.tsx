@@ -10,19 +10,19 @@ import {
 } from 'react'
 import type { PendingGasto } from '../types/gasto'
 import type { PendingIngreso } from '../types/ingreso'
-import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
+import { verificarGastosRecurrentes } from '../services/gastos/gastosRecurrentes'
 import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import {
   getPendingGastos,
   getPendingIngresos,
   getTotalPendingCount,
   remapPendingGastoCuentaIds,
-} from '../services/offlineQueue'
-import { syncPendingCuentas } from '../services/syncCuentas'
-import { syncPendingGastos } from '../services/syncGastos'
-import { syncPendingIngresos } from '../services/syncIngresos'
-import { isOnline } from '../utils/network'
-import { showError, showSuccess, showWarning } from '../utils/toast'
+} from '../services/sync/offlineQueue'
+import { syncPendingCuentas } from '../services/sync/syncCuentas'
+import { syncPendingGastos } from '../services/sync/syncGastos'
+import { syncPendingIngresos } from '../services/sync/syncIngresos'
+import { isOnline } from '../utils/core/network'
+import { showError, showSuccess, showWarning } from '../utils/core/toast'
 import { useAuthSession } from './AuthContext'
 import { useGastosRefreshState, useOptimisticGastosState } from './GastosDataContext'
 

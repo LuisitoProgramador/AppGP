@@ -1,40 +1,39 @@
 import { memo, useMemo, useState } from 'react'
 import { useAuthSession, useCuentas, useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
-import { useDashboardData } from '../hooks/useDashboardData'
+import { useDashboardData } from '../hooks/dashboard/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
 import { calcAlertasCategoria, getLimitesPorCategoria } from '../services/presupuestoCategorias'
-import { aggregateGastosPorCategoriaPadre } from '../services/subcategorias'
 import {
   calcAhorroMensual503020,
   calcResumenBuckets503020,
-} from '../utils/regla503020'
+} from '../utils/finanzas/regla503020'
 import { calcInteresEstimado, getTasaInteresMensual } from '../services/cuentaInteres'
-import { buildResumenInsights } from '../utils/resumenInsights'
+import { buildResumenInsights } from '../utils/dashboard/resumenInsights'
 import {
   dismissWelcomeBack,
   getWelcomeBackState,
   navigateToTab,
-} from '../utils/welcomeBack'
-import ListaCuentas from './ListaCuentas'
+} from '../utils/dashboard/welcomeBack'
+import ListaCuentas from './cuentas/ListaCuentas'
 import ProyeccionCierre from './ProyeccionCierre'
-import DashboardFocusView from './dashboard/DashboardFocusView'
-import DashboardHeader from './dashboard/DashboardHeader'
-import DashboardHeroCard from './dashboard/DashboardHeroCard'
-import BurnRateAlert from './dashboard/BurnRateAlert'
-import WelcomeBackBanner from './dashboard/WelcomeBackBanner'
-import ResumenInsightsCard from './dashboard/ResumenInsightsCard'
-import CategoryBudgetAlerts from './dashboard/CategoryBudgetAlerts'
-import Regla503020Widget from './dashboard/Regla503020Widget'
-import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
-import DashboardStatus from './dashboard/DashboardStatus'
-import GastosAnalisisSection from './dashboard/GastosAnalisisSection'
-import PatrimonioCards from './dashboard/PatrimonioCards'
-import SaludAhorroWidget from './dashboard/SaludAhorroWidget'
-import ResumenFinMesBanner from './dashboard/ResumenFinMesBanner'
-import RecurrenteSugeridoBanner from './dashboard/RecurrenteSugeridoBanner'
-import CompromisosMsiWidget from './dashboard/CompromisosMsiWidget'
+import DashboardFocusView from './dashboard/layout/DashboardFocusView'
+import DashboardHeader from './dashboard/layout/DashboardHeader'
+import DashboardHeroCard from './dashboard/layout/DashboardHeroCard'
+import BurnRateAlert from './dashboard/alerts/BurnRateAlert'
+import WelcomeBackBanner from './dashboard/alerts/WelcomeBackBanner'
+import ResumenInsightsCard from './dashboard/alerts/ResumenInsightsCard'
+import CategoryBudgetAlerts from './dashboard/alerts/CategoryBudgetAlerts'
+import Regla503020Widget from './dashboard/widgets/Regla503020Widget'
+import OfflineSyncStatus from './dashboard/widgets/OfflineSyncStatus'
+import DashboardStatus from './dashboard/layout/DashboardStatus'
+import GastosAnalisisSection from './dashboard/widgets/GastosAnalisisSection'
+import PatrimonioCards from './dashboard/widgets/PatrimonioCards'
+import SaludAhorroWidget from './dashboard/widgets/SaludAhorroWidget'
+import ResumenFinMesBanner from './dashboard/alerts/ResumenFinMesBanner'
+import RecurrenteSugeridoBanner from './dashboard/alerts/RecurrenteSugeridoBanner'
+import CompromisosMsiWidget from './dashboard/widgets/CompromisosMsiWidget'
 import SalidasTimelineSection from './SalidasTimelineSection'
-import { dashboardShellClassName } from './formStyles'
+import { dashboardShellClassName } from './ui/formStyles'
 
 export default memo(function Dashboard() {
   const { user } = useAuthSession()
@@ -87,10 +86,7 @@ export default memo(function Dashboard() {
   )
 
   const gastosPorCategoria = useMemo(
-    () =>
-      aggregateGastosPorCategoriaPadre(
-        Object.fromEntries(resumen.map((item) => [item.categoria, item.total])),
-      ),
+    () => Object.fromEntries(resumen.map((item) => [item.categoria, item.total])),
     [resumen],
   )
 

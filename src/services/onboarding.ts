@@ -1,11 +1,11 @@
 import { validatePorcentajeAhorro } from '../constants/porcentajeAhorro'
 import { createCuenta, ensureCuentaEfectivo } from './cuentas'
-import { createGastoRecurrente } from './gastosRecurrentes'
+import { createGastoRecurrente } from './gastos/gastosRecurrentes'
 import { addAhorroToMeta, createMetaAhorro } from './metasAhorro'
 import { savePresupuesto } from './presupuesto'
 import { supabase } from './supabase'
 import type { CuentaInput } from '../types/cuenta'
-import { CATEGORIAS } from '../types/gasto'
+import { CATEGORIAS_DEFAULT } from '../types/gasto'
 import {
   calcLimiteMensual,
   calcMetaObjetivoAnual,
@@ -15,7 +15,7 @@ import {
 import {
   finDeAnoCalendarioIso,
   nombreMetaAhorroAnual,
-} from '../utils/metaCalendario'
+} from '../utils/finanzas/metaCalendario'
 
 export {
   calcIngresoMensualTotal,
@@ -61,7 +61,7 @@ const SUSCRIPCIONES_REGEX = /netflix|spotify|disney|hbo|prime|suscri|apple tv|yo
 const CASA_REGEX = /renta|internet|luz|agua|gas|casa|hipoteca|tel[eé]fono|cfe|recarga/
 const COMPRAS_REGEX = /amazon|mercado|liverpool|walmart|playstation|nike|paypal|tiktok|uber eats/
 
-export function guessCategoria(descripcion: string): (typeof CATEGORIAS)[number] {
+export function guessCategoria(descripcion: string): (typeof CATEGORIAS_DEFAULT)[number] {
   const lower = descripcion.toLowerCase()
   if (SUSCRIPCIONES_REGEX.test(lower)) {
     return 'Suscripciones'

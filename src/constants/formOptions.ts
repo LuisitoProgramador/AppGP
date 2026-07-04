@@ -1,8 +1,8 @@
 import { DIAS_PAGO } from './diasPago'
-import { CATEGORIAS } from '../types/gasto'
-import { formatCurrency } from '../utils/formatCurrency'
+import { CATEGORIAS_DEFAULT } from '../types/gasto'
+import { formatCurrency } from '../utils/format/formatCurrency'
 
-export const CATEGORIA_SELECT_OPTIONS = CATEGORIAS.map((categoria) => ({
+export const CATEGORIA_SELECT_OPTIONS = CATEGORIAS_DEFAULT.map((categoria) => ({
   value: categoria,
   label: categoria,
 }))

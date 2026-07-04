@@ -1,6 +1,6 @@
-import { formatCurrency } from '../../utils/formatCurrency'
-import MontoInput from '../MontoInput'
-import { inputClassName } from '../formStyles'
+import { formatCurrency } from '../../utils/format/formatCurrency'
+import MontoInput from '../ui/MontoInput'
+import { inputClassName } from '../ui/formStyles'
 import type { GrupoMsiRow } from './types'
 
 interface EditGastoMsiBannerProps {

@@ -1,10 +1,10 @@
 import { CATEGORIA_SELECT_OPTIONS } from '../../constants/formOptions'
-import { CATEGORIAS } from '../../types/gasto'
-import { formatCurrency } from '../../utils/formatCurrency'
-import { isOnline } from '../../utils/network'
-import Select from '../Select'
-import MontoInput from '../MontoInput'
-import { inputClassName } from '../formStyles'
+import { CATEGORIAS_DEFAULT } from '../../types/gasto'
+import { formatCurrency } from '../../utils/format/formatCurrency'
+import { isOnline } from '../../utils/core/network'
+import Select from '../ui/Select'
+import MontoInput from '../ui/MontoInput'
+import { inputClassName } from '../ui/formStyles'
 import EditGastoMsiBanner, { EditGastoCompraFields } from './EditGastoMsiFields'
 import { OFFLINE_CUENTA_MSG } from './types'
 import type { useEditGastoModal } from './useEditGastoModal'
@@ -97,7 +97,7 @@ export default function EditGastoFormBody({
         <Select
           id="edit-categoria"
           value={categoria}
-          onChange={(value) => setCategoria(value as (typeof CATEGORIAS)[number])}
+          onChange={(value) => setCategoria(value as (typeof CATEGORIAS_DEFAULT)[number])}
           options={CATEGORIA_SELECT_OPTIONS}
           required
           disabled={edicionBloqueada}

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AuthError, Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
-import { clearOfflineQueueForUser } from '../services/offlineQueue'
+import { clearOfflineQueueForUser } from '../services/sync/offlineQueue'
 import { handleAuthRedirect } from '../services/authRedirect'
-import { clearLocalCachesForUser } from '../utils/localUserCache'
-import { requestPersistentStorage } from '../utils/persistentStorage'
-import { showError, showInfo } from '../utils/toast'
+import { clearLocalCachesForUser } from '../utils/core/localUserCache'
+import { requestPersistentStorage } from '../utils/core/persistentStorage'
+import { showError, showInfo } from '../utils/core/toast'
 
 const emailRedirectTo = `${window.location.origin}/`
 

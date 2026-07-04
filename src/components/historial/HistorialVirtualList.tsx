@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { Gasto } from '../../types/gasto'
-import type { EditGastoModo } from '../EditGastoModal'
+import type { EditGastoModo } from '../editGasto/types'
 import HistorialItemRow from './HistorialItemRow'
 import {
   getHistorialAccionId,

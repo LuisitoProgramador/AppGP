@@ -1,6 +1,6 @@
 import type { Categoria } from '../types/gasto'
 import { getCategoriasUsuario } from './categorias'
-import { calcLimitesRegla503020 } from '../utils/regla503020'
+import { calcLimitesRegla503020 } from '../utils/finanzas/regla503020'
 
 export type LimitesPorCategoria = Record<string, number>
 

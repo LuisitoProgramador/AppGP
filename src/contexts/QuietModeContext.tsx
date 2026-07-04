@@ -9,8 +9,8 @@ import {
   type ReactNode,
 } from 'react'
 import { getPresupuesto } from '../services/presupuesto'
-import { shouldAutoActivarModoTranquilo } from '../utils/quietModeAuto'
-import { isModoTranquilo, setModoTranquilo } from '../utils/quietMode'
+import { shouldAutoActivarModoTranquilo } from '../utils/dashboard/quietModeAuto'
+import { isModoTranquilo, setModoTranquilo } from '../utils/dashboard/quietMode'
 import { useAuthSession } from './AuthContext'
 
 interface QuietModeContextValue {
