@@ -5,7 +5,8 @@ import { getMetaProgress } from '../../utils/metaProgress'
 import {
   formWithKeyboardClassName,
   inputClassName,
-  buttonEmeraldClassName,
+  inputInlineClassName,
+  buttonPrimaryCompactClassName,
   buttonEmeraldFlexClassName,
   buttonEmeraldFullClassName,
   buttonGhostClassName,
@@ -136,7 +137,7 @@ export default memo(function MetasAhorroSection({
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     inputMode="decimal"
@@ -150,14 +151,14 @@ export default memo(function MetasAhorroSection({
                       }))
                     }
                     placeholder="Sumar..."
-                    className={`min-w-0 flex-1 ${inputClassName}`}
+                    className={inputInlineClassName}
                     aria-label={`Sumar ahorro a ${meta.nombre}`}
                   />
                   <button
                     type="button"
                     onClick={() => handleSumarAhorro(meta)}
                     disabled={isSumando}
-                    className={`shrink-0 ${buttonEmeraldClassName}`}
+                    className={buttonPrimaryCompactClassName}
                   >
                     {isSumando ? '...' : 'Sumar'}
                   </button>

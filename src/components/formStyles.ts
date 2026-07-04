@@ -7,6 +7,9 @@ const accentFocus =
 
 export const inputClassName = `w-full rounded-xl border border-pulso-border bg-pulso-surface-muted/90 px-4 py-3.5 text-base text-white placeholder:text-slate-500 outline-none transition ${accentFocus}`
 
+/** Input dentro de una fila flex (sin ancho completo) */
+export const inputInlineClassName = `min-w-0 flex-1 rounded-xl border border-pulso-border bg-pulso-surface-muted/90 px-4 py-3.5 text-base text-white placeholder:text-slate-500 outline-none transition ${accentFocus}`
+
 /** Tarjeta base con glassmorphism sutil */
 export const cardClassName =
   'space-y-6 rounded-2xl border border-white/8 bg-pulso-surface/90 p-6 shadow-xl shadow-black/30 backdrop-blur-md'
