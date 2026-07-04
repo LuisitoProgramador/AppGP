@@ -47,7 +47,7 @@ function GastoBarChart({ data }: GastoBarChartProps) {
             width={48}
           />
           <Tooltip formatter={formatChartCurrency} contentStyle={CHART_TOOLTIP_STYLE} />
-          <Bar dataKey="total" fill="#4f8cff" radius={BAR_RADIUS} isAnimationActive={false} />
+          <Bar dataKey="total" fill="#e5e5e5" radius={BAR_RADIUS} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>

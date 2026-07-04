@@ -41,7 +41,7 @@ function GastoChart({ data }: GastoChartProps) {
               {chartData.map((entry) => (
                 <Cell
                   key={entry.name}
-                  fill={CHART_COLORS_HEX[entry.name] ?? '#4f8cff'}
+                  fill={CHART_COLORS_HEX[entry.name] ?? '#e5e5e5'}
                 />
               ))}
             </Pie>
@@ -54,7 +54,7 @@ function GastoChart({ data }: GastoChartProps) {
           <li key={entry.name} className="flex items-center gap-2 text-slate-300">
             <span
               className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: CHART_COLORS_HEX[entry.name] ?? '#4f8cff' }}
+              style={{ backgroundColor: CHART_COLORS_HEX[entry.name] ?? '#e5e5e5' }}
             />
             <span className="truncate">{entry.name}</span>
           </li>

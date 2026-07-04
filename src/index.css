@@ -1,20 +1,20 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-pulso-bg: #0a0f1a;
-  --color-pulso-surface: #121a2e;
-  --color-pulso-surface-raised: #1a2438;
-  --color-pulso-surface-muted: #0f1524;
-  --color-pulso-border: #2a3548;
-  --color-pulso-accent: #4f8cff;
-  --color-pulso-accent-hover: #6ba1ff;
-  --color-pulso-accent-active: #3b72e0;
-  --color-pulso-accent-muted: #93b4ff;
-  --color-pulso-accent-dim: #3b72e0;
-  --color-pulso-warning: #f59e0b;
-  --color-pulso-danger: #ef4444;
-  --color-primary: #0a0f1a;
-  --color-accent: #4f8cff;
+  --color-pulso-bg: #181818;
+  --color-pulso-surface: #242424;
+  --color-pulso-surface-raised: #2e2e2e;
+  --color-pulso-surface-muted: #1e1e1e;
+  --color-pulso-border: #3a3a3a;
+  --color-pulso-accent: #e5e5e5;
+  --color-pulso-accent-hover: #f5f5f5;
+  --color-pulso-accent-active: #d4d4d4;
+  --color-pulso-accent-muted: #a3a3a3;
+  --color-pulso-accent-dim: #737373;
+  --color-pulso-warning: #a3a3a3;
+  --color-pulso-danger: #737373;
+  --color-primary: #181818;
+  --color-accent: #e5e5e5;
 }
 
 html {
@@ -26,7 +26,7 @@ body {
   min-height: 100svh;
   font-family: system-ui, -apple-system, sans-serif;
   background-color: var(--color-pulso-bg);
-  color: #f8fafc;
+  color: #f5f5f5;
 }
 
 /* Evita zoom automático en iOS al enfocar inputs (< 16px dispara el zoom) */

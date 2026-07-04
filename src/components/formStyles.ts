@@ -54,11 +54,11 @@ export const iconButtonDangerClassName = `${iconButtonClassName} text-slate-400 
 
 export const iconButtonMsiClassName = `${iconButtonClassName} text-xs font-semibold text-pulso-accent-muted hover:bg-pulso-accent/15 active:bg-pulso-accent/25`
 
-export const buttonPrimaryClassName = `w-full rounded-xl bg-pulso-accent px-4 py-3.5 text-base font-semibold text-white hover:bg-pulso-accent-hover active:bg-pulso-accent-active ${interactive}`
+export const buttonPrimaryClassName = `w-full rounded-xl bg-pulso-accent px-4 py-3.5 text-base font-semibold text-neutral-950 hover:bg-pulso-accent-hover active:bg-pulso-accent-active ${interactive}`
 
-export const buttonPrimaryFlexClassName = `flex-1 rounded-xl bg-pulso-accent px-4 py-3 text-sm font-semibold text-white hover:bg-pulso-accent-hover active:bg-pulso-accent-active ${interactive}`
+export const buttonPrimaryFlexClassName = `flex-1 rounded-xl bg-pulso-accent px-4 py-3 text-sm font-semibold text-neutral-950 hover:bg-pulso-accent-hover active:bg-pulso-accent-active ${interactive}`
 
-export const buttonPrimaryCompactClassName = `shrink-0 min-h-11 rounded-xl bg-pulso-accent px-4 py-2.5 text-sm font-semibold text-white hover:bg-pulso-accent-hover active:bg-pulso-accent-active ${interactive}`
+export const buttonPrimaryCompactClassName = `shrink-0 min-h-11 rounded-xl bg-pulso-accent px-4 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-pulso-accent-hover active:bg-pulso-accent-active ${interactive}`
 
 export const buttonSecondaryClassName = `rounded-xl bg-pulso-surface-raised px-4 py-3 text-base font-medium text-white hover:bg-pulso-border active:bg-pulso-surface ${interactive}`
 
@@ -84,7 +84,7 @@ export const togglePillClassName = `rounded-full border px-4 py-2.5 text-xs font
 export const navTabClassName = (active: boolean) =>
   `w-full rounded-lg px-2 py-2.5 text-xs font-semibold min-h-11 whitespace-nowrap sm:px-3 sm:text-sm ${interactive} ${
     active
-      ? 'bg-pulso-accent text-white shadow-sm active:bg-pulso-accent-active'
+      ? 'bg-pulso-accent text-neutral-950 shadow-sm active:bg-pulso-accent-active'
       : 'text-slate-400 hover:text-white active:bg-pulso-surface-raised'
   }`
 

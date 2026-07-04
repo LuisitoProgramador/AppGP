@@ -18,10 +18,10 @@ export const DIAS_PAGO_SELECT_OPTIONS = DIAS_PAGO.map(({ value, label }) => ({
 }))
 
 export const CHART_TOOLTIP_STYLE = {
-  backgroundColor: '#0a0f1a',
-  border: '1px solid #2a3548',
+  backgroundColor: '#181818',
+  border: '1px solid #3a3a3a',
   borderRadius: '0.75rem',
-  color: '#f8fafc',
+  color: '#f5f5f5',
 } as const
 
 export const BAR_CHART_MARGIN = { top: 8, right: 8, left: 0, bottom: 0 } as const
