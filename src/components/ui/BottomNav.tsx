@@ -1,28 +1,20 @@
-import { createPortal } from 'react-dom'
-import { memo, useEffect, useState, type ReactNode } from 'react'
+import { memo, type ReactNode } from 'react'
 
 interface BottomNavProps {
   children: ReactNode
 }
 
-/** Barra fija al viewport (portal). Evita hueco inferior en PWA iOS. */
+/** Barra inferior dentro del shell de la app (flex), pegada al borde con safe area. */
 function BottomNav({ children }: BottomNavProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return null
-
-  return createPortal(
-    <div
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-pulso-surface sm:hidden [transform:translateZ(0)]"
+  return (
+    <footer
+      className="shrink-0 border-t border-white/10 bg-pulso-surface sm:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      <div className="mx-auto max-w-lg px-2 pt-1">{children}</div>
-    </div>,
-    document.body,
+      <div className="mx-auto flex min-h-[var(--bottom-nav-height)] max-w-lg items-center px-2 pt-1">
+        {children}
+      </div>
+    </footer>
   )
 }
 

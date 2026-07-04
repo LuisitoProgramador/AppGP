@@ -45,9 +45,12 @@ export const registroFormClassName = 'mx-auto w-full max-w-md'
 /** Contenedor de pestaña con transición suave */
 export const tabPanelClassName = 'space-y-4 transition-opacity duration-200'
 
-/** Contenedor pegajoso para el botón de envío en formularios móviles */
+/** Botón de envío al final del formulario (flujo normal, sin sticky) */
+export const formSubmitClassName = 'mt-4 border-t border-white/8 pt-4'
+
+/** Contenedor pegajoso para formularios largos en móvil (scroll dentro de main, encima del footer) */
 export const formSubmitStickyClassName =
-  'sticky bottom-0 z-10 -mx-4 mt-2 border-t border-white/8 bg-pulso-surface/95 px-4 pt-3 pb-3 backdrop-blur-md max-sm:bottom-[var(--bottom-nav-total)] sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
+  'sticky bottom-0 z-10 -mx-4 mt-4 border-t border-white/8 bg-pulso-surface/95 px-4 pt-3 pb-2 backdrop-blur-md sm:static sm:mx-0 sm:mt-2 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
 
 /** Panel de formulario dentro de ModalPortal */
 export const modalPanelClassName = modalFormClassName

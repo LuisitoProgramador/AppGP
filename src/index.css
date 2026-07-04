@@ -28,8 +28,7 @@ html {
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;
-  /* Si queda franja bajo la barra fija en iOS, coincide con su fondo */
-  background-color: var(--color-pulso-surface);
+  background-color: var(--color-pulso-bg);
 }
 
 body {

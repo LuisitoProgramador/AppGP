@@ -2,7 +2,7 @@ import MontoInput from '../ui/MontoInput'
 import {
   buttonPrimaryClassName,
   chipPickerClassName,
-  formSubmitStickyClassName,
+  formSubmitClassName,
   inputClassName,
 } from '../ui/formStyles'
 import type { useGastoForm } from '../../hooks/forms/useGastoForm'
@@ -161,7 +161,7 @@ export default function GastoFormFields({
         />
       </div>
 
-      <div className={formSubmitStickyClassName}>
+      <div className={formSubmitClassName}>
         <button
           type="submit"
           disabled={guardando || cuentas.length === 0 || !form.cuentaId}

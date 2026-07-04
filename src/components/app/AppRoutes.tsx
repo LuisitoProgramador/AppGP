@@ -255,7 +255,35 @@ export default function AppRoutes() {
   return (
     <GastosProviders>
       <QuietModeProvider>
-        <Layout>
+        <Layout
+          footer={
+            !showAjustes ? (
+              <BottomNav>
+                <nav
+                  className="grid w-full grid-cols-4 gap-0.5"
+                  role="tablist"
+                  aria-label="Navegación principal"
+                >
+                  {TABS.map(({ id, label, Icon }) => (
+                    <button
+                      key={`bottom-${id}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === id}
+                      aria-label={label}
+                      title={label}
+                      aria-controls={`panel-${id}`}
+                      onClick={() => handleTabChange(id)}
+                      className={navBottomTabClassName(tab === id)}
+                    >
+                      <Icon />
+                    </button>
+                  ))}
+                </nav>
+              </BottomNav>
+            ) : undefined
+          }
+        >
           <section className="space-y-6">
             <div className="flex items-center justify-between gap-3">
               <h1 className="text-3xl font-bold">Pulso</h1>
@@ -346,32 +374,6 @@ export default function AppRoutes() {
                 </>
               )}
             </div>
-
-            {!showAjustes && (
-              <BottomNav>
-                <nav
-                  className="grid grid-cols-4 gap-0.5"
-                  role="tablist"
-                  aria-label="Navegación principal"
-                >
-                  {TABS.map(({ id, label, Icon }) => (
-                    <button
-                      key={`bottom-${id}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === id}
-                      aria-label={label}
-                      title={label}
-                      aria-controls={`panel-${id}`}
-                      onClick={() => handleTabChange(id)}
-                      className={navBottomTabClassName(tab === id)}
-                    >
-                      <Icon />
-                    </button>
-                  ))}
-                </nav>
-              </BottomNav>
-            )}
           </section>
         </Layout>
       </QuietModeProvider>
