@@ -13,7 +13,10 @@ const sizes = [
 ]
 
 for (const { name, size } of sizes) {
-  const png = await sharp(iconSvg).resize(size, size).png().toBuffer()
+  const png = await sharp(iconSvg)
+    .resize(size, size, { kernel: sharp.kernel.lanczos3 })
+    .png({ compressionLevel: 9, adaptiveFiltering: true })
+    .toBuffer()
   writeFileSync(join(root, name), png)
   console.log(`Generated ${name} (${size}x${size})`)
 }
