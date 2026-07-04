@@ -11,7 +11,7 @@ export const cardClassName =
 
 /** Contenedor premium del Dashboard at-a-glance */
 export const dashboardShellClassName =
-  'space-y-6 rounded-2xl border border-white/10 bg-slate-800/40 p-6 shadow-xl shadow-black/20 backdrop-blur-md'
+  'space-y-6 rounded-2xl border border-white/10 bg-slate-800/40 p-5 shadow-xl shadow-black/20 backdrop-blur-md sm:p-6'
 
 /** Tarjetas internas del Dashboard (widgets) */
 export const dashboardCardClassName =

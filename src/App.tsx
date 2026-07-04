@@ -8,7 +8,6 @@ import {
   GastosRecurrentes,
   Historial,
   Layout,
-  ListaCuentas,
   LoginForm,
   OnboardingFlow,
   SalidasTimelineSection,
@@ -195,9 +194,6 @@ function AppContent() {
 
               <TabPanel id="resumen" activeTab={tab}>
                 <FocusModeProvider>
-                  <ErrorBoundary title="Error en cuentas">
-                    <ListaCuentas />
-                  </ErrorBoundary>
                   <ErrorBoundary title="Error en el Dashboard">
                     <Dashboard />
                   </ErrorBoundary>

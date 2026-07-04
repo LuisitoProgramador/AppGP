@@ -1,12 +1,12 @@
 import { memo, useState } from 'react'
 import { useOfflineSync, useQuietMode, useFocusMode } from '../contexts'
 import { useDashboardData } from '../hooks/useDashboardData'
+import ListaCuentas from './ListaCuentas'
 import ProyeccionCierre from './ProyeccionCierre'
 import DashboardFocusView from './dashboard/DashboardFocusView'
 import DashboardHeader from './dashboard/DashboardHeader'
 import FocusModeToggle from './dashboard/FocusModeToggle'
 import PresupuestoWidget from './dashboard/PresupuestoWidget'
-import MeAlcanzaWidget from './dashboard/MeAlcanzaWidget'
 import BurnRateAlert from './dashboard/BurnRateAlert'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import DashboardStatus from './dashboard/DashboardStatus'
@@ -24,7 +24,6 @@ export default memo(function Dashboard() {
     cargando,
     error,
     esMesActual,
-    mesLabel,
     gastoTotal,
     resumen,
     limiteMensual,
@@ -49,73 +48,67 @@ export default memo(function Dashboard() {
   } = useDashboardData(selectedMonth, [], { lite: isFocusMode })
 
   return (
-    <section className={`${dashboardShellClassName} ${formWithKeyboardClassName}`}>
-      <FocusModeToggle isFocusMode={isFocusMode} onToggle={toggleFocusMode} />
+    <div className={`flex flex-col gap-6 ${formWithKeyboardClassName}`}>
+      <section className={dashboardShellClassName}>
+        <FocusModeToggle isFocusMode={isFocusMode} onToggle={toggleFocusMode} />
 
-      {isFocusMode ? (
-        <DashboardFocusView
-          esMesActual={esMesActual}
-          cargando={cargando}
-          focusView={focusView}
-        />
-      ) : (
-        <div className="space-y-6">
-          <DashboardHeader
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-            mesLabel={mesLabel}
-            gastoTotal={gastoTotal}
+        {isFocusMode ? (
+          <DashboardFocusView
+            esMesActual={esMesActual}
             cargando={cargando}
-            modoViaje={modoViaje}
-            modoTranquilo={modoTranquilo}
-            onToggleModoViaje={handleToggleModoViaje}
-            onToggleModoTranquilo={toggleModoTranquilo}
-            compact
+            focusView={focusView}
           />
-
-          {esMesActual && !cargando && (
-            <PresupuestoWidget
-              disponible={disponible}
-              presupuestoDiario={presupuestoDiario}
-              limiteMensual={limiteMensual}
-              diasRestantesEfectivos={diasRestantesEfectivos}
-              recibosEfectivos={recibosEfectivos}
-              msiPendientes={msiPendientes}
-              quincenaPeriodo={quincenaPeriodo}
-              vistaQuincenal={vistaQuincenal}
+        ) : (
+          <div className="flex flex-col gap-6">
+            <DashboardHeader
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              gastoTotal={gastoTotal}
+              cargando={cargando}
+              modoViaje={modoViaje}
               modoTranquilo={modoTranquilo}
-              diaAgotamiento={diaAgotamiento}
-              limiteInput={limiteInput}
-              guardandoLimite={guardandoLimite}
-              onLimiteInputChange={setLimiteInput}
-              onGuardarLimite={handleGuardarLimite}
-              onToggleVistaQuincenal={handleToggleVistaQuincenal}
+              onToggleModoViaje={handleToggleModoViaje}
+              onToggleModoTranquilo={toggleModoTranquilo}
             />
-          )}
 
-          {burnRateAlerta && <BurnRateAlert />}
+            {esMesActual && !cargando && (
+              <PresupuestoWidget
+                disponible={disponible}
+                presupuestoDiario={presupuestoDiario}
+                limiteMensual={limiteMensual}
+                diasRestantesEfectivos={diasRestantesEfectivos}
+                recibosEfectivos={recibosEfectivos}
+                msiPendientes={msiPendientes}
+                quincenaPeriodo={quincenaPeriodo}
+                vistaQuincenal={vistaQuincenal}
+                modoTranquilo={modoTranquilo}
+                diaAgotamiento={diaAgotamiento}
+                limiteInput={limiteInput}
+                guardandoLimite={guardandoLimite}
+                onLimiteInputChange={setLimiteInput}
+                onGuardarLimite={handleGuardarLimite}
+                onToggleVistaQuincenal={handleToggleVistaQuincenal}
+              />
+            )}
 
-          {proyeccionCierre && !cargando && (
-            <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
-          )}
+            {!isFocusMode && <ListaCuentas embedded />}
 
-          {esMesActual && !cargando && (
-            <MeAlcanzaWidget
-              disponible={disponible}
-              diasRestantesEfectivos={diasRestantesEfectivos}
-              presupuestoDiario={presupuestoDiario}
+            {burnRateAlerta && <BurnRateAlert />}
+
+            {proyeccionCierre && !cargando && (
+              <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
+            )}
+
+            <OfflineSyncStatus isSyncing={isSyncing} pendingCount={pendingCount} />
+
+            <DashboardStatus
+              error={error}
+              cargando={cargando}
+              sinGastos={resumen.length === 0}
             />
-          )}
-
-          <OfflineSyncStatus isSyncing={isSyncing} pendingCount={pendingCount} />
-
-          <DashboardStatus
-            error={error}
-            cargando={cargando}
-            sinGastos={resumen.length === 0}
-          />
-        </div>
-      )}
-    </section>
+          </div>
+        )}
+      </section>
+    </div>
   )
 })

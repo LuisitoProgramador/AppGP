@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { createCuenta } from '../services/cuentas'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
@@ -10,7 +10,17 @@ import { showError, showSuccess } from '../utils/toast'
 import ModalPortal from './ModalPortal'
 import RegistrarIngresoModal from './RegistrarIngresoModal'
 import TransferenciaModal from './TransferenciaModal'
-import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryCompactClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName, buttonGhostFlexClassName, buttonGhostSmClassName, modalFormClassName } from './formStyles'
+import {
+  cardClassName,
+  dashboardCardClassName,
+  formWithKeyboardClassName,
+  iconButtonClassName,
+  inputClassName,
+  buttonPrimaryClassName,
+  buttonGhostFlexClassName,
+  buttonPrimaryCompactClassName,
+  modalFormClassName,
+} from './formStyles'
 
 const initialForm = {
   nombre: '',
@@ -32,7 +42,7 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
   const utilizacion = getCreditUtilization(cuenta)
 
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-900/50 p-3">
+    <div className={`${dashboardCardClassName} p-4`}>
       <div className="min-w-0">
         <p className="truncate text-sm font-semibold text-white">{cuenta.nombre}</p>
         <p className="text-xs text-slate-400">{tipoLabel(cuenta.tipo)}</p>
@@ -78,7 +88,27 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
   )
 }
 
-export default function ListaCuentas() {
+interface ListaCuentasProps {
+  embedded?: boolean
+}
+
+function TransferIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M7 7h11M7 7l3-3M7 7l3 3M17 17H6M17 17l-3 3M17 17l-3-3" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+function IngresoIcon() {
+  return (
+    <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M12 5v14M5 12l7-7 7 7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
   const { user } = useAuthContext()
   const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
   const { refresh } = useGastosData()
@@ -87,6 +117,8 @@ export default function ListaCuentas() {
   const [transferenciaModalOpen, setTransferenciaModalOpen] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false)
+  const quickActionsRef = useRef<HTMLDivElement>(null)
 
   const cargarCuentas = useCallback(async () => {
     await refreshCuentas()
@@ -95,6 +127,19 @@ export default function ListaCuentas() {
   useEffect(() => {
     cargarCuentas()
   }, [cargarCuentas])
+
+  useEffect(() => {
+    if (!quickActionsOpen) return
+
+    function handlePointerDown(event: MouseEvent) {
+      if (quickActionsRef.current && !quickActionsRef.current.contains(event.target as Node)) {
+        setQuickActionsOpen(false)
+      }
+    }
+
+    window.addEventListener('mousedown', handlePointerDown)
+    return () => window.removeEventListener('mousedown', handlePointerDown)
+  }, [quickActionsOpen])
 
   function openModal() {
     setForm(initialForm)
@@ -172,38 +217,21 @@ export default function ListaCuentas() {
   }
 
   return (
-    <section className={cardClassName}>
+    <section
+      className={
+        embedded
+          ? 'space-y-4 border-t border-white/10 pt-6'
+          : cardClassName
+      }
+    >
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-white">Mis cuentas</h2>
-          <p className="text-sm text-slate-400">
-            Efectivo, débito y tarjetas de crédito
-          </p>
+          <p className="text-sm text-slate-400">Efectivo, débito y tarjetas de crédito</p>
         </div>
-        <div className="flex shrink-0 flex-wrap justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setTransferenciaModalOpen(true)}
-            className={buttonGhostSmClassName}
-            disabled={cuentas.length < 2}
-          >
-            Transferir
-          </button>
-          <button
-            type="button"
-            onClick={() => setIngresoModalOpen(true)}
-            className={buttonGhostSmClassName}
-          >
-            + Ingreso
-          </button>
-          <button
-            type="button"
-            onClick={openModal}
-            className={buttonPrimaryCompactClassName}
-          >
-            + Nueva cuenta
-          </button>
-        </div>
+        <button type="button" onClick={openModal} className={buttonPrimaryCompactClassName}>
+          + Nueva cuenta
+        </button>
       </div>
 
       {cuentasLoading && (
@@ -217,12 +245,52 @@ export default function ListaCuentas() {
       )}
 
       {!cuentasLoading && cuentas.length > 0 && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2">
           {cuentas.map((cuenta) => (
             <CuentaCard key={cuenta.id} cuenta={cuenta} />
           ))}
         </div>
       )}
+
+      <div ref={quickActionsRef} className="relative flex justify-end pt-2">
+        {quickActionsOpen && (
+          <div className="absolute bottom-14 right-0 z-20 w-44 space-y-2 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-xl backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => {
+                setQuickActionsOpen(false)
+                setTransferenciaModalOpen(true)
+              }}
+              disabled={cuentas.length < 2}
+              className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50`}
+            >
+              <TransferIcon />
+              Transferir
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setQuickActionsOpen(false)
+                setIngresoModalOpen(true)
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-200 transition hover:bg-slate-800"
+            >
+              <IngresoIcon />
+              Ingreso
+            </button>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={() => setQuickActionsOpen((open) => !open)}
+          className={`${iconButtonClassName} h-12 w-12 rounded-full bg-blue-500 text-white shadow-lg shadow-blue-500/25 hover:bg-blue-400 active:bg-blue-600`}
+          aria-label="Acciones rápidas de cuentas"
+          aria-expanded={quickActionsOpen}
+        >
+          <span className="text-2xl leading-none">+</span>
+        </button>
+      </div>
 
       {transferenciaModalOpen && (
         <TransferenciaModal
