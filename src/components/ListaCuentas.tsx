@@ -16,7 +16,6 @@ import MontoInput from './MontoInput'
 import {
   cardClassName,
   cuentaCardClassName,
-  formWithKeyboardClassName,
   inputClassName,
   buttonPrimaryClassName,
   buttonGhostFlexClassName,
@@ -297,7 +296,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
         <ModalPortal onClose={closeModal} ariaLabelledBy="nueva-cuenta-title">
           <form
             onSubmit={handleSubmit}
-            className={`${modalFormClassName} ${formWithKeyboardClassName}`}
+            className={modalFormClassName}
           >
             <div className="space-y-1">
               <h3 id="nueva-cuenta-title" className="text-lg font-semibold text-white">

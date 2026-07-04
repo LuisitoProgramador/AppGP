@@ -52,8 +52,11 @@ function FocusIcon() {
       className="h-5 w-5"
       aria-hidden="true"
     >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+      <path d="M4 7V4h3" />
+      <path d="M17 4h3v3" />
+      <path d="M4 17v3h3" />
+      <path d="M17 20h3v-3" />
+      <rect x="8" y="8" width="8" height="8" rx="1" />
     </svg>
   )
 }
@@ -151,6 +154,7 @@ export default memo(function DashboardHeader({
               role="menuitem"
               onClick={() => {
                 onToggleModoViaje()
+                setMenuOpen(false)
               }}
               className={`w-full ${togglePillClassName} ${
                 modoViaje
@@ -166,6 +170,7 @@ export default memo(function DashboardHeader({
               role="menuitem"
               onClick={() => {
                 onToggleModoTranquilo()
+                setMenuOpen(false)
               }}
               className={`w-full ${togglePillClassName} ${
                 modoTranquilo

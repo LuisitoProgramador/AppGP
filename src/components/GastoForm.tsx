@@ -22,7 +22,7 @@ import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
 import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
 import { validateCuentaId, validateDescripcion, validateMonto, validateMsiMeses } from '../utils/validation'
-import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, registroFormClassName } from './formStyles'
+import { cardClassName, formSubmitStickyClassName, inputClassName, buttonPrimaryClassName, registroFormClassName } from './formStyles'
 import Select from './Select'
 import MontoInput from './MontoInput'
 
@@ -371,7 +371,7 @@ export default memo(function GastoForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={`${cardClassName} ${formWithKeyboardClassName} ${registroFormClassName}`}>
+    <form onSubmit={handleSubmit} className={`${cardClassName} ${registroFormClassName}`}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
         <p className="text-sm text-slate-400">Registra un movimiento</p>

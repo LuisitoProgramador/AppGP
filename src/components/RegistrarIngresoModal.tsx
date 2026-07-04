@@ -12,7 +12,6 @@ import MontoInput from './MontoInput'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
-  formWithKeyboardClassName,
   inputClassName,
   modalFormClassName,
 } from './formStyles'
@@ -98,7 +97,7 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
     <ModalPortal onClose={onClose} ariaLabelledBy="registrar-ingreso-title">
       <form
         onSubmit={handleSubmit}
-        className={`${modalFormClassName} max-h-[90svh] overflow-y-auto ${formWithKeyboardClassName}`}
+        className={`${modalFormClassName} max-h-[90svh] overflow-y-auto`}
       >
         <div className="space-y-1">
           <h2 id="registrar-ingreso-title" className="text-lg font-semibold text-white">

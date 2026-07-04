@@ -30,6 +30,8 @@ export function QuietModeProvider({ children }: { children: ReactNode }) {
   const [disponible, setDisponible] = useState<number | null>(null)
   const [diaPago, setDiaPago] = useState<number | null>(null)
   const preferenciaManual = useRef(isModoTranquilo())
+  const autoSuprimidoPorUsuario = useRef(false)
+  const prevDebeAutoActivar = useRef(false)
 
   const debeAutoActivar = useMemo(
     () => shouldAutoActivarModoTranquilo({ disponible, diaPago }),
@@ -53,13 +55,19 @@ export function QuietModeProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   useEffect(() => {
-    if (debeAutoActivar) {
+    if (debeAutoActivar && !prevDebeAutoActivar.current) {
+      autoSuprimidoPorUsuario.current = false
+    }
+    prevDebeAutoActivar.current = debeAutoActivar
+
+    if (debeAutoActivar && !autoSuprimidoPorUsuario.current) {
       setModoTranquiloState(true)
       setAutoModoTranquilo(true)
+      setModoTranquilo(true)
       return
     }
 
-    if (autoModoTranquilo) {
+    if (autoModoTranquilo && !debeAutoActivar) {
       setModoTranquiloState(preferenciaManual.current)
       setAutoModoTranquilo(false)
     }
@@ -71,20 +79,30 @@ export function QuietModeProvider({ children }: { children: ReactNode }) {
 
   const setModoTranquiloActivo = useCallback((activo: boolean) => {
     preferenciaManual.current = activo
+    if (!activo && debeAutoActivar) {
+      autoSuprimidoPorUsuario.current = true
+    } else if (activo) {
+      autoSuprimidoPorUsuario.current = false
+    }
     setAutoModoTranquilo(false)
     setModoTranquiloState(activo)
     setModoTranquilo(activo)
-  }, [])
+  }, [debeAutoActivar])
 
   const toggleModoTranquilo = useCallback(() => {
     setModoTranquiloState((current) => {
       const next = !current
       preferenciaManual.current = next
+      if (!next && debeAutoActivar) {
+        autoSuprimidoPorUsuario.current = true
+      } else if (next) {
+        autoSuprimidoPorUsuario.current = false
+      }
       setAutoModoTranquilo(false)
       setModoTranquilo(next)
       return next
     })
-  }, [])
+  }, [debeAutoActivar])
 
   const value = useMemo(
     () => ({

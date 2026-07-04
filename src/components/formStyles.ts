@@ -12,7 +12,7 @@ export const inputInlineClassName = `min-w-0 flex-1 rounded-xl border border-pul
 
 /** Tarjeta base con glassmorphism sutil */
 export const cardClassName =
-  'space-y-4 rounded-2xl border border-white/8 bg-pulso-surface/90 p-5 shadow-xl shadow-black/30 backdrop-blur-md sm:p-6'
+  'space-y-4 rounded-2xl border border-white/8 bg-pulso-surface/90 p-4 shadow-xl shadow-black/30 backdrop-blur-md sm:p-5'
 
 /** Contenedor premium del Dashboard at-a-glance */
 export const dashboardShellClassName =
@@ -32,8 +32,12 @@ export const settingsPanelClassName = 'space-y-8'
 /** Separador entre secciones de Ajustes */
 export const settingsDividerClassName = 'border-t border-white/8 pt-8'
 
-/** Espacio inferior en móvil para que el teclado no tape campos ni el botón de envío */
-export const formWithKeyboardClassName = 'scroll-pb-32 max-sm:pb-32'
+/** Scroll padding al enfocar campos con teclado virtual (sin padding permanente) */
+export const formWithKeyboardClassName = 'scroll-pb-24'
+
+/** Formulario dentro de modal — compacto, sin padding extra inferior */
+export const modalFormClassName =
+  'w-full max-w-md space-y-4 rounded-2xl border border-white/8 bg-pulso-surface-raised/95 p-4 shadow-2xl backdrop-blur-md'
 
 /** Formulario de registro centrado y con ancho cómodo */
 export const registroFormClassName = 'mx-auto w-full max-w-md'
@@ -43,11 +47,10 @@ export const tabPanelClassName = 'space-y-4 transition-opacity duration-200'
 
 /** Contenedor pegajoso para el botón de envío en formularios móviles */
 export const formSubmitStickyClassName =
-  'sticky bottom-0 z-10 -mx-5 mt-2 border-t border-white/8 bg-pulso-surface/95 px-5 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
+  'sticky bottom-0 z-10 -mx-4 mt-2 border-t border-white/8 bg-pulso-surface/95 px-4 pt-3 pb-3 backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
 
 /** Panel de formulario dentro de ModalPortal */
-export const modalFormClassName =
-  'w-full max-w-md space-y-5 rounded-2xl border border-white/8 bg-pulso-surface-raised/95 p-6 shadow-2xl backdrop-blur-md'
+export const modalPanelClassName = modalFormClassName
 
 /** Botón de icono con área táctil mínima de 44×44 px */
 export const iconButtonClassName = `inline-flex shrink-0 items-center justify-center min-h-11 min-w-11 rounded-lg p-3 ${interactive}`
