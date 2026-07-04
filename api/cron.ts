@@ -1,6 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import { createSupabaseAdmin } from '../server/supabaseAdmin'
-import { formatMonto, sendTelegram } from '../server/telegram'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
 interface VercelRequest {
   method?: string
@@ -9,6 +7,42 @@ interface VercelRequest {
 
 interface VercelResponse {
   status: (code: number) => { json: (body: unknown) => void }
+}
+
+function createSupabaseAdmin(): SupabaseClient {
+  const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !serviceKey) {
+    throw new Error('Faltan variables de Supabase (SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY)')
+  }
+  return createClient(url, serviceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
+function formatMonto(monto: number): string {
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto)
+}
+
+async function sendTelegram(text: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) {
+    throw new Error('Variables de Telegram no configuradas (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)')
+  }
+  const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text,
+      parse_mode: 'HTML',
+      disable_web_page_preview: true,
+    }),
+  })
+  if (!res.ok) {
+    throw new Error(`Telegram API error: ${res.status}`)
+  }
 }
 
 const TZ = 'America/Mexico_City'
