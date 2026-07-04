@@ -12,9 +12,14 @@ export default memo(function PatrimonioCards({
   patrimonioLiquido,
   limiteMensual,
 }: PatrimonioCardsProps) {
+  const showIngreso = ingresoMensualTotal != null
+  const showPatrimonio = patrimonioLiquido != null && patrimonioLiquido > 0
+
+  if (!showIngreso && !showPatrimonio) return null
+
   return (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {ingresoMensualTotal != null && (
+    <div className={`grid gap-2 ${showIngreso && showPatrimonio ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+      {showIngreso && (
         <div className="rounded-xl border border-pulso-accent/25 bg-pulso-accent/10 px-4 py-3 text-center">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Ingreso mensual total
@@ -29,7 +34,7 @@ export default memo(function PatrimonioCards({
           </p>
         </div>
       )}
-      {patrimonioLiquido != null && patrimonioLiquido > 0 && (
+      {showPatrimonio && (
         <div className="rounded-xl border border-pulso-accent/25 bg-pulso-accent/10 px-4 py-3 text-center">
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Patrimonio líquido

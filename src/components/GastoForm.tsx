@@ -435,7 +435,7 @@ export default memo(function GastoForm() {
               aria-label="Meses sin intereses"
               onClick={() => setForm((prev) => ({ ...prev, esMsi: !prev.esMsi }))}
               className={`relative h-7 w-12 shrink-0 rounded-full transition active:scale-[0.98] ${
-                form.esMsi ? 'bg-blue-500' : 'bg-slate-600'
+                form.esMsi ? 'bg-pulso-accent' : 'bg-slate-600'
               }`}
             >
               <span

@@ -336,12 +336,12 @@ export default function PresupuestoSettings() {
         </div>
 
         {estrategiaPreview && (
-          <div className="grid gap-2 sm:grid-cols-2">
-            <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 px-3 py-2.5 text-center">
+          <div className={`grid gap-2 ${presupuestoDiarioPreview != null ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+            <div className="rounded-xl border border-pulso-accent/25 bg-pulso-accent/10 px-3 py-2.5 text-center">
               <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
                 {limiteEsManual ? 'Límite calculado' : 'Disponible para gasto'}
               </p>
-              <p className="mt-0.5 text-lg font-bold text-blue-300">
+              <p className="mt-0.5 text-lg font-bold text-pulso-accent-muted">
                 {formatCurrency(estrategiaPreview.disponibleParaGasto)}
               </p>
             </div>

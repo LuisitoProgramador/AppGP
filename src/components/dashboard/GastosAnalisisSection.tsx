@@ -90,7 +90,7 @@ export default memo(function GastosAnalisisSection({
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-slate-700/80">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${COLORES_CATEGORIA[item.categoria] ?? 'bg-blue-500'}`}
+                      className={`h-full rounded-full transition-all duration-500 ${COLORES_CATEGORIA[item.categoria] ?? 'bg-neutral-500'}`}
                       style={{ width: `${item.porcentaje}%` }}
                     />
                   </div>

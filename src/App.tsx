@@ -4,6 +4,7 @@ import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
 import LoginForm from './components/LoginForm'
 import { navTabClassName, navBottomTabClassName, iconButtonClassName, tabPanelClassName } from './components/formStyles'
+import { TabHistorialIcon, TabPlanIcon, TabRegistroIcon, TabResumenIcon } from './components/icons'
 import { useTabSwipe } from './hooks/useTabSwipe'
 import { checkNeedsOnboarding } from './services/onboarding'
 import { readSessionStorage, writeSessionStorage } from './utils/storage'
@@ -22,11 +23,11 @@ const TAB_STORAGE_KEY = 'app-tab'
 
 const VALID_TABS = new Set<AppTab>(['registro', 'resumen', 'historial', 'plan'])
 
-const TABS: { id: AppTab; label: string; shortLabel: string }[] = [
-  { id: 'registro', label: 'Registro', shortLabel: 'Nuevo' },
-  { id: 'resumen', label: 'Resumen', shortLabel: 'Resumen' },
-  { id: 'historial', label: 'Historial', shortLabel: 'Historial' },
-  { id: 'plan', label: 'Plan', shortLabel: 'Plan' },
+const TABS: { id: AppTab; label: string; shortLabel: string; Icon: typeof TabRegistroIcon }[] = [
+  { id: 'registro', label: 'Registro', shortLabel: 'Nuevo', Icon: TabRegistroIcon },
+  { id: 'resumen', label: 'Resumen', shortLabel: 'Resumen', Icon: TabResumenIcon },
+  { id: 'historial', label: 'Historial', shortLabel: 'Historial', Icon: TabHistorialIcon },
+  { id: 'plan', label: 'Plan', shortLabel: 'Plan', Icon: TabPlanIcon },
 ]
 
 function TabFallback() {
@@ -230,7 +231,7 @@ function AppContent() {
                   title="Ajustes"
                   className={`${iconButtonClassName} border ${
                     showAjustes
-                      ? 'border-blue-500/50 bg-blue-500/15 text-blue-300'
+                      ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent'
                       : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
                   }`}
                 >
@@ -317,17 +318,19 @@ function AppContent() {
                 style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
               >
                 <div className="mx-auto grid max-w-lg grid-cols-4 gap-0.5 px-2 pt-1">
-                  {TABS.map(({ id, shortLabel }) => (
+                  {TABS.map(({ id, label, Icon }) => (
                     <button
                       key={`bottom-${id}`}
                       type="button"
                       role="tab"
                       aria-selected={tab === id}
+                      aria-label={label}
+                      title={label}
                       aria-controls={`panel-${id}`}
                       onClick={() => handleTabChange(id)}
                       className={navBottomTabClassName(tab === id)}
                     >
-                      {shortLabel}
+                      <Icon />
                     </button>
                   ))}
                 </div>

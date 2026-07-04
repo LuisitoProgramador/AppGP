@@ -75,9 +75,9 @@ function StepIndicator({ step }: { step: number }) {
           key={i}
           className={`h-1.5 rounded-full transition-all duration-300 ${
             i + 1 === step
-              ? 'w-8 bg-blue-500'
+              ? 'w-8 bg-pulso-accent'
               : i + 1 < step
-                ? 'w-4 bg-blue-500/60'
+                ? 'w-4 bg-pulso-accent/60'
                 : 'w-4 bg-slate-700'
           }`}
           aria-hidden="true"
@@ -398,7 +398,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   return (
     <section className="space-y-6">
       <div className="space-y-3 text-center">
-        <p className="text-sm font-medium text-blue-400">
+        <p className="text-sm font-medium text-pulso-accent-muted">
           Paso {step} de {TOTAL_STEPS}
         </p>
         <h1 className="text-2xl font-bold">Configura tu presupuesto</h1>
@@ -612,7 +612,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <button
                   type="button"
                   onClick={() => setShowTarjetaForm(true)}
-                  className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-blue-500/50 hover:text-white"
+                  className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-pulso-accent/50 hover:text-white"
                 >
                   + Añadir tarjeta
                 </button>
@@ -816,7 +816,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       key={nombre}
                       type="button"
                       onClick={() => addSugerencia(nombre)}
-                      className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-blue-500/50 hover:text-white"
+                      className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-pulso-accent/50 hover:text-white"
                     >
                       + {nombre}
                     </button>
@@ -949,10 +949,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
 
             {limitePreview != null && sueldoNum > 0 && (
-              <p className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300">
+              <p className="rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3 text-sm text-pulso-accent-muted">
                 Con {porcentajeAhorro}% de ahorro, tu presupuesto mensual para gastar será de{' '}
                 <strong className="text-white">{formatCurrency(limitePreview)}</strong>
-                <span className="mt-1 block text-xs text-blue-200/80">
+                <span className="mt-1 block text-xs text-pulso-accent-muted/80">
                   Basado en {formatCurrency(sueldoNum)} de sueldo mensual
                 </span>
               </p>

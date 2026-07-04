@@ -38,7 +38,7 @@ const HistorialItemRow = memo(function HistorialItemRow({
           {(isOptimistic || isPending) && (
             <div className="mt-1 flex flex-wrap gap-1.5">
               {isOptimistic && (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-pulso-accent/20 px-2 py-0.5 text-xs text-pulso-accent-muted">
                   <SpinnerIcon />
                   Guardando...
                 </span>
@@ -71,7 +71,7 @@ const HistorialItemRow = memo(function HistorialItemRow({
               disabled={isBusy}
               aria-label="Editar gasto"
               title="Editar gasto"
-              className={`${iconButtonEditClassName} max-sm:rounded-xl max-sm:border max-sm:border-blue-500/40 max-sm:bg-blue-500/15 max-sm:text-blue-200 max-sm:hover:bg-blue-500/25 sm:inline-flex sm:items-center sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold`}
+              className={`${iconButtonEditClassName} max-sm:rounded-xl max-sm:border max-sm:border-pulso-accent/40 max-sm:bg-pulso-accent/15 max-sm:text-pulso-accent-muted max-sm:hover:bg-pulso-accent/25 sm:inline-flex sm:items-center sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold`}
             >
               <EditIcon />
               <span className="hidden sm:inline">Editar</span>

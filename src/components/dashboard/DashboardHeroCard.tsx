@@ -39,7 +39,7 @@ export default memo(function DashboardHeroCard({
     : 'border-white/10 bg-pulso-surface-muted/50'
 
   return (
-    <div className={`${dashboardCardClassName} px-5 py-6 text-center ${cardTone}`}>
+    <div className={`${dashboardCardClassName} px-4 py-4 text-center ${cardTone}`}>
       {showBudget ? (
         <>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -57,7 +57,7 @@ export default memo(function DashboardHeroCard({
             </p>
           )}
 
-          <div className="my-5 border-t border-white/10" aria-hidden="true" />
+          <div className="my-4 border-t border-white/10" aria-hidden="true" />
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-start sm:gap-10">
             <div className="w-full sm:w-auto">

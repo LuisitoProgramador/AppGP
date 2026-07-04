@@ -20,7 +20,11 @@ export const dashboardShellClassName =
 
 /** Tarjetas internas del Dashboard (widgets) */
 export const dashboardCardClassName =
-  'rounded-2xl border border-white/8 bg-pulso-surface-muted/80 p-5 shadow-md shadow-black/20 backdrop-blur-sm'
+  'rounded-2xl border border-white/8 bg-pulso-surface-muted/80 p-4 shadow-md shadow-black/20 backdrop-blur-sm'
+
+/** Tarjeta compacta de cuenta (lista / transferencias) */
+export const cuentaCardClassName =
+  'rounded-xl border border-white/8 bg-pulso-surface-muted/50 px-3 py-2.5'
 
 /** Panel de Ajustes con más aire entre secciones */
 export const settingsPanelClassName = 'space-y-8'
@@ -89,10 +93,10 @@ export const navTabClassName = (active: boolean) =>
   }`
 
 export const navBottomTabClassName = (active: boolean) =>
-  `w-full rounded-lg px-1 py-2 text-[11px] font-semibold leading-tight min-h-11 whitespace-nowrap ${interactive} ${
+  `flex w-full flex-col items-center justify-center rounded-lg px-2 py-2 min-h-11 ${interactive} ${
     active
-      ? 'text-pulso-accent-muted'
-      : 'text-slate-400 active:bg-pulso-surface-raised'
+      ? 'text-pulso-accent'
+      : 'text-slate-500 active:bg-pulso-surface-raised'
   }`
 
 export const chartToggleClassName = (active: boolean) =>

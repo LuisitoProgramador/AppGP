@@ -15,7 +15,7 @@ import Select from './Select'
 import MontoInput from './MontoInput'
 import {
   cardClassName,
-  dashboardCardClassName,
+  cuentaCardClassName,
   formWithKeyboardClassName,
   inputClassName,
   buttonPrimaryClassName,
@@ -45,46 +45,46 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
   const utilizacion = getCreditUtilization(cuenta)
 
   return (
-    <div className={`${dashboardCardClassName} p-4`}>
-      <div className="min-w-0">
-        <p className="truncate text-sm font-semibold text-white">{cuenta.nombre}</p>
-        <p className="text-xs text-slate-400">{tipoLabel(cuenta.tipo)}</p>
+    <div className={cuentaCardClassName}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white">{cuenta.nombre}</p>
+          <p className="text-xs text-slate-400">{tipoLabel(cuenta.tipo)}</p>
+        </div>
+        <div className="shrink-0 text-right">
+          {isCredito ? (
+            <>
+              <p className="text-sm font-medium text-slate-200">
+                {formatCurrency(cuenta.saldo_actual)}
+              </p>
+              <p className="text-[10px] uppercase tracking-wide text-slate-500">Deuda</p>
+            </>
+          ) : (
+            <p className="text-sm font-semibold text-slate-200">
+              {formatCurrency(cuenta.saldo_actual)}
+            </p>
+          )}
+        </div>
       </div>
 
+      {isCredito && limite > 0 && (
+        <p className="mt-1.5 text-xs text-pulso-accent-muted">
+          Disponible {formatCurrency(Math.max(disponible ?? 0, 0))} / {formatCurrency(limite)}
+          {utilizacion != null && (
+            <span className={` · ${utilizationColor(utilizacion)}`}>{utilizacion}% usado</span>
+          )}
+        </p>
+      )}
+
       {corteEstado === 'proximo' && cuenta.dia_corte != null && (
-        <p className="mt-2 rounded-lg border border-pulso-warning/30 bg-pulso-warning/10 px-2 py-1 text-xs text-pulso-warning">
-          Corte próximo (Día {cuenta.dia_corte}). Considera posponer compras grandes
+        <p className="mt-1.5 rounded-lg border border-pulso-warning/30 bg-pulso-warning/10 px-2 py-1 text-xs text-pulso-warning">
+          Corte próximo (día {cuenta.dia_corte})
         </p>
       )}
 
       {corteEstado === 'mejor_momento' && (
-        <p className="mt-2 rounded-lg border border-pulso-accent/30 bg-pulso-accent/10 px-2 py-1 text-xs text-pulso-accent-muted">
-          Mejor momento para comprar (Máximo financiamiento)
-        </p>
-      )}
-
-      {isCredito ? (
-        <div className="mt-2 space-y-0.5">
-          <p className="text-sm text-red-300">
-            Deuda: {formatCurrency(cuenta.saldo_actual)}
-          </p>
-          {limite > 0 && (
-            <>
-              <p className="text-xs text-pulso-accent-muted">
-                Disponible: {formatCurrency(Math.max(disponible ?? 0, 0))} /{' '}
-                {formatCurrency(limite)}
-              </p>
-              {utilizacion != null && (
-                <p className={`text-xs ${utilizationColor(utilizacion)}`}>
-                  Usas {utilizacion}% de tu límite
-                </p>
-              )}
-            </>
-          )}
-        </div>
-      ) : (
-        <p className="mt-2 text-sm font-medium text-slate-200">
-          Saldo: {formatCurrency(cuenta.saldo_actual)}
+        <p className="mt-1.5 rounded-lg border border-pulso-accent/30 bg-pulso-accent/10 px-2 py-1 text-xs text-pulso-accent-muted">
+          Mejor momento para comprar
         </p>
       )}
     </div>
@@ -215,13 +215,15 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
   }
 
   return (
-    <section className={embedded ? 'space-y-4' : cardClassName}>
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <h2 className="text-lg font-semibold text-white">Mis cuentas</h2>
-          <p className="text-sm text-slate-400">Efectivo, débito y tarjetas de crédito</p>
+    <section className={embedded ? 'space-y-3' : cardClassName}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 space-y-0.5">
+          <h2 className="text-base font-semibold text-white sm:text-lg">Mis cuentas</h2>
+          {!embedded && (
+            <p className="text-sm text-slate-400">Efectivo, débito y tarjetas de crédito</p>
+          )}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5">
           <button
             type="button"
             onClick={() => setTransferenciaModalOpen(true)}
@@ -264,7 +266,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       )}
 
       {!cuentasLoading && cuentas.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-2">
           {cuentas.map((cuenta) => (
             <CuentaCard key={cuenta.id} cuenta={cuenta} />
           ))}

@@ -13,8 +13,8 @@ import MontoInput from './MontoInput'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
-  cardClassName,
   formWithKeyboardClassName,
+  modalFormClassName,
 } from './formStyles'
 
 interface TransferenciaModalProps {
@@ -174,7 +174,7 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
     <ModalPortal onClose={onClose} ariaLabelledBy="transferencia-title">
       <form
         onSubmit={handleSubmit}
-        className={`${cardClassName} max-h-[90svh] w-full max-w-lg overflow-y-auto ${formWithKeyboardClassName}`}
+        className={`${modalFormClassName} max-h-[90svh] overflow-y-auto ${formWithKeyboardClassName}`}
       >
         <div className="space-y-1">
           <h2 id="transferencia-title" className="text-lg font-semibold text-white">

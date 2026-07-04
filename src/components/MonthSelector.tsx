@@ -108,9 +108,9 @@ function MonthPickerPanel({
               onClick={() => onSelectMonth(monthIndex)}
               className={`min-h-11 rounded-xl px-2 py-2.5 text-sm font-medium touch-manipulation transition active:scale-[0.98] ${
                 isSelected
-                  ? 'bg-blue-500 text-white shadow-sm'
+                  ? 'bg-pulso-accent text-neutral-950 shadow-sm'
                   : isCurrent
-                    ? 'border border-blue-500/40 bg-blue-500/10 text-blue-200 hover:bg-blue-500/20'
+                    ? 'border border-pulso-accent/40 bg-pulso-accent/10 text-pulso-accent-muted hover:bg-pulso-accent/20'
                     : 'bg-slate-900/60 text-slate-300 hover:bg-slate-700 hover:text-white'
               }`}
             >
@@ -131,7 +131,7 @@ function MonthPickerPanel({
         <button
           type="button"
           onClick={onSelectCurrentMonth}
-          className="text-sm font-semibold text-blue-400 transition hover:text-blue-300"
+          className="text-sm font-semibold text-pulso-accent-muted transition hover:text-pulso-accent"
         >
           Este mes
         </button>

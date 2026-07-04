@@ -8,7 +8,7 @@ const root = createRoot(document.getElementById('root')!)
 root.render(
   <StrictMode>
     <App />
-    <Toaster theme="dark" position="top-center" richColors closeButton />
+    <Toaster theme="dark" position="top-center" closeButton />
   </StrictMode>,
 )
 

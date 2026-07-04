@@ -24,7 +24,7 @@ function GastoChart({ data }: GastoChartProps) {
 
   return (
     <div className="space-y-3">
-      <div className="h-56 w-full" aria-hidden="true">
+      <div className="h-44 w-full" aria-hidden="true">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie

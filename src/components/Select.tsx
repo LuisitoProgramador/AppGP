@@ -42,7 +42,7 @@ function ChevronDownIcon() {
 function CheckIcon() {
   return (
     <svg
-      className="h-4 w-4 shrink-0 text-blue-300"
+      className="h-4 w-4 shrink-0 text-pulso-accent-muted"
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 24 24"
       fill="none"
@@ -174,7 +174,7 @@ export default memo(function Select({
                         onClick={() => handleSelect(option.value)}
                         className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-base touch-manipulation transition active:scale-[0.99] ${
                           isSelected
-                            ? 'bg-blue-500/20 text-blue-100'
+                            ? 'bg-pulso-accent/20 text-neutral-100'
                             : 'text-slate-200 hover:bg-slate-700/60 hover:text-white'
                         }`}
                       >

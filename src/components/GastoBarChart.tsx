@@ -30,13 +30,13 @@ function GastoBarChart({ data }: GastoBarChartProps) {
   if (data.length === 0) return null
 
   return (
-    <div className="h-56 w-full">
+    <div className="h-44 w-full">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data} margin={BAR_CHART_MARGIN}>
           <XAxis
             dataKey="label"
             tick={BAR_X_TICK}
-            axisLine={{ stroke: '#2a3548' }}
+            axisLine={{ stroke: '#3a3a3a' }}
             tickLine={false}
           />
           <YAxis
