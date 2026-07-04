@@ -208,12 +208,19 @@ async function revisarPresupuesto(
   return false
 }
 
-interface CuentaRow {
+interface CuentaPagoRow {
   id: string
   nombre: string
   tipo: string
   saldo_actual: number | string
   dia_pago: number | string | null
+}
+
+interface CuentaCorteRow {
+  id: string
+  nombre: string
+  tipo: string
+  dia_corte: number | string | null
 }
 
 /** Recordatorio de pago de tarjetas: cuando faltan <= 3 días para el día de pago, una vez al mes. */
@@ -228,7 +235,7 @@ async function revisarTarjetas(
     .eq('user_id', userId)
     .eq('tipo', 'credito')
 
-  const tarjetas = ((data as CuentaRow[]) ?? []).filter(
+  const tarjetas = ((data as CuentaPagoRow[]) ?? []).filter(
     (c) => c.dia_pago != null && Number(c.saldo_actual) > 0,
   )
 
@@ -272,7 +279,7 @@ async function revisarCorteTarjetas(
     .eq('tipo', 'credito')
 
   let enviadas = 0
-  for (const tarjeta of (data as CuentaRow[]) ?? []) {
+  for (const tarjeta of (data as CuentaCorteRow[]) ?? []) {
     if (tarjeta.dia_corte == null) continue
     const diaCorte = Number(tarjeta.dia_corte)
     const diaEfectivo = Math.min(diaCorte, hoy.diasEnMes)
