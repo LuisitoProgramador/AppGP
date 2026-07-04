@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_SYNC_RETRIES, shouldDiscardAfterRetry } from './syncPolicy'
+import { shouldDiscardAfterRetry } from './syncPolicy'
 
 describe('syncPolicy', () => {
-  it('descarta después del máximo de reintentos', () => {
-    expect(shouldDiscardAfterRetry(MAX_SYNC_RETRIES)).toBe(true)
-    expect(shouldDiscardAfterRetry(MAX_SYNC_RETRIES - 1)).toBe(false)
+  it('nunca descarta pendientes automáticamente', () => {
+    expect(shouldDiscardAfterRetry(0)).toBe(false)
+    expect(shouldDiscardAfterRetry(99)).toBe(false)
   })
 })

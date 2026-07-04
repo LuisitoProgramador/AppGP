@@ -1,9 +1,11 @@
 import { useEffect, useState, memo, useCallback, useMemo } from 'react'
 import { useAuthSession, useCuentas, useGastosRefreshState, useOfflineSyncStatus, useOptimisticGastosState } from '../contexts'
+import { useCategorias } from '../hooks/useCategorias'
+import { listIngresosCuenta } from '../services/cuentas'
 import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { HISTORIAL_PAGE_SIZE, type Gasto, type PendingGasto } from '../types/gasto'
-import { CATEGORIA_FILTER_OPTIONS } from '../constants/formOptions'
+import { isHistorialIngreso, isHistorialSynced, type HistorialItem } from './historial/historialTypes'
 import { getMonthFechaBounds } from '../utils/date'
 import { filterOptimisticGastos, filterPendingGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import {
@@ -11,7 +13,7 @@ import {
   montoSaldoAlRestaurar,
   type GastoEliminadoSnapshot,
 } from '../utils/historialUndo'
-import { showError, showInfo, showSuccessWithUndo } from '../utils/toast'
+import { navigateToTab } from '../utils/welcomeBack'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
 import { parseMsiDescripcion } from '../utils/msi'
 import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
@@ -19,7 +21,6 @@ import MonthSelector from './MonthSelector'
 import Select from './Select'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import HistorialVirtualList from './historial/HistorialVirtualList'
-import { isHistorialSynced, type HistorialItem } from './historial/historialTypes'
 import {
   cardClassName,
   inputClassName,
@@ -33,6 +34,12 @@ export default memo(function Historial() {
     useOptimisticGastosState()
   const { pendingGastos, isSyncing, pendingCount } = useOfflineSyncStatus()
   const { revertGastoSaldo, applyGastoSaldo } = useCuentas()
+  const { filterOptions } = useCategorias(user?.id)
+  const categoriaFilterOptions = useMemo(
+    () => [...filterOptions, { value: 'Ingreso', label: 'Ingresos' }],
+    [filterOptions],
+  )
+  const [ingresosItems, setIngresosItems] = useState<HistorialItem[]>([])
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -79,10 +86,10 @@ export default memo(function Historial() {
       optimistic: true as const,
     }))
 
-    return [...optimistas, ...pendientes, ...syncedItems].sort(
+    return [...optimistas, ...pendientes, ...syncedItems, ...ingresosItems].sort(
       (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
     )
-  }, [syncedItems, optimisticGastos, pendingGastos, selectedMonth, categoriaFiltro, busqueda])
+  }, [syncedItems, optimisticGastos, pendingGastos, ingresosItems, selectedMonth, categoriaFiltro, busqueda])
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || cargandoMas) return
@@ -275,6 +282,7 @@ export default memo(function Historial() {
   useEffect(() => {
     setPage(0)
     setSyncedItems([])
+    setIngresosItems([])
   }, [selectedMonth, categoriaFiltro, busqueda, refreshKey])
 
   useEffect(() => {
@@ -305,7 +313,7 @@ export default memo(function Historial() {
         .order('fecha', { ascending: false })
         .range(from, to)
 
-      if (categoriaFiltro !== 'Todas') {
+      if (categoriaFiltro !== 'Todas' && categoriaFiltro !== 'Ingreso') {
         query = query.eq('categoria', categoriaFiltro)
       }
 
@@ -314,6 +322,63 @@ export default memo(function Historial() {
       }
 
       const gastosResult = await query
+
+      let ingresos: HistorialItem[] = []
+      if (page === 0 && categoriaFiltro !== 'Ingreso') {
+        const ingresosResult = await listIngresosCuenta(userId, inicio, fin)
+        if (!ingresosResult.error) {
+          ingresos = (ingresosResult.data ?? [])
+            .filter((ingreso) => {
+              if (busqueda.trim()) {
+                return ingreso.descripcion
+                  .toLowerCase()
+                  .includes(busqueda.trim().toLowerCase())
+              }
+              return true
+            })
+            .map((ingreso) => ({
+              tipo: 'ingreso' as const,
+              id: ingreso.id,
+              monto: ingreso.monto,
+              descripcion: ingreso.descripcion,
+              fecha: ingreso.fecha,
+              cuenta_id: ingreso.cuenta_id,
+              categoria: 'Ingreso' as const,
+            }))
+        }
+      }
+
+      if (page === 0 && categoriaFiltro === 'Ingreso') {
+        const ingresosResult = await listIngresosCuenta(userId, inicio, fin)
+        ingresos = (ingresosResult.data ?? [])
+          .filter((ingreso) => {
+            if (busqueda.trim()) {
+              return ingreso.descripcion.toLowerCase().includes(busqueda.trim().toLowerCase())
+            }
+            return true
+          })
+          .map((ingreso) => ({
+            tipo: 'ingreso' as const,
+            id: ingreso.id,
+            monto: ingreso.monto,
+            descripcion: ingreso.descripcion,
+            fecha: ingreso.fecha,
+            cuenta_id: ingreso.cuenta_id,
+            categoria: 'Ingreso' as const,
+          }))
+      }
+
+      if (page === 0) {
+        setIngresosItems(categoriaFiltro === 'Todas' || categoriaFiltro === 'Ingreso' ? ingresos : [])
+      }
+
+      if (categoriaFiltro === 'Ingreso') {
+        if (isFirstPage) setCargando(false)
+        else setCargandoMas(false)
+        setSyncedItems([])
+        setHasMore(false)
+        return
+      }
 
       if (cancelled) return
 
@@ -359,7 +424,7 @@ export default memo(function Historial() {
     <section className={cardClassName}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Historial</h2>
-        <p className="text-sm text-slate-400">Busca, filtra y edita tus movimientos</p>
+        <p className="text-sm text-slate-400">Gastos e ingresos del mes</p>
       </div>
 
       <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
@@ -369,7 +434,7 @@ export default memo(function Historial() {
           value={categoriaFiltro}
           onChange={setCategoriaFiltro}
           aria-label="Filtrar por categoría"
-          options={CATEGORIA_FILTER_OPTIONS}
+          options={categoriaFilterOptions}
         />
         <input
           type="search"
@@ -393,9 +458,22 @@ export default memo(function Historial() {
       {cargando && <p className="text-center text-sm text-slate-400">Cargando...</p>}
 
       {!cargando && !error && items.length === 0 && (
-        <p className="text-center text-sm text-slate-400">
-          No hay gastos que coincidan con los filtros.
-        </p>
+        <div className="space-y-3 text-center">
+          <p className="text-sm text-slate-400">
+            {busqueda.trim() || categoriaFiltro !== 'Todas'
+              ? 'No hay movimientos que coincidan con los filtros.'
+              : 'Aún no hay movimientos este mes.'}
+          </p>
+          {!busqueda.trim() && categoriaFiltro === 'Todas' && (
+            <button
+              type="button"
+              onClick={() => navigateToTab('registro')}
+              className={buttonSecondaryClassName}
+            >
+              Registrar primer gasto
+            </button>
+          )}
+        </div>
       )}
 
       {!cargando && items.length > 0 && (

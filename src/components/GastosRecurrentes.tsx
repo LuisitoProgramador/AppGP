@@ -3,17 +3,18 @@ import { useAuthSession, useCuentas, useGastosRefreshState, useRecurrentes } fro
 import {
   createGastoRecurrente,
   deleteGastoRecurrente,
+  updateGastoRecurrente,
 } from '../services/gastosRecurrentes'
 import { getDefaultCuentaId } from '../services/cuentas'
-import { CATEGORIA_SELECT_OPTIONS } from '../constants/formOptions'
+import { useCategorias } from '../hooks/useCategorias'
 import { type GastoRecurrente, CATEGORIAS, type Categoria } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateDiaMes, validateMonto } from '../utils/validation'
-import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, inputClassName, buttonPrimaryClassName } from './formStyles'
-import { TrashIcon } from './icons'
+import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, iconButtonEditClassName, inputClassName, buttonPrimaryClassName, buttonGhostClassName } from './formStyles'
+import { EditIcon, TrashIcon } from './icons'
 import Select from './Select'
 import MontoInput from './MontoInput'
 
@@ -41,9 +42,11 @@ export default memo(function GastosRecurrentes() {
   const { cuentas, cuentasLoading } = useCuentas()
   const { refresh } = useGastosRefreshState()
   const { recurrentes: items, cargando, error } = useRecurrentes()
+  const { categorias, selectOptions: categoriaOptions } = useCategorias(user?.id)
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<number | null>(null)
+  const [editandoId, setEditandoId] = useState<number | null>(null)
 
   useEffect(() => {
     if (form.cuentaId || cuentas.length === 0) return
@@ -53,7 +56,36 @@ export default memo(function GastosRecurrentes() {
     }
   }, [cuentas, form.cuentaId])
 
+  useEffect(() => {
+    if (form.categoria && categorias.includes(form.categoria)) return
+    if (categorias.length > 0) {
+      setForm((prev) => ({ ...prev, categoria: categorias[0] }))
+    }
+  }, [categorias, form.categoria])
+
   const cuentasDisponibles = useMemo(() => cuentas, [cuentas])
+
+  function iniciarEdicion(item: GastoRecurrente) {
+    setEditandoId(item.id)
+    setForm({
+      descripcion: item.descripcion,
+      monto: String(item.monto),
+      categoria: categorias.includes(item.categoria as Categoria)
+        ? (item.categoria as Categoria)
+        : categorias[0] ?? CATEGORIAS[0],
+      dia_mes: String(item.dia_mes),
+      cuentaId: item.cuenta_id ?? '',
+    })
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null)
+    setForm((prev) => ({
+      ...initialForm,
+      cuentaId: prev.cuentaId || getDefaultCuentaId(cuentas) || '',
+      categoria: categorias[0] ?? CATEGORIAS[0],
+    }))
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -95,6 +127,27 @@ export default memo(function GastosRecurrentes() {
 
     setGuardando(true)
 
+    if (editandoId != null) {
+      const { error: updateError } = await updateGastoRecurrente(editandoId, {
+        descripcion: form.descripcion.trim(),
+        monto: parseMontoValue(form.monto),
+        categoria: form.categoria,
+        dia_mes: diaMes,
+        cuenta_id: form.cuentaId,
+      })
+      setGuardando(false)
+
+      if (updateError) {
+        showError(`Error al actualizar: ${updateError}`)
+        return
+      }
+
+      cancelarEdicion()
+      showSuccess('Gasto recurrente actualizado.')
+      refresh()
+      return
+    }
+
     const { error: createError } = await createGastoRecurrente({
       descripcion: form.descripcion.trim(),
       monto: parseMontoValue(form.monto),
@@ -113,6 +166,7 @@ export default memo(function GastosRecurrentes() {
     setForm((prev) => ({
       ...initialForm,
       cuentaId: prev.cuentaId,
+      categoria: categorias[0] ?? CATEGORIAS[0],
     }))
     showSuccess('Gasto recurrente configurado.')
     refresh()
@@ -175,6 +229,14 @@ export default memo(function GastosRecurrentes() {
               </p>
               <button
                 type="button"
+                onClick={() => iniciarEdicion(item)}
+                aria-label="Editar gasto recurrente"
+                className={iconButtonEditClassName}
+              >
+                <EditIcon />
+              </button>
+              <button
+                type="button"
                 onClick={() => handleEliminar(item)}
                 disabled={eliminandoId === item.id}
                 aria-label="Eliminar gasto recurrente"
@@ -194,7 +256,9 @@ export default memo(function GastosRecurrentes() {
       )}
 
       <form onSubmit={handleSubmit} className={`space-y-4 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}>
-        <h3 className="text-sm font-semibold text-slate-300">Nuevo gasto recurrente</h3>
+        <h3 className="text-sm font-semibold text-slate-300">
+          {editandoId != null ? 'Editar gasto recurrente' : 'Nuevo gasto recurrente'}
+        </h3>
 
         <div className="space-y-2">
           <label htmlFor="rec-descripcion" className="block text-sm font-medium text-slate-300">
@@ -255,10 +319,10 @@ export default memo(function GastosRecurrentes() {
             onChange={(categoria) =>
               setForm((prev) => ({
                 ...prev,
-                categoria: categoria as (typeof CATEGORIAS)[number],
+                categoria: categoria as Categoria,
               }))
             }
-            options={CATEGORIA_SELECT_OPTIONS}
+            options={categoriaOptions}
             required
           />
         </div>
@@ -294,12 +358,25 @@ export default memo(function GastosRecurrentes() {
         </div>
 
         <div className={formSubmitStickyClassName}>
+          {editandoId != null && (
+            <button
+              type="button"
+              onClick={cancelarEdicion}
+              className={`mb-2 w-full ${buttonGhostClassName}`}
+            >
+              Cancelar edición
+            </button>
+          )}
           <button
             type="submit"
             disabled={guardando || cuentasDisponibles.length === 0}
             className={buttonPrimaryClassName}
           >
-            {guardando ? 'Guardando...' : 'Guardar gasto recurrente'}
+            {guardando
+              ? 'Guardando...'
+              : editandoId != null
+                ? 'Guardar cambios'
+                : 'Guardar gasto recurrente'}
           </button>
         </div>
       </form>

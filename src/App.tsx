@@ -8,6 +8,7 @@ import { TabHistorialIcon, TabPlanIcon, TabRegistroIcon, TabResumenIcon } from '
 import { useTabSwipe } from './hooks/useTabSwipe'
 import { checkNeedsOnboarding } from './services/onboarding'
 import { readSessionStorage, writeSessionStorage } from './utils/storage'
+import { getWelcomeBackState, markAppVisit } from './utils/welcomeBack'
 import { showError } from './utils/toast'
 
 const GastoForm = lazy(() => import('./components/GastoForm'))
@@ -36,9 +37,14 @@ function TabFallback() {
 
 function getInitialTab(): AppTab {
   const params = new URLSearchParams(window.location.search)
-  if (params.has('q')) {
+  if (params.has('q') || params.has('m') || params.get('tab') === 'registro') {
     writeSessionStorage(TAB_STORAGE_KEY, 'registro')
     return 'registro'
+  }
+
+  const tabParam = params.get('tab')
+  if (tabParam && VALID_TABS.has(tabParam as AppTab)) {
+    return tabParam as AppTab
   }
 
   const saved = readSessionStorage(TAB_STORAGE_KEY)
@@ -129,6 +135,15 @@ function AppContent() {
     writeSessionStorage(TAB_STORAGE_KEY, nextTab)
   }, [])
 
+  useEffect(() => {
+    const handler = (event: Event) => {
+      const detail = (event as CustomEvent<AppTab>).detail
+      if (VALID_TABS.has(detail)) handleTabChange(detail)
+    }
+    window.addEventListener('pulso-navigate', handler)
+    return () => window.removeEventListener('pulso-navigate', handler)
+  }, [handleTabChange])
+
   const tabIndex = TABS.findIndex(({ id }) => id === tab)
 
   const handleSwipeLeft = useCallback(() => {
@@ -172,6 +187,11 @@ function AppContent() {
       cancelled = true
     }
   }, [user])
+
+  useEffect(() => {
+    if (!user || onboardingState !== 'done') return
+    if (!getWelcomeBackState().show) markAppVisit()
+  }, [user, onboardingState])
 
   if (loading) {
     return (

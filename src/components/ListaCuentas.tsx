@@ -1,6 +1,11 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
-import { createCuenta } from '../services/cuentas'
+import { createCuenta, updateCuenta } from '../services/cuentas'
+import {
+  calcInteresEstimado,
+  getTasaInteresMensual,
+  setTasaInteresMensual,
+} from '../services/cuentaInteres'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
@@ -30,18 +35,24 @@ const initialForm = {
   saldo_actual: '0',
   dia_corte: '',
   dia_pago: '',
+  tasa_interes_mensual: '',
 }
 
 function tipoLabel(tipo: CuentaTipo): string {
   return CUENTA_TIPOS.find((t) => t.value === tipo)?.label ?? tipo
 }
 
-function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
+function CuentaCard({ cuenta, onEdit }: { cuenta: Cuenta; onEdit: (cuenta: Cuenta) => void }) {
   const isCredito = cuenta.tipo === 'credito'
   const limite = cuenta.limite_credito ?? 0
   const disponible = isCredito ? limite - cuenta.saldo_actual : null
   const corteEstado = isCredito ? getCorteEstado(cuenta.dia_corte) : null
   const utilizacion = getCreditUtilization(cuenta)
+  const tasaInteres = isCredito ? getTasaInteresMensual(cuenta.id) : null
+  const interesEstimado =
+    isCredito && tasaInteres != null
+      ? calcInteresEstimado(cuenta.saldo_actual, tasaInteres)
+      : null
 
   return (
     <div className={cuentaCardClassName}>
@@ -51,6 +62,13 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
           <p className="text-xs text-slate-400">{tipoLabel(cuenta.tipo)}</p>
         </div>
         <div className="shrink-0 text-right">
+          <button
+            type="button"
+            onClick={() => onEdit(cuenta)}
+            className="mb-1 text-[10px] font-medium text-pulso-accent-muted underline-offset-2 hover:text-pulso-accent hover:underline"
+          >
+            Editar
+          </button>
           {isCredito ? (
             <>
               <p className="text-sm font-medium text-slate-200">
@@ -72,6 +90,12 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
           {utilizacion != null && (
             <span className={` · ${utilizationColor(utilizacion)}`}>{utilizacion}% usado</span>
           )}
+        </p>
+      )}
+
+      {interesEstimado != null && interesEstimado > 0 && (
+        <p className="mt-1.5 text-xs text-pulso-warning">
+          Interés estimado ~{formatCurrency(interesEstimado)}/mes ({tasaInteres}%)
         </p>
       )}
 
@@ -115,6 +139,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
   const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
   const { refresh } = useGastosRefreshState()
   const [modalOpen, setModalOpen] = useState(false)
+  const [editingCuenta, setEditingCuenta] = useState<Cuenta | null>(null)
   const [ingresoModalOpen, setIngresoModalOpen] = useState(false)
   const [transferenciaModalOpen, setTransferenciaModalOpen] = useState(false)
   const [form, setForm] = useState(initialForm)
@@ -129,12 +154,29 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
   }, [cargarCuentas])
 
   function openModal() {
+    setEditingCuenta(null)
     setForm(initialForm)
+    setModalOpen(true)
+  }
+
+  function openEditModal(cuenta: Cuenta) {
+    const tasa = getTasaInteresMensual(cuenta.id)
+    setEditingCuenta(cuenta)
+    setForm({
+      nombre: cuenta.nombre,
+      tipo: cuenta.tipo,
+      limite_credito: cuenta.limite_credito ? String(cuenta.limite_credito) : '',
+      saldo_actual: String(cuenta.saldo_actual),
+      dia_corte: cuenta.dia_corte != null ? String(cuenta.dia_corte) : '',
+      dia_pago: cuenta.dia_pago != null ? String(cuenta.dia_pago) : '',
+      tasa_interes_mensual: tasa != null ? String(tasa) : '',
+    })
     setModalOpen(true)
   }
 
   function closeModal() {
     setModalOpen(false)
+    setEditingCuenta(null)
     setForm(initialForm)
   }
 
@@ -186,28 +228,63 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       }
     }
 
-    setGuardando(true)
-    const offline = !isOnline()
-    const { error } = await createCuenta(user.id, {
-      nombre,
-      tipo: form.tipo,
-      saldo_actual: saldo,
-      limite_credito,
-      dia_corte,
-      dia_pago,
-    })
-    setGuardando(false)
-
-    if (error) {
-      showError(`Error al crear cuenta: ${error}`)
-      return
+    let tasaInteres: number | null = null
+    if (form.tipo === 'credito' && form.tasa_interes_mensual.trim()) {
+      tasaInteres = Number(form.tasa_interes_mensual.replace(',', '.'))
+      if (!Number.isFinite(tasaInteres) || tasaInteres <= 0 || tasaInteres > 100) {
+        showError('La tasa de interés debe ser un porcentaje entre 0 y 100.')
+        return
+      }
     }
 
-    showSuccess(
-      offline
-        ? 'Cuenta guardada localmente. Se sincronizará al reconectar.'
-        : 'Cuenta registrada correctamente.',
-    )
+    setGuardando(true)
+    const offline = !isOnline()
+
+    if (editingCuenta) {
+      const { error } = await updateCuenta(user.id, editingCuenta.id, {
+        nombre,
+        tipo: form.tipo,
+        saldo_actual: saldo,
+        limite_credito,
+        dia_corte,
+        dia_pago,
+      })
+      setGuardando(false)
+      if (error) {
+        showError(`Error al actualizar cuenta: ${error}`)
+        return
+      }
+      if (form.tipo === 'credito') {
+        setTasaInteresMensual(editingCuenta.id, tasaInteres)
+      }
+      showSuccess('Cuenta actualizada.')
+    } else {
+      const { data, error } = await createCuenta(user.id, {
+        nombre,
+        tipo: form.tipo,
+        saldo_actual: saldo,
+        limite_credito,
+        dia_corte,
+        dia_pago,
+      })
+      setGuardando(false)
+
+      if (error) {
+        showError(`Error al crear cuenta: ${error}`)
+        return
+      }
+
+      if (data && form.tipo === 'credito') {
+        setTasaInteresMensual(data.id, tasaInteres)
+      }
+
+      showSuccess(
+        offline
+          ? 'Cuenta guardada localmente. Se sincronizará al reconectar.'
+          : 'Cuenta registrada correctamente.',
+      )
+    }
+
     closeModal()
     refresh()
     await cargarCuentas()
@@ -267,7 +344,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       {!cuentasLoading && cuentas.length > 0 && (
         <div className="flex flex-col gap-2">
           {cuentas.map((cuenta) => (
-            <CuentaCard key={cuenta.id} cuenta={cuenta} />
+            <CuentaCard key={cuenta.id} cuenta={cuenta} onEdit={openEditModal} />
           ))}
         </div>
       )}
@@ -300,7 +377,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
           >
             <div className="space-y-1">
               <h3 id="nueva-cuenta-title" className="text-lg font-semibold text-white">
-                Nueva cuenta
+                {editingCuenta ? 'Editar cuenta' : 'Nueva cuenta'}
               </h3>
               <p className="text-sm text-slate-400">
                 Registra efectivo, débito o tarjeta de crédito
@@ -421,6 +498,31 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
                     }
                     className={inputClassName}
                   />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="cuenta-tasa"
+                    className="block text-sm font-medium text-slate-300"
+                  >
+                    Tasa de interés mensual (%)
+                  </label>
+                  <input
+                    id="cuenta-tasa"
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    placeholder="Opcional (ej. 3.5)"
+                    value={form.tasa_interes_mensual}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, tasa_interes_mensual: e.target.value }))
+                    }
+                    className={inputClassName}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Solo en este dispositivo. Sirve para estimar el costo de no pagar a meses.
+                  </p>
                 </div>
               </>
             )}

@@ -19,13 +19,18 @@ export default memo(function OfflineSyncStatus({ isSyncing, pendingCount }: Offl
           : `${pendingCount} elemento(s) pendiente(s) de sincronizar`}
       </p>
       {!isSyncing && pendingCount > 0 && (
-        <button
-          type="button"
-          onClick={() => void syncOffline()}
-          className="text-xs font-medium text-pulso-accent-muted underline-offset-2 hover:text-pulso-accent hover:underline"
-        >
-          Reintentar sincronización
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={() => void syncOffline()}
+            className="text-xs font-medium text-pulso-accent-muted underline-offset-2 hover:text-pulso-accent hover:underline"
+          >
+            Reintentar sincronización
+          </button>
+          <p className="text-[11px] text-slate-500">
+            Pulso conserva los pendientes hasta que se sincronicen; no se borran solos.
+          </p>
+        </>
       )}
     </div>
   )

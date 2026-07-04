@@ -119,4 +119,8 @@ export const accentPositivePanelClassName =
 
 /** Tarjeta / banner de advertencia (solo exceso de presupuesto y alertas) */
 export const accentWarningPanelClassName =
-  'rounded-xl border border-pulso-warning/30 bg-pulso-warning/10'
+  'rounded-xl border border-pulso-warning/40 bg-pulso-warning/15'
+
+/** Tarjeta / banner de error o presupuesto superado */
+export const accentDangerPanelClassName =
+  'rounded-xl border border-pulso-danger/40 bg-pulso-danger/15'

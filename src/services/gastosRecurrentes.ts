@@ -89,6 +89,28 @@ export async function deleteGastoRecurrente(
   return { error: error?.message ?? null }
 }
 
+export async function updateGastoRecurrente(
+  id: number,
+  input: Partial<GastoRecurrenteInput>,
+): Promise<{ data: GastoRecurrente | null; error: string | null }> {
+  const row: Record<string, unknown> = {}
+  if (input.descripcion !== undefined) row.descripcion = input.descripcion.trim()
+  if (input.monto !== undefined) row.monto = input.monto
+  if (input.categoria !== undefined) row.categoria = input.categoria
+  if (input.dia_mes !== undefined) row.dia_mes = input.dia_mes
+  if (input.cuenta_id !== undefined) row.cuenta_id = input.cuenta_id
+
+  const { data, error } = await supabase
+    .from('gastos_recurrentes')
+    .update(row)
+    .eq('id', id)
+    .select(GASTO_RECURRENTE_SELECT)
+    .single()
+
+  if (error) return { data: null, error: error.message }
+  return { data: mapGastoRecurrente(data), error: null }
+}
+
 export async function verificarGastosRecurrentes(userId: string): Promise<number> {
   const { data, error } = await fetchGastosRecurrentesRows(userId)
 

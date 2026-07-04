@@ -72,9 +72,22 @@ export default defineConfig({
         shortcuts: [
           {
             name: 'Nuevo Gasto',
-            short_name: 'Nuevo Gasto',
+            short_name: 'Gasto',
             description: 'Registra un gasto rápidamente',
-            url: '/?q=',
+            url: '/?tab=registro',
+            icons: [
+              {
+                src: '/pwa-192x192.png',
+                sizes: '192x192',
+                type: 'image/png',
+              },
+            ],
+          },
+          {
+            name: 'Gasto $100',
+            short_name: '$100',
+            description: 'Registro rápido con monto prellenado',
+            url: '/?tab=registro&m=100',
             icons: [
               {
                 src: '/pwa-192x192.png',

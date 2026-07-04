@@ -3,8 +3,11 @@ import { useAuthSession, useGastosRefreshState } from '../contexts'
 import {
   addAhorroToMeta,
   createMetaAhorro,
+  deleteMetaAhorro,
   listMetasAhorro,
+  updateMetaAhorro,
 } from '../services/metasAhorro'
+import { esMetaAhorroAnual } from '../utils/metaCalendario'
 import type { MetaAhorro } from '../types/metaAhorro'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
@@ -25,6 +28,11 @@ export function useMetasAhorro(enabled = true) {
   const [guardandoMeta, setGuardandoMeta] = useState(false)
   const [ahorroInputs, setAhorroInputs] = useState<Record<number, string>>({})
   const [sumandoMetaId, setSumandoMetaId] = useState<number | null>(null)
+  const [editandoMetaId, setEditandoMetaId] = useState<number | null>(null)
+  const [editNombre, setEditNombre] = useState('')
+  const [editObjetivo, setEditObjetivo] = useState('')
+  const [guardandoEdicionMeta, setGuardandoEdicionMeta] = useState(false)
+  const [eliminandoMetaId, setEliminandoMetaId] = useState<number | null>(null)
 
   const cargarMetas = useCallback(async () => {
     if (!user) return
@@ -93,6 +101,79 @@ export function useMetasAhorro(enabled = true) {
       showSuccess('Meta de ahorro creada.')
     },
     [user, metaNombre, metaObjetivo],
+  )
+
+  const iniciarEdicionMeta = useCallback((meta: MetaAhorro) => {
+    setEditandoMetaId(meta.id)
+    setEditNombre(meta.nombre)
+    setEditObjetivo(String(meta.monto_objetivo))
+  }, [])
+
+  const cancelarEdicionMeta = useCallback(() => {
+    setEditandoMetaId(null)
+    setEditNombre('')
+    setEditObjetivo('')
+  }, [])
+
+  const handleGuardarEdicionMeta = useCallback(
+    async (meta: MetaAhorro) => {
+      if (!user) return
+
+      const objetivoError = validateMonto(editObjetivo)
+      if (objetivoError) {
+        showError(objetivoError)
+        return
+      }
+
+      const nombreError = validateNombre(editNombre, 'El nombre de la meta')
+      if (nombreError) {
+        showError(nombreError)
+        return
+      }
+
+      setGuardandoEdicionMeta(true)
+      const { data, error: updateError } = await updateMetaAhorro(user.id, meta.id, {
+        nombre: editNombre.trim(),
+        monto_objetivo: parseMontoValue(editObjetivo),
+      })
+      setGuardandoEdicionMeta(false)
+
+      if (updateError) {
+        showError(updateError)
+        return
+      }
+
+      if (data) {
+        setMetas((current) => current.map((item) => (item.id === meta.id ? data : item)))
+      }
+
+      cancelarEdicionMeta()
+      showSuccess('Meta actualizada.')
+    },
+    [user, editNombre, editObjetivo, cancelarEdicionMeta],
+  )
+
+  const handleEliminarMeta = useCallback(
+    async (meta: MetaAhorro) => {
+      if (!user) return
+      if (esMetaAhorroAnual(meta)) return
+
+      if (!confirm(`¿Eliminar la meta "${meta.nombre}"?`)) return
+
+      setEliminandoMetaId(meta.id)
+      const { error: deleteError } = await deleteMetaAhorro(user.id, meta.id)
+      setEliminandoMetaId(null)
+
+      if (deleteError) {
+        showError(deleteError)
+        return
+      }
+
+      setMetas((current) => current.filter((item) => item.id !== meta.id))
+      if (editandoMetaId === meta.id) cancelarEdicionMeta()
+      showSuccess('Meta eliminada.')
+    },
+    [user, editandoMetaId, cancelarEdicionMeta],
   )
 
   const handleSumarAhorro = useCallback(
@@ -166,6 +247,18 @@ export function useMetasAhorro(enabled = true) {
       sumandoMetaId,
       handleCrearMeta,
       handleSumarAhorro,
+      editandoMetaId,
+      editNombre,
+      setEditNombre,
+      editObjetivo,
+      setEditObjetivo,
+      guardandoEdicionMeta,
+      eliminandoMetaId,
+      iniciarEdicionMeta,
+      cancelarEdicionMeta,
+      handleGuardarEdicionMeta,
+      handleEliminarMeta,
+      esMetaAhorroAnual,
     }),
     [
       metas,
@@ -180,6 +273,15 @@ export function useMetasAhorro(enabled = true) {
       sumandoMetaId,
       handleCrearMeta,
       handleSumarAhorro,
+      editandoMetaId,
+      editNombre,
+      editObjetivo,
+      guardandoEdicionMeta,
+      eliminandoMetaId,
+      iniciarEdicionMeta,
+      cancelarEdicionMeta,
+      handleGuardarEdicionMeta,
+      handleEliminarMeta,
     ],
   )
 }

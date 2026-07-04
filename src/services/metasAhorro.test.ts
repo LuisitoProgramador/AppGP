@@ -75,7 +75,7 @@ describe('metasAhorro offline', () => {
     expect(pending.reduce((sum, item) => sum + item.amount, 0)).toBe(125)
   })
 
-  it('descarta aportes pendientes tras reintentos fallidos y revierte cache', async () => {
+  it('conserva aportes pendientes tras reintentos fallidos', async () => {
     storage.set(
       `metas_ahorro_${USER_ID}`,
       JSON.stringify([
@@ -101,7 +101,7 @@ describe('metasAhorro offline', () => {
     const cached = JSON.parse(storage.get(`metas_ahorro_${USER_ID}`) ?? '[]') as {
       monto_actual: number
     }[]
-    expect(cached[0]?.monto_actual).toBe(100)
-    expect(JSON.parse(storage.get(`metas_ahorro_pending_${USER_ID}`) ?? '[]')).toEqual([])
+    expect(cached[0]?.monto_actual).toBe(300)
+    expect(JSON.parse(storage.get(`metas_ahorro_pending_${USER_ID}`) ?? '[]')).toHaveLength(1)
   })
 })

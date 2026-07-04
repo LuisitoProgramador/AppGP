@@ -1,13 +1,23 @@
 import { memo, useMemo, useState } from 'react'
-import { useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
+import { useAuthSession, useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
+import { calcAlertasCategoria, getLimitesPorCategoria } from '../services/presupuestoCategorias'
+import { buildResumenInsights } from '../utils/resumenInsights'
+import {
+  dismissWelcomeBack,
+  getWelcomeBackState,
+  navigateToTab,
+} from '../utils/welcomeBack'
 import ListaCuentas from './ListaCuentas'
 import ProyeccionCierre from './ProyeccionCierre'
 import DashboardFocusView from './dashboard/DashboardFocusView'
 import DashboardHeader from './dashboard/DashboardHeader'
 import DashboardHeroCard from './dashboard/DashboardHeroCard'
 import BurnRateAlert from './dashboard/BurnRateAlert'
+import WelcomeBackBanner from './dashboard/WelcomeBackBanner'
+import ResumenInsightsCard from './dashboard/ResumenInsightsCard'
+import CategoryBudgetAlerts from './dashboard/CategoryBudgetAlerts'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import DashboardStatus from './dashboard/DashboardStatus'
 import GastosAnalisisSection from './dashboard/GastosAnalisisSection'
@@ -20,10 +30,12 @@ import SalidasTimelineSection from './SalidasTimelineSection'
 import { dashboardShellClassName } from './formStyles'
 
 export default memo(function Dashboard() {
+  const { user } = useAuthSession()
   const { isSyncing, pendingCount } = useOfflineSyncStatus()
   const { modoTranquilo, toggleModoTranquilo } = useQuietMode()
   const { isFocusMode, toggleFocusMode } = useFocusMode()
   const { metas } = useMetasAhorro(!isFocusMode)
+  const [welcomeBack, setWelcomeBack] = useState(() => getWelcomeBackState())
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
@@ -66,6 +78,26 @@ export default memo(function Dashboard() {
     [compromisosMsi],
   )
 
+  const gastosPorCategoria = useMemo(
+    () => Object.fromEntries(resumen.map((item) => [item.categoria, item.total])),
+    [resumen],
+  )
+
+  const alertasCategoria = useMemo(() => {
+    if (!user || !esMesActual) return []
+    return calcAlertasCategoria(getLimitesPorCategoria(user.id), gastosPorCategoria)
+  }, [user, esMesActual, gastosPorCategoria])
+
+  const insights = useMemo(() => {
+    if (!esMesActual || cargando) return null
+    return buildResumenInsights({
+      gastoTotal,
+      limiteMensual,
+      gastosPorCategoria,
+      disponible,
+    })
+  }, [esMesActual, cargando, gastoTotal, limiteMensual, gastosPorCategoria, disponible])
+
   return (
     <div className="flex flex-col gap-4">
       <section className={dashboardShellClassName}>
@@ -89,6 +121,22 @@ export default memo(function Dashboard() {
             />
           ) : (
             <>
+              {welcomeBack.show && esMesActual && (
+                <WelcomeBackBanner
+                  diasAusente={welcomeBack.diasAusente}
+                  disponible={disponible}
+                  onRegistrar={() => {
+                    dismissWelcomeBack()
+                    setWelcomeBack(getWelcomeBackState())
+                    navigateToTab('registro')
+                  }}
+                  onDismiss={() => {
+                    dismissWelcomeBack()
+                    setWelcomeBack(getWelcomeBackState())
+                  }}
+                />
+              )}
+
               {resumenFinMes && <ResumenFinMesBanner resumen={resumenFinMes} />}
 
               {recurrenteSugerido && (
@@ -131,6 +179,17 @@ export default memo(function Dashboard() {
               )}
 
               {burnRateAlerta && <BurnRateAlert />}
+
+              {alertasCategoria.length > 0 && (
+                <CategoryBudgetAlerts alertas={alertasCategoria} />
+              )}
+
+              {insights && esMesActual && !cargando && (
+                <ResumenInsightsCard
+                  linea={insights.linea}
+                  recomendacion={insights.recomendacion}
+                />
+              )}
 
               {proyeccionCierre && !cargando && (
                 <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />

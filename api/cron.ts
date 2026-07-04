@@ -259,6 +259,82 @@ async function revisarTarjetas(
   return enviadas
 }
 
+/** Recordatorio de corte de tarjeta (3 días antes), una vez al mes. */
+async function revisarCorteTarjetas(
+  admin: SupabaseClient,
+  userId: string,
+  hoy: FechaLocal,
+): Promise<number> {
+  const { data } = await admin
+    .from('cuentas')
+    .select('id, nombre, tipo, dia_corte')
+    .eq('user_id', userId)
+    .eq('tipo', 'credito')
+
+  let enviadas = 0
+  for (const tarjeta of (data as CuentaRow[]) ?? []) {
+    if (tarjeta.dia_corte == null) continue
+    const diaCorte = Number(tarjeta.dia_corte)
+    const diaEfectivo = Math.min(diaCorte, hoy.diasEnMes)
+    const diasParaCorte = diaEfectivo - hoy.day
+    if (diasParaCorte < 0 || diasParaCorte > DIAS_AVISO_TARJETA) continue
+
+    const clave = `corte:${tarjeta.id}:${mesKey(hoy.year, hoy.month)}`
+    if (await yaEnviada(admin, userId, clave)) continue
+
+    const cuando =
+      diasParaCorte === 0
+        ? 'Corte <b>hoy</b>'
+        : `Corte en <b>${diasParaCorte} día${diasParaCorte === 1 ? '' : 's'}</b> (día ${diaEfectivo})`
+
+    await sendTelegram(
+      `📅 <b>Corte ${esc(tarjeta.nombre)}</b>\n${cuando}. Buen momento para revisar tu saldo.`,
+    )
+    await marcarEnviada(admin, userId, clave)
+    enviadas += 1
+  }
+  return enviadas
+}
+
+/** Recordatorio suave si no hay gastos registrados hoy (después de las 20:00 MX). */
+async function revisarSinRegistroHoy(
+  admin: SupabaseClient,
+  userId: string,
+  hoy: FechaLocal,
+  now = new Date(),
+): Promise<boolean> {
+  const hourMx = Number(
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: TZ,
+      hour: 'numeric',
+      hour12: false,
+    }).format(now),
+  )
+  if (hourMx < 20) return false
+
+  const clave = `sin_gasto:${mesKey(hoy.year, hoy.month)}:${hoy.day}`
+  if (await yaEnviada(admin, userId, clave)) return false
+
+  const inicio = `${hoy.year}-${String(hoy.month).padStart(2, '0')}-${String(hoy.day).padStart(2, '0')}`
+  const finDate = new Date(hoy.year, hoy.month - 1, hoy.day + 1)
+  const fin = `${finDate.getFullYear()}-${String(finDate.getMonth() + 1).padStart(2, '0')}-${String(finDate.getDate()).padStart(2, '0')}`
+
+  const { count } = await admin
+    .from('gastos')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('fecha', inicio)
+    .lt('fecha', fin)
+
+  if ((count ?? 0) > 0) return false
+
+  await sendTelegram(
+ `📝 <b>Sin gastos hoy</b>\nSi hubo movimientos, regístralos en Pulso cuando puedas (modo rápido: monto + Enter).`,
+  )
+  await marcarEnviada(admin, userId, clave)
+  return true
+}
+
 /** Resumen del mes cerrado: solo el día 1, por categoría vs presupuesto. */
 async function revisarResumenMensual(
   admin: SupabaseClient,
@@ -332,7 +408,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const hoy = fechaLocal()
-  const resultado = { presupuesto: 0, tarjetas: 0, resumen: 0, errores: [] as string[] }
+  const resultado = {
+    presupuesto: 0,
+    tarjetas: 0,
+    corte: 0,
+    sinRegistro: 0,
+    resumen: 0,
+    errores: [] as string[],
+  }
 
   const usuarios = await targetUserIds(admin)
 
@@ -342,6 +425,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (await revisarPresupuesto(admin, userId, hoy, resumen)) resultado.presupuesto += 1
       resultado.tarjetas += await revisarTarjetas(admin, userId, hoy)
+      resultado.corte += await revisarCorteTarjetas(admin, userId, hoy)
+      if (await revisarSinRegistroHoy(admin, userId, hoy)) resultado.sinRegistro += 1
       if (await revisarResumenMensual(admin, userId, hoy, resumen)) resultado.resumen += 1
     } catch (error) {
       resultado.errores.push(`${userId}: ${(error as Error).message}`)

@@ -1,6 +1,8 @@
-import { type FormEvent, useEffect, useMemo, useRef, useState, memo } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState, memo, type KeyboardEvent } from 'react'
 import { useAuthSession, useCuentas, useGastosRefreshState, useOptimisticGastosState } from '../contexts'
+import { useCategorias } from '../hooks/useCategorias'
 import { getDefaultCuentaId } from '../services/cuentas'
+import { getCategoryRules, resolveCategoriaFromRules } from '../services/categoryRules'
 import {
   getMerchantMemory,
   matchMerchantMemory,
@@ -9,9 +11,13 @@ import {
   type MerchantMemoryEntry,
 } from '../services/merchantMemory'
 import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
+import {
+  getRegistroPrefs,
+  recordUltimoRegistro,
+  saveRegistroPrefs,
+} from '../services/registroPrefs'
 import { supabase } from '../services/supabase'
-import { CATEGORIAS, type Categoria } from '../types/gasto'
-import { CATEGORIA_SELECT_OPTIONS } from '../constants/formOptions'
+import { CATEGORIAS_DEFAULT, type Categoria } from '../types/gasto'
 import { parseGastoInput } from '../utils/parser'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
@@ -19,6 +25,7 @@ import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
 import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
 import { getDayFechaBounds } from '../utils/date'
 import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
+import { markAppVisit } from '../utils/welcomeBack'
 import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
 import { validateCuentaId, validateDescripcion, validateMonto, validateMsiMeses } from '../utils/validation'
@@ -35,7 +42,7 @@ const initialForm: {
   mesesMsi: string
 } = {
   monto: '',
-  categoria: CATEGORIAS[0],
+  categoria: CATEGORIAS_DEFAULT[0],
   descripcion: '',
   cuentaId: '',
   esMsi: false,
@@ -50,7 +57,10 @@ export default memo(function GastoForm() {
   const { addOptimisticGasto, removeOptimisticGastos, optimisticGastos } =
     useOptimisticGastosState()
   const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
+  const { categorias, selectOptions } = useCategorias(user?.id)
   const [form, setForm] = useState(initialForm)
+  const [modoRapido, setModoRapido] = useState(true)
+  const [mostrarDetalle, setMostrarDetalle] = useState(false)
   const [guardando, setGuardando] = useState(false)
   const [merchantMemory, setMerchantMemory] = useState<MerchantMemoryEntry[]>([])
   const [montoSugerido, setMontoSugerido] = useState<number | null>(null)
@@ -62,11 +72,32 @@ export default memo(function GastoForm() {
 
   useEffect(() => {
     if (!user) return
+    const prefs = getRegistroPrefs(user.id)
+    setModoRapido(prefs.modoRapido)
     setMerchantMemory(getMerchantMemory(user.id))
     if (isOnline()) {
       refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
     }
   }, [user])
+
+  useEffect(() => {
+    if (!user || cuentasLoading || cuentas.length === 0) return
+    const prefs = getRegistroPrefs(user.id)
+    const cuentaId =
+      prefs.ultimaCuentaId && cuentas.some((c) => c.id === prefs.ultimaCuentaId)
+        ? prefs.ultimaCuentaId
+        : getDefaultCuentaId(cuentas)
+    const categoria =
+      prefs.ultimaCategoria && categorias.includes(prefs.ultimaCategoria)
+        ? prefs.ultimaCategoria
+        : categorias[0]
+
+    setForm((prev) => ({
+      ...prev,
+      cuentaId: prev.cuentaId || (cuentaId ? String(cuentaId) : ''),
+      categoria: prev.categoria === CATEGORIAS_DEFAULT[0] ? categoria : prev.categoria,
+    }))
+  }, [user, cuentas, cuentasLoading, categorias])
 
   const merchantMatch = useMemo(
     () => matchMerchantMemory(form.descripcion, merchantMemory),
@@ -109,6 +140,13 @@ export default memo(function GastoForm() {
     urlQueryHandled.current = true
 
     params.delete('q')
+    const montoParam = params.get('m')
+    if (montoParam) {
+      params.delete('m')
+      setForm((prev) => ({ ...prev, monto: montoParam.replace(/[^\d.,]/g, '') }))
+    }
+    const tabParam = params.get('tab')
+    if (tabParam === 'registro') params.delete('tab')
     const remaining = params.toString()
     const cleanUrl = remaining
       ? `${window.location.pathname}?${remaining}`
@@ -120,7 +158,7 @@ export default memo(function GastoForm() {
         descripcion: entry.descripcion,
         categoria: entry.categoria,
       }))
-      const parsed = parseGastoInput(query, historial)
+      const parsed = parseGastoInput(query, historial, categorias)
       if (parsed) {
         setForm((prev) => ({
           ...prev,
@@ -136,7 +174,7 @@ export default memo(function GastoForm() {
     }
 
     montoInputRef.current?.focus()
-  }, [merchantMemory])
+  }, [merchantMemory, categorias])
 
   async function deshacerGasto(params: {
     gastoIds: number[]
@@ -177,20 +215,55 @@ export default memo(function GastoForm() {
     showInfo('Gasto deshecho.')
   }
 
-  async function submitGasto(data: FormState) {
+  function toggleModoRapido() {
+    if (!user) return
+    const next = !modoRapido
+    setModoRapido(next)
+    saveRegistroPrefs(user.id, { modoRapido: next })
+    if (next) setMostrarDetalle(false)
+  }
+
+  async function submitGasto(data: FormState, options?: { rapido?: boolean }) {
+    const esRapido = options?.rapido ?? (modoRapido && !mostrarDetalle)
+
     const montoError = validateMonto(data.monto)
     if (montoError) {
       showError(montoError)
       return
     }
 
-    const descripcionError = validateDescripcion(data.descripcion)
+    let descripcion = data.descripcion.trim()
+    if (esRapido && !descripcion) {
+      descripcion = 'Gasto rápido'
+    }
+
+    const descripcionError = validateDescripcion(descripcion)
     if (descripcionError) {
       showError(descripcionError)
       return
     }
 
-    const cuentaError = validateCuentaId(data.cuentaId)
+    let categoria = data.categoria
+    let cuentaId = data.cuentaId
+
+    if (esRapido && user) {
+      const rules = getCategoryRules(user.id)
+      categoria = resolveCategoriaFromRules(
+        descripcion,
+        rules,
+        merchantMemory,
+        data.categoria || categorias[0] || 'Otros',
+      )
+      if (!cuentaId) {
+        const prefs = getRegistroPrefs(user.id)
+        cuentaId =
+          prefs.ultimaCuentaId ??
+          getDefaultCuentaId(cuentas) ??
+          ''
+      }
+    }
+
+    const cuentaError = validateCuentaId(cuentaId)
     if (cuentaError) {
       showError(cuentaError)
       return
@@ -202,8 +275,6 @@ export default memo(function GastoForm() {
     }
 
     const monto = parseMontoValue(data.monto)
-    const categoria = data.categoria
-    const descripcion = data.descripcion.trim()
 
     const gastosHoy = [
       ...optimisticGastos
@@ -236,15 +307,15 @@ export default memo(function GastoForm() {
       )
     }
 
-    const cuentaId = data.cuentaId
-    const formBackup = { ...data }
+    const cuentaIdResolved = cuentaId
+    const formBackup = { ...data, descripcion, categoria, cuentaId: cuentaIdResolved }
 
-    const selectedCuentaForSubmit = cuentas.find((c) => String(c.id) === cuentaId)
+    const selectedCuentaForSubmit = cuentas.find((c) => String(c.id) === cuentaIdResolved)
     const isCreditoForSubmit = selectedCuentaForSubmit?.tipo === 'credito'
 
-    let rows = [buildSingleGasto({ monto, categoria, descripcion, cuentaId })]
+    let rows = [buildSingleGasto({ monto, categoria, descripcion, cuentaId: cuentaIdResolved })]
 
-    if (data.esMsi && isCreditoForSubmit) {
+    if (!esRapido && data.esMsi && isCreditoForSubmit) {
       const mesesError = validateMsiMeses(data.mesesMsi)
       if (mesesError) {
         showError(mesesError)
@@ -256,17 +327,17 @@ export default memo(function GastoForm() {
         months: meses,
         categoria,
         descripcion,
-        cuentaId,
+        cuentaId: cuentaIdResolved,
       })
     }
 
-    const offlinePayload = data.esMsi && isCreditoForSubmit
+    const offlinePayload = !esRapido && data.esMsi && isCreditoForSubmit
       ? {
           monto,
           categoria,
           descripcion,
           fecha: rows[0].fecha,
-          cuenta_id: cuentaId,
+          cuenta_id: cuentaIdResolved,
           es_msi: true,
           grupo_msi_id: rows[0].grupo_msi_id,
           msiInstallments: rows,
@@ -276,14 +347,18 @@ export default memo(function GastoForm() {
           categoria,
           descripcion,
           fecha: rows[0].fecha,
-          cuenta_id: cuentaId,
+          cuenta_id: cuentaIdResolved,
           es_msi: false,
           grupo_msi_id: null,
         }
 
-    const saldoMonto = montoParaSaldoCuenta(monto, data.esMsi && isCreditoForSubmit, monto)
+    const saldoMonto = montoParaSaldoCuenta(
+      monto,
+      !esRapido && data.esMsi && isCreditoForSubmit,
+      monto,
+    )
 
-    const { error: saldoError } = await applyGastoSaldo(cuentaId, saldoMonto)
+    const { error: saldoError } = await applyGastoSaldo(cuentaIdResolved, saldoMonto)
     if (saldoError) {
       showError(`No se pudo actualizar el saldo: ${saldoError}`)
       return
@@ -309,7 +384,13 @@ export default memo(function GastoForm() {
         optimisticTempIds: tempIds,
       })
       setGuardando(false)
-      setForm({ ...initialForm, cuentaId: data.cuentaId })
+      setForm({
+        ...initialForm,
+        cuentaId: cuentaIdResolved,
+        categoria,
+      })
+      recordUltimoRegistro(user.id, categoria, cuentaIdResolved)
+      markAppVisit()
       recordMerchantMemory(user.id, descripcion, categoria, monto)
       setMerchantMemory(getMerchantMemory(user.id))
       refresh()
@@ -322,14 +403,18 @@ export default memo(function GastoForm() {
           pendingId: pending.id,
           optimisticTempIds: tempIds,
           gastoIds: [],
-          cuentaId,
+          cuentaId: cuentaIdResolved,
           saldoMonto,
         }),
       )
       return
     }
 
-    setForm({ ...initialForm, cuentaId: data.cuentaId })
+    setForm({
+      ...initialForm,
+      cuentaId: cuentaIdResolved,
+      categoria,
+    })
     showInfo(rows.length > 1 ? `Guardando compra MSI (${rows.length} pagos)...` : 'Guardando gasto...')
     setGuardando(true)
 
@@ -339,7 +424,7 @@ export default memo(function GastoForm() {
 
     if (error) {
       removeOptimisticGastos(tempIds)
-      await revertGastoSaldo(cuentaId, saldoMonto)
+      await revertGastoSaldo(cuentaIdResolved, saldoMonto)
       setForm(formBackup)
       showError(`Error al guardar el gasto: ${error.message}`)
       return
@@ -348,18 +433,22 @@ export default memo(function GastoForm() {
     removeOptimisticGastos(tempIds)
     const gastoIds = (inserted ?? []).map((row) => row.id as number)
 
+    recordUltimoRegistro(user.id, categoria, cuentaIdResolved)
+    markAppVisit()
     recordMerchantMemory(user.id, descripcion, categoria, monto)
     setMerchantMemory(getMerchantMemory(user.id))
     refresh()
     showSuccessWithUndo(
-      rows.length > 1
-        ? `Compra MSI registrada: ${rows.length} mensualidades.`
-        : 'Gasto guardado correctamente.',
+      esRapido
+        ? `${formatCurrency(monto)} · ${categoria}`
+        : rows.length > 1
+          ? `Compra MSI registrada: ${rows.length} mensualidades.`
+          : 'Gasto guardado correctamente.',
       () =>
         deshacerGasto({
           gastoIds,
           optimisticTempIds: [],
-          cuentaId,
+          cuentaId: cuentaIdResolved,
           saldoMonto,
         }),
     )
@@ -370,11 +459,35 @@ export default memo(function GastoForm() {
     await submitGasto(form)
   }
 
+  function handleMontoKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== 'Enter' || !modoRapido || mostrarDetalle) return
+    event.preventDefault()
+    void submitGasto(form, { rapido: true })
+  }
+
+  const prefsLabel =
+    form.categoria && form.cuentaId
+      ? `${form.categoria} · ${cuentas.find((c) => c.id === form.cuentaId)?.nombre ?? 'Cuenta'}`
+      : 'Se infiere de tu último registro'
+
   return (
     <form onSubmit={handleSubmit} className={`${cardClassName} ${registroFormClassName}`}>
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
-        <p className="text-sm text-slate-400">Registra un movimiento</p>
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
+          <p className="text-sm text-slate-400">
+            {modoRapido && !mostrarDetalle
+              ? 'Monto + Enter. Ideal para iPhone.'
+              : 'Registra un movimiento'}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleModoRapido}
+          className="shrink-0 text-xs font-medium text-pulso-accent-muted underline-offset-2 hover:text-pulso-accent hover:underline"
+        >
+          {modoRapido ? 'Modo detalle' : 'Modo rápido'}
+        </button>
       </div>
 
       <div className="space-y-2">
@@ -387,8 +500,15 @@ export default memo(function GastoForm() {
           value={form.monto}
           onChange={(value) => setForm((prev) => ({ ...prev, monto: value }))}
           placeholder={montoSugerido ? formatCurrency(montoSugerido) : '0'}
+          onKeyDown={handleMontoKeyDown}
           required
+          autoFocus
         />
+        {modoRapido && !mostrarDetalle && (
+          <p className="text-xs text-slate-500">
+            Enter para guardar · {prefsLabel}
+          </p>
+        )}
         {merchantMatch && (
           <p className="text-xs text-slate-500">
             Habituales: {merchantMatch.categoria}
@@ -397,123 +517,151 @@ export default memo(function GastoForm() {
         )}
       </div>
 
-      <div className="space-y-2">
-        <label htmlFor="cuenta" className="block text-sm font-medium text-slate-300">
-          Cuenta de Pago
-        </label>
-        <Select
-          id="cuenta"
-          value={form.cuentaId}
-          onChange={(cuentaId) => setForm((prev) => ({ ...prev, cuentaId }))}
-          options={[
-            ...(cuentasLoading
-              ? [{ value: '', label: 'Cargando cuentas...', disabled: true }]
-              : []),
-            ...(!cuentasLoading && cuentas.length === 0
-              ? [{ value: '', label: 'No hay cuentas configuradas. Añade una para comenzar.', disabled: true }]
-              : []),
-            ...cuentas.map((cuenta) => ({
-              value: String(cuenta.id),
-              label: `${cuenta.nombre}${cuenta.tipo === 'credito' ? ' (Crédito)' : ''}`,
-            })),
-          ]}
-          disabled={cuentasLoading || cuentas.length === 0}
-          required
-        />
-      </div>
+      {modoRapido && !mostrarDetalle ? (
+        <>
+          <div className="space-y-2">
+            <label htmlFor="descripcion-rapida" className="block text-sm font-medium text-slate-300">
+              Descripción (opcional)
+            </label>
+            <input
+              id="descripcion-rapida"
+              type="text"
+              inputMode="text"
+              maxLength={200}
+              placeholder="Ej. Oxxo, Uber…"
+              value={form.descripcion}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, descripcion: e.target.value }))
+              }
+              className={inputClassName}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setMostrarDetalle(true)}
+            className="text-xs text-slate-500 underline-offset-2 hover:text-slate-300 hover:underline"
+          >
+            MSI, cuenta u otra categoría
+          </button>
+        </>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <label htmlFor="cuenta" className="block text-sm font-medium text-slate-300">
+              Cuenta de Pago
+            </label>
+            <Select
+              id="cuenta"
+              value={form.cuentaId}
+              onChange={(cuentaId) => setForm((prev) => ({ ...prev, cuentaId }))}
+              options={[
+                ...(cuentasLoading
+                  ? [{ value: '', label: 'Cargando cuentas...', disabled: true }]
+                  : []),
+                ...(!cuentasLoading && cuentas.length === 0
+                  ? [
+                      {
+                        value: '',
+                        label: 'No hay cuentas configuradas. Añade una para comenzar.',
+                        disabled: true,
+                      },
+                    ]
+                  : []),
+                ...cuentas.map((cuenta) => ({
+                  value: String(cuenta.id),
+                  label: `${cuenta.nombre}${cuenta.tipo === 'credito' ? ' (Crédito)' : ''}`,
+                })),
+              ]}
+              disabled={cuentasLoading || cuentas.length === 0}
+              required
+            />
+          </div>
 
-      {isCredito && (
-        <div className="space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
-          <label className="flex cursor-pointer items-center justify-between gap-3">
-            <span className="text-sm font-medium text-slate-300">
-              ¿Es a Meses Sin Intereses?
-            </span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={form.esMsi}
-              aria-label="Meses sin intereses"
-              onClick={() => setForm((prev) => ({ ...prev, esMsi: !prev.esMsi }))}
-              className={`relative h-7 w-12 shrink-0 rounded-full transition active:scale-[0.98] ${
-                form.esMsi ? 'bg-pulso-accent' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
-                  form.esMsi ? 'translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </label>
-
-          {form.esMsi && (
-            <div className="space-y-2">
-              <label htmlFor="meses-msi" className="block text-sm font-medium text-slate-300">
-                Cantidad de meses
+          {isCredito && (
+            <div className="space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 p-4">
+              <label className="flex cursor-pointer items-center justify-between gap-3">
+                <span className="text-sm font-medium text-slate-300">
+                  ¿Es a Meses Sin Intereses?
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.esMsi}
+                  aria-label="Meses sin intereses"
+                  onClick={() => setForm((prev) => ({ ...prev, esMsi: !prev.esMsi }))}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition active:scale-[0.98] ${
+                    form.esMsi ? 'bg-pulso-accent' : 'bg-slate-600'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                      form.esMsi ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </label>
-              <input
-                id="meses-msi"
-                type="number"
-                inputMode="numeric"
-                min="2"
-                max="48"
-                step="1"
-                placeholder="3, 6, 12..."
-                value={form.mesesMsi}
-                onChange={(e) => setForm((prev) => ({ ...prev, mesesMsi: e.target.value }))}
-                className={inputClassName}
-                required
-              />
-              {form.monto && Number(form.mesesMsi) >= 2 && (
-                <p className="text-xs text-slate-400">
-                  {Number(form.mesesMsi)} pagos de{' '}
-                  {formatCurrency(
-                    Math.floor((parseMontoValue(form.monto) / Number(form.mesesMsi)) * 100) / 100,
-                  )}{' '}
-                  aprox. por mes
-                </p>
+
+              {form.esMsi && (
+                <div className="space-y-2">
+                  <label htmlFor="meses-msi" className="block text-sm font-medium text-slate-300">
+                    Cantidad de meses
+                  </label>
+                  <input
+                    id="meses-msi"
+                    type="number"
+                    inputMode="numeric"
+                    min="2"
+                    max="48"
+                    step="1"
+                    placeholder="3, 6, 12..."
+                    value={form.mesesMsi}
+                    onChange={(e) => setForm((prev) => ({ ...prev, mesesMsi: e.target.value }))}
+                    className={inputClassName}
+                    required
+                  />
+                </div>
               )}
             </div>
           )}
-        </div>
+
+          <div className="space-y-2">
+            <label htmlFor="categoria" className="block text-sm font-medium text-slate-300">
+              Categoría
+            </label>
+            <Select
+              id="categoria"
+              value={form.categoria}
+              onChange={(categoria) =>
+                setForm((prev) => ({
+                  ...prev,
+                  categoria,
+                }))
+              }
+              options={selectOptions}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="descripcion" className="block text-sm font-medium text-slate-300">
+              Descripción
+            </label>
+            <input
+              id="descripcion"
+              type="text"
+              inputMode="text"
+              maxLength={200}
+              placeholder="Ej. Supermercado, transporte, suscripción"
+              value={form.descripcion}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, descripcion: e.target.value }))
+              }
+              className={inputClassName}
+              required
+            />
+          </div>
+        </>
       )}
-
-      <div className="space-y-2">
-        <label htmlFor="categoria" className="block text-sm font-medium text-slate-300">
-          Categoría
-        </label>
-        <Select
-          id="categoria"
-          value={form.categoria}
-          onChange={(categoria) =>
-            setForm((prev) => ({
-              ...prev,
-              categoria: categoria as (typeof CATEGORIAS)[number],
-            }))
-          }
-          options={CATEGORIA_SELECT_OPTIONS}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor="descripcion" className="block text-sm font-medium text-slate-300">
-          Descripción
-        </label>
-        <input
-          id="descripcion"
-          type="text"
-          inputMode="text"
-          maxLength={200}
-          placeholder="Ej. Supermercado, transporte, suscripción"
-          value={form.descripcion}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, descripcion: e.target.value }))
-          }
-          className={inputClassName}
-          required
-        />
-      </div>
 
       <div className={formSubmitStickyClassName}>
         <button
@@ -521,7 +669,7 @@ export default memo(function GastoForm() {
           disabled={guardando || cuentas.length === 0}
           className={buttonPrimaryClassName}
         >
-          {guardando ? 'Guardando...' : form.esMsi ? 'Registrar compra MSI' : 'Guardar Gasto'}
+          {guardando ? 'Guardando...' : modoRapido && !mostrarDetalle ? 'Guardar' : form.esMsi ? 'Registrar compra MSI' : 'Guardar Gasto'}
         </button>
       </div>
     </form>

@@ -1,4 +1,4 @@
-import { CATEGORIAS, type Categoria } from '../types/gasto'
+import { CATEGORIAS_DEFAULT, type Categoria } from '../types/gasto'
 import { parseMontoValue } from './montoInput'
 
 export type { Categoria }
@@ -72,8 +72,8 @@ const KEYWORDS: Record<Categoria, readonly string[]> = {
 
 const DEFAULT_CATEGORIA: Categoria = 'Otros'
 
-const KEYWORD_PATTERNS: Record<Categoria, RegExp[]> = Object.fromEntries(
-  CATEGORIAS.map((categoria) => {
+const KEYWORD_PATTERNS: Partial<Record<Categoria, RegExp[]>> = Object.fromEntries(
+  CATEGORIAS_DEFAULT.map((categoria) => {
     if (categoria === DEFAULT_CATEGORIA) return [categoria, [] as RegExp[]]
     const patterns = KEYWORDS[categoria].map((keyword) => {
       const normalized = keyword
@@ -84,7 +84,7 @@ const KEYWORD_PATTERNS: Record<Categoria, RegExp[]> = Object.fromEntries(
     })
     return [categoria, patterns]
   }),
-) as Record<Categoria, RegExp[]>
+)
 
 function normalizeText(value: string): string {
   return value
@@ -130,25 +130,31 @@ export function inferCategoriaFromHistorial(
   return partial?.categoria ?? null
 }
 
-function detectCategoria(text: string, historial: CategoriaMemoryEntry[] = []): Categoria {
+function detectCategoria(
+  text: string,
+  historial: CategoriaMemoryEntry[] = [],
+  categorias: readonly Categoria[] = CATEGORIAS_DEFAULT,
+): Categoria {
   const fromHistorial = inferCategoriaFromHistorial(text, historial)
   if (fromHistorial) return fromHistorial
 
   const normalized = normalizeText(text)
 
-  for (const categoria of CATEGORIAS) {
+  for (const categoria of CATEGORIAS_DEFAULT) {
     if (categoria === DEFAULT_CATEGORIA) continue
 
-    const matches = KEYWORD_PATTERNS[categoria].some((pattern) => pattern.test(normalized))
+    const patterns = KEYWORD_PATTERNS[categoria] ?? []
+    const matches = patterns.some((pattern) => pattern.test(normalized))
     if (matches) return categoria
   }
 
-  return DEFAULT_CATEGORIA
+  return categorias.includes(DEFAULT_CATEGORIA) ? DEFAULT_CATEGORIA : (categorias[0] ?? DEFAULT_CATEGORIA)
 }
 
 export function parseGastoInput(
   input: string,
   historial: CategoriaMemoryEntry[] = [],
+  categorias: readonly Categoria[] = CATEGORIAS_DEFAULT,
 ): ParsedGasto | null {
   const trimmed = input.trim()
   if (!trimmed) return null
@@ -173,7 +179,7 @@ export function parseGastoInput(
 
   return {
     monto,
-    categoria: detectCategoria(trimmed, historial),
+    categoria: detectCategoria(trimmed, historial, categorias),
     descripcion,
   }
 }

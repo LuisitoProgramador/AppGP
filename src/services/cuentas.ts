@@ -295,6 +295,76 @@ export async function createCuenta(
   return { data, error: null }
 }
 
+export async function updateCuenta(
+  userId: string,
+  cuentaId: string,
+  input: Partial<CuentaInput>,
+): Promise<{ data: Cuenta | null; error: string | null }> {
+  if (!isOnline()) {
+    return offlineServiceError('Sin conexión. Conéctate para editar la cuenta.')
+  }
+
+  const row: Record<string, unknown> = {}
+  if (input.nombre !== undefined) row.nombre = input.nombre.trim()
+  if (input.tipo !== undefined) row.tipo = input.tipo
+  if (input.saldo_actual !== undefined) row.saldo_actual = input.saldo_actual
+  if (input.limite_credito !== undefined) row.limite_credito = input.limite_credito
+  if (input.dia_corte !== undefined) row.dia_corte = input.dia_corte
+  if (input.dia_pago !== undefined) row.dia_pago = input.dia_pago
+
+  const { data, error } = await supabase
+    .from('cuentas')
+    .update(row)
+    .eq('id', cuentaId)
+    .eq('user_id', userId)
+    .select(CUENTA_SELECT)
+    .single()
+
+  if (error || !data) return { data: null, error: error?.message ?? 'No se pudo actualizar.' }
+
+  const cuenta = mapCuenta(data)
+  const cached = readCache(userId).map((c) => (c.id === cuentaId ? cuenta : c))
+  writeCache(userId, cached)
+  return { data: cuenta, error: null }
+}
+
+export interface IngresoCuenta {
+  id: number
+  cuenta_id: string
+  monto: number
+  descripcion: string
+  fecha: string
+}
+
+export async function listIngresosCuenta(
+  userId: string,
+  inicio: string,
+  fin: string,
+): Promise<{ data: IngresoCuenta[]; error: string | null }> {
+  if (!isOnline()) return { data: [], error: null }
+
+  const { data, error } = await supabase
+    .from('ingresos_cuenta')
+    .select('id, cuenta_id, monto, descripcion, fecha')
+    .eq('user_id', userId)
+    .gte('fecha', inicio)
+    .lt('fecha', fin)
+    .order('fecha', { ascending: false })
+
+  if (error) return { data: [], error: error.message }
+
+  return {
+    data: (data ?? []).map((row) => ({
+      id: Number(row.id),
+      cuenta_id: String(row.cuenta_id),
+      monto: Number(row.monto),
+      descripcion: String(row.descripcion),
+      fecha: String(row.fecha),
+    })),
+    error: null,
+  }
+}
+
 export function getDefaultCuentaId(cuentas: Cuenta[]): string | null {
   if (cuentas.length === 0) return null
   const preferred = cuentas.find((c) => c.tipo === 'efectivo' || c.tipo === 'debito')

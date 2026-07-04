@@ -1,4 +1,4 @@
-export const CATEGORIAS = [
+export const CATEGORIAS_DEFAULT = [
   'Comida',
   'Transporte',
   'Casa',
@@ -6,7 +6,11 @@ export const CATEGORIAS = [
   'Otros',
 ] as const
 
-export type Categoria = (typeof CATEGORIAS)[number]
+/** @deprecated Usar CATEGORIAS_DEFAULT o getCategoriasUsuario */
+export const CATEGORIAS = CATEGORIAS_DEFAULT
+
+export type CategoriaDefault = (typeof CATEGORIAS_DEFAULT)[number]
+export type Categoria = string
 
 export interface Gasto {
   id: number

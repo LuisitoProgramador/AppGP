@@ -9,7 +9,7 @@ import {
   iconButtonEditClassName,
   iconButtonMsiClassName,
 } from '../formStyles'
-import { isHistorialPending, type HistorialItem } from './historialTypes'
+import { isHistorialPending, isHistorialIngreso, type HistorialItem } from './historialTypes'
 
 interface HistorialItemRowProps {
   item: HistorialItem
@@ -27,6 +27,7 @@ const HistorialItemRow = memo(function HistorialItemRow({
   onDelete,
 }: HistorialItemRowProps) {
   const isPending = isHistorialPending(item)
+  const isIngreso = isHistorialIngreso(item)
 
   return (
     <div className="flex flex-col gap-2 bg-slate-900/40 px-3 py-3 sm:flex-row sm:items-center sm:gap-3">
@@ -54,16 +55,16 @@ const HistorialItemRow = memo(function HistorialItemRow({
             {item.categoria} · {formatShortDate(item.fecha)}
           </p>
         </div>
-        <p className="shrink-0 text-sm font-semibold text-slate-200 sm:hidden">
-          {formatCurrency(Number(item.monto))}
+        <p className={`shrink-0 text-sm font-semibold sm:hidden ${isIngreso ? 'text-emerald-400' : 'text-slate-200'}`}>
+          {isIngreso ? '+' : ''}{formatCurrency(Number(item.monto))}
         </p>
       </div>
 
       <div className="flex shrink-0 items-center justify-end gap-1.5">
-        <p className="hidden shrink-0 text-sm font-semibold text-slate-200 sm:block">
-          {formatCurrency(Number(item.monto))}
+        <p className={`hidden shrink-0 text-sm font-semibold sm:block ${isIngreso ? 'text-emerald-400' : 'text-slate-200'}`}>
+          {isIngreso ? '+' : ''}{formatCurrency(Number(item.monto))}
         </p>
-        {!isPending && !isOptimistic && (
+        {!isPending && !isOptimistic && !isIngreso && (
           <>
             <button
               type="button"
@@ -90,7 +91,7 @@ const HistorialItemRow = memo(function HistorialItemRow({
             )}
           </>
         )}
-        {!isOptimistic && (
+        {!isOptimistic && !isIngreso && (
           <button
             type="button"
             onClick={() => onDelete(item)}

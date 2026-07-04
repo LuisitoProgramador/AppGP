@@ -1,4 +1,4 @@
-import { forwardRef, memo } from 'react'
+import { forwardRef, memo, type KeyboardEvent } from 'react'
 import { formatMontoInput } from '../utils/montoInput'
 import { inputClassName } from './formStyles'
 
@@ -12,6 +12,7 @@ interface MontoInputProps {
   required?: boolean
   disabled?: boolean
   'aria-label'?: string
+  onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void
 }
 
 const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoInput(
@@ -25,6 +26,7 @@ const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoI
     required,
     disabled,
     'aria-label': ariaLabel,
+    onKeyDown,
   },
   ref,
 ) {
@@ -38,6 +40,7 @@ const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoI
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(formatMontoInput(e.target.value))}
+      onKeyDown={onKeyDown}
       className={className}
       autoFocus={autoFocus}
       required={required}

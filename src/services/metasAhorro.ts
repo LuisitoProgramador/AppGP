@@ -144,6 +144,58 @@ export async function createMetaAhorro(
   return { data: meta, error: null }
 }
 
+export async function updateMetaAhorro(
+  userId: string,
+  metaId: number,
+  input: Partial<Pick<MetaAhorroInput, 'nombre' | 'monto_objetivo' | 'fecha_limite'>>,
+): Promise<{ data: MetaAhorro | null; error: string | null }> {
+  if (!isOnline()) {
+    return offlineServiceError('Sin conexión. Conéctate para editar la meta.')
+  }
+
+  const row: Record<string, unknown> = {}
+  if (input.nombre !== undefined) row.nombre = input.nombre.trim()
+  if (input.monto_objetivo !== undefined) row.monto_objetivo = input.monto_objetivo
+  if (input.fecha_limite !== undefined) row.fecha_limite = input.fecha_limite
+
+  const { data, error } = await supabase
+    .from('metas_ahorro')
+    .update(row)
+    .eq('id', metaId)
+    .eq('user_id', userId)
+    .select(META_SELECT)
+    .single()
+
+  if (error || !data) return { data: null, error: error?.message ?? 'No se pudo actualizar.' }
+
+  const meta = mapMeta(data)
+  writeCache(
+    userId,
+    readCache(userId).map((item) => (item.id === metaId ? meta : item)),
+  )
+  return { data: meta, error: null }
+}
+
+export async function deleteMetaAhorro(
+  userId: string,
+  metaId: number,
+): Promise<{ error: string | null }> {
+  if (!isOnline()) {
+    return offlineServiceError('Sin conexión. Conéctate para eliminar la meta.')
+  }
+
+  const { error } = await supabase
+    .from('metas_ahorro')
+    .delete()
+    .eq('id', metaId)
+    .eq('user_id', userId)
+
+  if (error) return { error: error.message }
+
+  writeCache(userId, readCache(userId).filter((item) => item.id !== metaId))
+  return { error: null }
+}
+
 export async function addAhorroToMeta(
   userId: string,
   metaId: number,
