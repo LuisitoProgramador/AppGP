@@ -22,7 +22,7 @@ import { syncPendingCuentas } from '../services/syncCuentas'
 import { syncPendingGastos } from '../services/syncGastos'
 import { syncPendingIngresos } from '../services/syncIngresos'
 import { isOnline } from '../utils/network'
-import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
+import { showError, showSuccess, showWarning } from '../utils/toast'
 import { useAuthSession } from './AuthContext'
 import { useGastosRefreshState, useOptimisticGastosState } from './GastosDataContext'
 
@@ -79,7 +79,6 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
 
     const registered = await verificarGastosRecurrentes(userId)
     if (registered > 0) {
-      showSuccess(`${registered} gasto(s) recurrente(s) registrado(s) automáticamente.`)
       refreshRef.current()
     }
     return registered
@@ -90,13 +89,11 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
     if (!currentUser || !isOnline() || syncInProgressRef.current) return
 
     syncInProgressRef.current = true
-    const totalBefore = await getTotalPendingCount(currentUser.id)
-    const hadPending = totalBefore > 0
+    const successMessages: string[] = []
+    const warningMessages: string[] = []
+    const errorMessages: string[] = []
 
     setIsSyncing(true)
-    if (hadPending) {
-      showInfo('Sincronizando cambios guardados offline...')
-    }
 
     try {
       const cuentasResult = await syncPendingCuentas(currentUser.id)
@@ -105,16 +102,16 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       }
 
       if (cuentasResult.synced > 0) {
-        showSuccess(`${cuentasResult.synced} cuenta(s) sincronizada(s) desde modo offline.`)
+        successMessages.push(`${cuentasResult.synced} cuenta(s) sincronizada(s) desde modo offline`)
         refreshRef.current()
       }
 
       if (cuentasResult.discarded > 0) {
-        showError(
-          `${cuentasResult.discarded} cuenta(s) no se pudieron sincronizar y se descartaron de la cola.`,
+        errorMessages.push(
+          `${cuentasResult.discarded} cuenta(s) no se pudieron sincronizar y se descartaron de la cola`,
         )
       } else if (cuentasResult.failures.length > 0) {
-        showWarning('Algunas cuentas offline fallaron y se reintentarán.')
+        warningMessages.push('Algunas cuentas offline fallaron y se reintentarán')
       }
 
       const result = await syncPendingGastos(currentUser.id)
@@ -125,37 +122,53 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       }
 
       if (result.synced > 0) {
-        showSuccess(`${result.synced} gasto(s) sincronizado(s) desde modo offline.`)
+        successMessages.push(`${result.synced} gasto(s) sincronizado(s) desde modo offline`)
         refreshRef.current()
       }
 
       if (result.discarded > 0) {
-        showError(
-          `${result.discarded} gasto(s) no se pudieron sincronizar y se descartaron de la cola.`,
+        errorMessages.push(
+          `${result.discarded} gasto(s) no se pudieron sincronizar y se descartaron de la cola`,
         )
       } else if (result.failures.length > 0) {
-        showWarning('Algunos gastos offline fallaron y se reintentarán.')
+        warningMessages.push('Algunos gastos offline fallaron y se reintentarán')
       }
 
       const ingresosResult = await syncPendingIngresos(currentUser.id)
       await updatePendingCount(currentUser.id)
 
       if (ingresosResult.synced > 0) {
-        showSuccess(`${ingresosResult.synced} ingreso(s) sincronizado(s) desde modo offline.`)
+        successMessages.push(`${ingresosResult.synced} ingreso(s) sincronizado(s) desde modo offline`)
         refreshRef.current()
       }
 
       if (ingresosResult.discarded > 0) {
-        showError(
-          `${ingresosResult.discarded} ingreso(s) no se pudieron sincronizar y se descartaron de la cola.`,
+        errorMessages.push(
+          `${ingresosResult.discarded} ingreso(s) no se pudieron sincronizar y se descartaron de la cola`,
         )
       } else if (ingresosResult.failures.length > 0) {
-        showWarning('Algunos ingresos offline fallaron y se reintentarán.')
+        warningMessages.push('Algunos ingresos offline fallaron y se reintentarán')
       }
 
       const metaSynced = await syncPendingMetaAhorro(currentUser.id)
       if (metaSynced > 0) refreshRef.current()
-      await syncRecurring(currentUser.id)
+
+      const recurringRegistered = await syncRecurring(currentUser.id)
+      if (recurringRegistered > 0) {
+        successMessages.push(
+          `${recurringRegistered} gasto(s) recurrente(s) registrado(s) automáticamente`,
+        )
+      }
+
+      if (successMessages.length > 0) {
+        showSuccess(`${successMessages.join('. ')}.`)
+      }
+      if (warningMessages.length > 0) {
+        showWarning(`${warningMessages.join('. ')}.`)
+      }
+      if (errorMessages.length > 0) {
+        showError(`${errorMessages.join('. ')}.`)
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Error inesperado al sincronizar datos offline.'

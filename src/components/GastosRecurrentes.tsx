@@ -51,11 +51,11 @@ export default memo(function GastosRecurrentes() {
   const { recurrentes: items, cargando, error } = useRecurrentes()
   const { categorias, selectOptions: categoriaOptions, getSubcategorias, subcategoriaSelectOptions } =
     useCategorias(user?.id)
+  const [form, setForm] = useState(initialForm)
   const subsActuales = useMemo(
     () => getSubcategorias(form.categoria),
     [getSubcategorias, form.categoria],
   )
-  const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<number | null>(null)
   const [editandoId, setEditandoId] = useState<number | null>(null)

@@ -62,11 +62,11 @@ export default memo(function GastoForm() {
   const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
   const { categorias, selectOptions, getSubcategorias, subcategoriaSelectOptions } =
     useCategorias(user?.id)
+  const [form, setForm] = useState(initialForm)
   const subsActuales = useMemo(
     () => getSubcategorias(form.categoria),
     [getSubcategorias, form.categoria],
   )
-  const [form, setForm] = useState(initialForm)
   const [modoRapido, setModoRapido] = useState(true)
   const [mostrarDetalle, setMostrarDetalle] = useState(false)
   const [guardando, setGuardando] = useState(false)

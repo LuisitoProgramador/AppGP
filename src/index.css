@@ -58,6 +58,11 @@ input[type='number']::-webkit-inner-spin-button {
   }
 }
 
+/* Toasts debajo de la isla dinámica / notch en iPhone */
+[data-sonner-toaster][data-y-position='top'] {
+  top: max(0.75rem, env(safe-area-inset-top)) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

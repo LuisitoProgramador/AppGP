@@ -8,7 +8,19 @@ const root = createRoot(document.getElementById('root')!)
 root.render(
   <StrictMode>
     <App />
-    <Toaster theme="dark" position="top-center" closeButton />
+    <Toaster
+      theme="dark"
+      position="top-center"
+      closeButton
+      visibleToasts={1}
+      gap={8}
+      mobileOffset={{
+        top: 'max(0.75rem, env(safe-area-inset-top))',
+      }}
+      offset={{
+        top: 'max(0.75rem, env(safe-area-inset-top))',
+      }}
+    />
   </StrictMode>,
 )
 
