@@ -32,8 +32,8 @@ export const settingsPanelClassName = 'space-y-8'
 /** Separador entre secciones de Ajustes */
 export const settingsDividerClassName = 'border-t border-white/8 pt-8'
 
-/** Scroll padding al enfocar campos con teclado virtual (sin padding permanente) */
-export const formWithKeyboardClassName = 'scroll-pb-24'
+/** Espacio extra al final de formularios en móvil */
+export const formWithKeyboardClassName = 'pb-2'
 
 /** Formulario dentro de modal — compacto, sin padding extra inferior */
 export const modalFormClassName =
@@ -46,11 +46,7 @@ export const registroFormClassName = 'mx-auto w-full max-w-md'
 export const tabPanelClassName = 'space-y-4 transition-opacity duration-200'
 
 /** Botón de envío al final del formulario (flujo normal, sin sticky) */
-export const formSubmitClassName = 'mt-4 border-t border-white/8 pt-4'
-
-/** Contenedor pegajoso para formularios largos en móvil (scroll dentro de main, encima del footer) */
-export const formSubmitStickyClassName =
-  'sticky bottom-0 z-10 -mx-4 mt-4 border-t border-white/8 bg-pulso-surface/95 px-4 pt-3 pb-2 backdrop-blur-md sm:static sm:mx-0 sm:mt-2 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
+export const formSubmitClassName = 'mt-4 border-t border-white/8 pt-4 pb-1'
 
 /** Panel de formulario dentro de ModalPortal */
 export const modalPanelClassName = modalFormClassName

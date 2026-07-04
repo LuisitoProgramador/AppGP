@@ -2,6 +2,7 @@ import ModalPortal from '../ui/ModalPortal'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
+  formSubmitClassName,
   modalFormClassName,
 } from '../ui/formStyles'
 import EditGastoFormBody from './EditGastoFormBody'
@@ -34,19 +35,21 @@ export default function EditGastoModal({ gasto, onClose, modoInicial }: EditGast
 
         <EditGastoFormBody {...modal} esMsi={esMsi} gastoPasado={modal.gastoPasado} />
 
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className={buttonSecondaryFlexClassName}>
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={
-              guardando || (esMsi && cargandoGrupo) || (edicionBloqueada && !cuentaCambio)
-            }
-            className={`flex-1 ${buttonPrimaryClassName}`}
-          >
-            {guardando ? 'Guardando...' : 'Guardar cambios'}
-          </button>
+        <div className={formSubmitClassName}>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className={buttonSecondaryFlexClassName}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={
+                guardando || (esMsi && cargandoGrupo) || (edicionBloqueada && !cuentaCambio)
+              }
+              className={`flex-1 ${buttonPrimaryClassName}`}
+            >
+              {guardando ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
         </div>
       </form>
     </ModalPortal>

@@ -13,6 +13,7 @@ import {
   buttonSecondaryFlexClassName,
   iconButtonDangerClassName,
   iconButtonEditClassName,
+  formSubmitClassName,
 } from '../../ui/formStyles'
 import { EditIcon, TrashIcon } from '../../ui/icons'
 import MontoInput from '../../ui/MontoInput'
@@ -111,21 +112,23 @@ export default memo(function MetasAhorroList({
                   placeholder="Monto objetivo"
                   required
                 />
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={cancelarEdicionMeta}
-                    className={buttonSecondaryFlexClassName}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={guardandoEdicionMeta}
-                    className={buttonPrimaryFlexClassName}
-                  >
-                    {guardandoEdicionMeta ? 'Guardando...' : 'Guardar'}
-                  </button>
+                <div className={formSubmitClassName}>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelarEdicionMeta}
+                      className={buttonSecondaryFlexClassName}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={guardandoEdicionMeta}
+                      className={buttonPrimaryFlexClassName}
+                    >
+                      {guardandoEdicionMeta ? 'Guardando...' : 'Guardar'}
+                    </button>
+                  </div>
                 </div>
               </form>
             ) : (

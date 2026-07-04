@@ -13,6 +13,7 @@ import MontoInput from '../ui/MontoInput'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
+  formSubmitClassName,
   modalFormClassName,
 } from '../ui/formStyles'
 
@@ -244,21 +245,23 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
           </>
         )}
 
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className={buttonSecondaryFlexClassName}>
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={guardando || cuentas.length < 2 || Boolean(saldoAdvertencia)}
-            className={`flex-1 ${buttonPrimaryClassName}`}
-          >
-            {guardando
-              ? 'Procesando...'
-              : esPagoTarjeta
-                ? 'Pagar tarjeta'
-                : 'Transferir'}
-          </button>
+        <div className={formSubmitClassName}>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className={buttonSecondaryFlexClassName}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={guardando || cuentas.length < 2 || Boolean(saldoAdvertencia)}
+              className={`flex-1 ${buttonPrimaryClassName}`}
+            >
+              {guardando
+                ? 'Procesando...'
+                : esPagoTarjeta
+                  ? 'Pagar tarjeta'
+                  : 'Transferir'}
+            </button>
+          </div>
         </div>
       </form>
     </ModalPortal>

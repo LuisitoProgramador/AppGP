@@ -4,6 +4,7 @@ import {
   buttonGhostSmFlexClassName,
   buttonPrimaryFlexClassName,
   cardClassName,
+  formSubmitClassName,
   formWithKeyboardClassName,
   inputClassName,
 } from '../ui/formStyles'
@@ -144,20 +145,22 @@ export default function OnboardingStepCuentas({
               />
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCuentaLiquidaForm(false)
-                  setCuentaLiquidaForm({ nombre: '', saldo_actual: '' })
-                }}
-                className={buttonGhostSmFlexClassName}
-              >
-                Cancelar
-              </button>
-              <button type="submit" className={buttonPrimaryFlexClassName}>
-                Guardar cuenta
-              </button>
+            <div className={formSubmitClassName}>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCuentaLiquidaForm(false)
+                    setCuentaLiquidaForm({ nombre: '', saldo_actual: '' })
+                  }}
+                  className={buttonGhostSmFlexClassName}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className={buttonPrimaryFlexClassName}>
+                  Guardar cuenta
+                </button>
+              </div>
             </div>
           </form>
         )}
@@ -287,25 +290,27 @@ export default function OnboardingStepCuentas({
               />
             </div>
 
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowTarjetaForm(false)
-                  setTarjetaForm({
-                    nombre: '',
-                    limite_credito: '',
-                    dia_corte: '',
-                    saldo_actual: '0',
-                  })
-                }}
-                className={buttonGhostSmFlexClassName}
-              >
-                Cancelar
-              </button>
-              <button type="submit" className={buttonPrimaryFlexClassName}>
-                Guardar tarjeta
-              </button>
+            <div className={formSubmitClassName}>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowTarjetaForm(false)
+                    setTarjetaForm({
+                      nombre: '',
+                      limite_credito: '',
+                      dia_corte: '',
+                      saldo_actual: '0',
+                    })
+                  }}
+                  className={buttonGhostSmFlexClassName}
+                >
+                  Cancelar
+                </button>
+                <button type="submit" className={buttonPrimaryFlexClassName}>
+                  Guardar tarjeta
+                </button>
+              </div>
             </div>
           </form>
         )}

@@ -1,7 +1,7 @@
 import { type FormEvent, memo } from 'react'
 import type { Categoria } from '../../types/gasto'
 import {
-  formSubmitStickyClassName,
+  formSubmitClassName,
   formWithKeyboardClassName,
   inputClassName,
   buttonPrimaryClassName,
@@ -140,7 +140,7 @@ export default memo(function GastosRecurrentesForm({
         )}
       </div>
 
-      <div className={formSubmitStickyClassName}>
+      <div className={formSubmitClassName}>
         {editandoId != null && (
           <button
             type="button"

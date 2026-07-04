@@ -3,6 +3,7 @@ import { formatCurrency } from '../../utils/format/formatCurrency'
 import {
   buttonPrimaryClassName,
   buttonSecondaryClassName,
+  formSubmitClassName,
   formWithKeyboardClassName,
 } from '../ui/formStyles'
 import Select from '../ui/Select'
@@ -203,13 +204,15 @@ export default function PresupuestoSettings() {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={guardando || !hayCambios}
-          className={buttonPrimaryClassName}
-        >
-          {guardando ? 'Guardando...' : 'Guardar cambios'}
-        </button>
+        <div className={formSubmitClassName}>
+          <button
+            type="submit"
+            disabled={guardando || !hayCambios}
+            className={buttonPrimaryClassName}
+          >
+            {guardando ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+        </div>
       </form>
     </div>
   )

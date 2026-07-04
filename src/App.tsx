@@ -4,7 +4,9 @@ import AppRoutes from './components/app/AppRoutes'
 function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <AppRoutes />
+      </div>
     </AuthProvider>
   )
 }

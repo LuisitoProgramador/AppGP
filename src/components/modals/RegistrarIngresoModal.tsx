@@ -11,6 +11,7 @@ import MontoInput from '../ui/MontoInput'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
+  formSubmitClassName,
   inputClassName,
   modalFormClassName,
 } from '../ui/formStyles'
@@ -161,17 +162,19 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
           )}
         </div>
 
-        <div className="flex gap-2">
-          <button type="button" onClick={onClose} className={buttonSecondaryFlexClassName}>
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={guardando || cuentasIngreso.length === 0}
-            className={`flex-1 ${buttonPrimaryClassName}`}
-          >
-            {guardando ? 'Guardando...' : 'Registrar ingreso'}
-          </button>
+        <div className={formSubmitClassName}>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className={buttonSecondaryFlexClassName}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={guardando || cuentasIngreso.length === 0}
+              className={`flex-1 ${buttonPrimaryClassName}`}
+            >
+              {guardando ? 'Guardando...' : 'Registrar ingreso'}
+            </button>
+          </div>
         </div>
       </form>
     </ModalPortal>

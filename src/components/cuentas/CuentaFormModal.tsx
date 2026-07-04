@@ -13,6 +13,7 @@ import {
   inputClassName,
   buttonPrimaryClassName,
   buttonGhostFlexClassName,
+  formSubmitClassName,
   modalFormClassName,
 } from '../ui/formStyles'
 
@@ -306,17 +307,19 @@ export default function CuentaFormModal({
           </>
         )}
 
-        <div className="flex gap-2 pt-1">
-          <button type="button" onClick={onClose} className={buttonGhostFlexClassName}>
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={guardando}
-            className={`flex-1 ${buttonPrimaryClassName}`}
-          >
-            {guardando ? 'Guardando...' : 'Guardar'}
-          </button>
+        <div className={formSubmitClassName}>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className={buttonGhostFlexClassName}>
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={guardando}
+              className={`flex-1 ${buttonPrimaryClassName}`}
+            >
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
+          </div>
         </div>
       </form>
     </ModalPortal>

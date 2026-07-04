@@ -6,6 +6,7 @@ import {
   buttonPrimaryClassName,
   buttonPrimaryFlexClassName,
   cardClassName,
+  formSubmitClassName,
   formWithKeyboardClassName,
   inputClassName,
 } from '../ui/formStyles'
@@ -179,12 +180,14 @@ export default function OnboardingStepGastosFijos({
               />
             </div>
 
-            <button type="submit" className={`w-full ${buttonGhostSmClassName}`}>
-              Añadir gasto
-            </button>
+            <div className={formSubmitClassName}>
+              <button type="submit" className={`w-full ${buttonGhostSmClassName}`}>
+                Añadir gasto
+              </button>
+            </div>
           </form>
 
-          <div className="flex gap-2 pt-1">
+          <div className={`${formSubmitClassName} flex gap-2`}>
             <button
               type="button"
               onClick={() => goToStep(2)}

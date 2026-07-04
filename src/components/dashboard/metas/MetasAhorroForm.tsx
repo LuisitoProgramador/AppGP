@@ -4,6 +4,7 @@ import {
   inputClassName,
   buttonPrimaryFlexClassName,
   buttonSecondaryFlexClassName,
+  formSubmitClassName,
 } from '../../ui/formStyles'
 import MontoInput from '../../ui/MontoInput'
 
@@ -53,13 +54,15 @@ export default memo(function MetasAhorroForm({
         placeholder="Monto objetivo"
         required
       />
-      <div className="flex gap-2">
-        <button type="button" onClick={onCancel} className={buttonSecondaryFlexClassName}>
-          Cancelar
-        </button>
-        <button type="submit" disabled={guardandoMeta} className={buttonPrimaryFlexClassName}>
-          {guardandoMeta ? 'Guardando...' : submitLabel}
-        </button>
+      <div className={formSubmitClassName}>
+        <div className="flex gap-2">
+          <button type="button" onClick={onCancel} className={buttonSecondaryFlexClassName}>
+            Cancelar
+          </button>
+          <button type="submit" disabled={guardandoMeta} className={buttonPrimaryFlexClassName}>
+            {guardandoMeta ? 'Guardando...' : submitLabel}
+          </button>
+        </div>
       </div>
     </form>
   )
