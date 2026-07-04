@@ -4,6 +4,7 @@ export interface MetaAhorro {
   monto_objetivo: number
   monto_actual: number
   fecha_limite: string | null
+  created_at?: string | null
 }
 
 export type MetaAhorroInput = Pick<MetaAhorro, 'nombre' | 'monto_objetivo'> & {

@@ -2,6 +2,7 @@ import { memo } from 'react'
 import type { useMetasAhorro } from '../../hooks/useMetasAhorro'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { getMetaProgress } from '../../utils/metaProgress'
+import { periodoMetaLabel } from '../../utils/metaCalendario'
 import {
   formWithKeyboardClassName,
   inputClassName,
@@ -125,6 +126,9 @@ export default memo(function MetasAhorroSection({
                     <p className="text-xs text-slate-400">
                       {formatCurrency(meta.monto_actual)} de{' '}
                       {formatCurrency(meta.monto_objetivo)} ({progress.toFixed(0)}%)
+                      {meta.fecha_limite && (
+                        <span className="text-slate-500"> · {periodoMetaLabel(meta)}</span>
+                      )}
                     </p>
                   </div>
                 </div>

@@ -12,6 +12,10 @@ import {
   calcPrimerAhorro,
   calcSueldoSemanalDesdeMensual,
 } from '../utils/finanzas'
+import {
+  finDeAnoCalendarioIso,
+  nombreMetaAhorroAnual,
+} from '../utils/metaCalendario'
 
 export {
   calcIngresoMensualTotal,
@@ -172,11 +176,18 @@ export async function registrarPrimerAhorro(
   const monto = calcPrimerAhorro(data.sueldoMensual, data.porcentajeAhorro)
   if (monto <= 0) return null
 
-  const objetivo = calcMetaObjetivoAnual(data.sueldoMensual, data.porcentajeAhorro)
+  const hoy = new Date()
+  const objetivo = calcMetaObjetivoAnual(
+    data.sueldoMensual,
+    data.porcentajeAhorro,
+    0,
+    hoy,
+  )
 
   const { data: meta, error: createError } = await createMetaAhorro(userId, {
-    nombre: 'Mi ahorro semanal',
+    nombre: nombreMetaAhorroAnual(hoy.getFullYear()),
     monto_objetivo: Math.max(objetivo, monto),
+    fecha_limite: finDeAnoCalendarioIso(hoy),
   })
 
   if (createError || !meta) return createError ?? 'No se pudo crear la meta de ahorro.'

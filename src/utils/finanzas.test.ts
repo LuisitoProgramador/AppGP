@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   calcDiferenciaAhorroMensual,
   calcEstrategiaFinanciera,
+  calcMetaObjetivoAnual,
   calcPrimerAhorro,
   SEMANAS_POR_MES,
 } from './finanzas'
@@ -36,6 +37,19 @@ describe('calcPrimerAhorro', () => {
 
   it('sin extras coincide con sueldo semanal × porcentaje', () => {
     expect(calcPrimerAhorro(10000, 20)).toBe(461.89)
+  })
+})
+
+describe('calcMetaObjetivoAnual', () => {
+  it('usa semanas restantes hasta 31 dic × ahorro semanal', () => {
+    const sueldo = 10000
+    const pct = 20
+    const enero = calcMetaObjetivoAnual(sueldo, pct, 0, new Date(2026, 0, 1))
+    const marzo23 = calcMetaObjetivoAnual(sueldo, pct, 0, new Date(2026, 2, 23))
+
+    expect(enero).toBe(Math.round(461.89 * 53 * 100) / 100)
+    expect(marzo23).toBe(Math.round(461.89 * 41 * 100) / 100)
+    expect(marzo23).toBeLessThan(enero)
   })
 })
 

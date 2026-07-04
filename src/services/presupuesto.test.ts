@@ -16,7 +16,12 @@ vi.mock('./supabase.js', () => ({
   },
 }))
 
+vi.mock('./metasAhorro', () => ({
+  syncMetasAnualesConPresupuesto: vi.fn().mockResolvedValue(false),
+}))
+
 import { savePresupuestoFinanciero } from './presupuesto'
+import { syncMetasAnualesConPresupuesto } from './metasAhorro'
 
 const userId = '00000000-0000-4000-8000-000000000001'
 
@@ -64,6 +69,7 @@ describe('savePresupuestoFinanciero', () => {
     expect(upsertRow.limite_mensual).toBe(8000)
     expect(upsertRow.limite_es_manual).toBe(false)
     expect(upsertRow.sueldo_mensual).toBe(10000)
+    expect(syncMetasAnualesConPresupuesto).toHaveBeenCalledOnce()
   })
 
   it('preserva límite manual al actualizar estrategia', async () => {

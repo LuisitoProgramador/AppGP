@@ -11,10 +11,10 @@ export default memo(function Plan() {
   return (
     <div className="space-y-6">
       <Suspense fallback={<PlanSectionFallback />}>
-        <GastosRecurrentes />
+        <Metas />
       </Suspense>
       <Suspense fallback={<PlanSectionFallback />}>
-        <Metas />
+        <GastosRecurrentes />
       </Suspense>
     </div>
   )

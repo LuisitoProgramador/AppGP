@@ -1,9 +1,18 @@
 import type { MetaAhorro, MetaAhorroInput, PendingMetaAhorroUpdate } from '../types/metaAhorro'
+import { calcMetaObjetivoAnual } from '../utils/finanzas'
+import {
+  esMetaAhorroAnual,
+  finDeAnoCalendarioIso,
+  metaAnualDelAnio,
+  metaAnualExpirada,
+  nombreMetaAhorroAnual,
+} from '../utils/metaCalendario'
 import { isOnline, offlineServiceError } from '../utils/network'
 import { shouldDiscardAfterRetry } from './syncPolicy'
+import { getPresupuesto } from './presupuesto'
 import { supabase } from './supabase'
 
-const META_SELECT = 'id, nombre, monto_objetivo, monto_actual, fecha_limite' as const
+const META_SELECT = 'id, nombre, monto_objetivo, monto_actual, fecha_limite, created_at' as const
 
 let syncMetaPromise: Promise<number> | null = null
 let syncMetaUserId: string | null = null
@@ -78,6 +87,7 @@ function mapMeta(row: Record<string, unknown>): MetaAhorro {
     monto_objetivo: Number(row.monto_objetivo),
     monto_actual: Number(row.monto_actual),
     fecha_limite: row.fecha_limite ? String(row.fecha_limite) : null,
+    created_at: row.created_at ? String(row.created_at) : null,
   }
 }
 
@@ -87,6 +97,8 @@ export async function listMetasAhorro(
   if (!isOnline()) {
     return { data: readCache(userId), error: null, fromCache: true }
   }
+
+  await ensureMetaAhorroAnioCalendario(userId)
 
   const { data, error } = await supabase
     .from('metas_ahorro')
@@ -248,4 +260,147 @@ export async function syncPendingMetaAhorro(userId: string): Promise<number> {
   })
 
   return syncMetaPromise
+}
+
+export interface PresupuestoMetaSync {
+  sueldo_mensual: number
+  porcentaje_ahorro: number
+  ingresos_extras?: number | null
+}
+
+async function syncMetaAnualConPresupuesto(
+  userId: string,
+  meta: MetaAhorro,
+  sueldoMensual: number,
+  porcentajeAhorro: number,
+  ingresosExtras: number,
+): Promise<MetaAhorro | null> {
+  if (!esMetaAhorroAnual(meta)) return null
+
+  const hoy = new Date()
+  const year = hoy.getFullYear()
+  if (metaAnualExpirada(meta, hoy) || !metaAnualDelAnio(meta, year)) return null
+
+  const fechaInicio = meta.created_at ? new Date(meta.created_at) : hoy
+  const objetivo = calcMetaObjetivoAnual(
+    sueldoMensual,
+    porcentajeAhorro,
+    ingresosExtras,
+    fechaInicio,
+  )
+  const nombre = nombreMetaAhorroAnual(year)
+  const fecha_limite = finDeAnoCalendarioIso(new Date(year, 0, 1))
+
+  const needsUpdate =
+    meta.nombre !== nombre ||
+    meta.fecha_limite !== fecha_limite ||
+    Math.abs(meta.monto_objetivo - objetivo) > 0.01
+
+  if (!needsUpdate) return null
+
+  const { data, error } = await supabase
+    .from('metas_ahorro')
+    .update({ nombre, monto_objetivo: objetivo, fecha_limite })
+    .eq('id', meta.id)
+    .eq('user_id', userId)
+    .select(META_SELECT)
+    .single()
+
+  if (error || !data) return null
+  return mapMeta(data)
+}
+
+/** Recalcula la meta anual vigente cuando cambia sueldo, extras o % de ahorro. */
+export async function syncMetasAnualesConPresupuesto(
+  userId: string,
+  presupuesto?: PresupuestoMetaSync | null,
+): Promise<boolean> {
+  if (!isOnline()) return false
+
+  const config = presupuesto ?? (await getPresupuesto(userId))
+  if (config?.sueldo_mensual == null || config.porcentaje_ahorro == null) {
+    return false
+  }
+
+  const ingresosExtras = config.ingresos_extras ?? 0
+
+  const { data: rows } = await supabase
+    .from('metas_ahorro')
+    .select(META_SELECT)
+    .eq('user_id', userId)
+
+  const metas = (rows ?? []).map((row) => mapMeta(row))
+  if (metas.length === 0) return false
+
+  let updated = false
+  let nextCache = readCache(userId)
+
+  for (const meta of metas) {
+    const synced = await syncMetaAnualConPresupuesto(
+      userId,
+      meta,
+      config.sueldo_mensual,
+      config.porcentaje_ahorro,
+      ingresosExtras,
+    )
+    if (!synced) continue
+
+    updated = true
+    const inCache = nextCache.some((item) => item.id === synced.id)
+    nextCache = inCache
+      ? nextCache.map((item) => (item.id === synced.id ? synced : item))
+      : [...nextCache, synced]
+  }
+
+  if (updated) writeCache(userId, nextCache)
+  return updated
+}
+
+export async function ensureMetaAhorroAnioCalendario(userId: string): Promise<void> {
+  if (!isOnline()) return
+
+  const presupuesto = await getPresupuesto(userId)
+  if (presupuesto?.sueldo_mensual == null || presupuesto.porcentaje_ahorro == null) {
+    return
+  }
+
+  const { data: rows } = await supabase
+    .from('metas_ahorro')
+    .select(META_SELECT)
+    .eq('user_id', userId)
+
+  const metas = (rows ?? []).map((row) => mapMeta(row))
+  const hoy = new Date()
+  const year = hoy.getFullYear()
+  const ingresosExtras = presupuesto.ingresos_extras ?? 0
+
+  await syncMetasAnualesConPresupuesto(userId, presupuesto)
+
+  const { data: refreshedRows } = await supabase
+    .from('metas_ahorro')
+    .select(META_SELECT)
+    .eq('user_id', userId)
+
+  const refreshed = (refreshedRows ?? []).map((row) => mapMeta(row))
+  const tieneMetaVigente = refreshed.some(
+    (meta) => metaAnualDelAnio(meta, year) && !metaAnualExpirada(meta, hoy),
+  )
+  const tuvoMetaAnualExpirada = metas.some(
+    (meta) => esMetaAhorroAnual(meta) && metaAnualExpirada(meta, hoy),
+  )
+
+  if (tieneMetaVigente || !tuvoMetaAnualExpirada) return
+
+  const objetivo = calcMetaObjetivoAnual(
+    presupuesto.sueldo_mensual,
+    presupuesto.porcentaje_ahorro,
+    ingresosExtras,
+    hoy,
+  )
+
+  await createMetaAhorro(userId, {
+    nombre: nombreMetaAhorroAnual(year),
+    monto_objetivo: objetivo,
+    fecha_limite: finDeAnoCalendarioIso(hoy),
+  })
 }

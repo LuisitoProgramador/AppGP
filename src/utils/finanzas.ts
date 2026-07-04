@@ -1,3 +1,7 @@
+import { semanasRestantesHastaFinDeAno } from './metaCalendario'
+
+export { mesesRestantesEnAnoCalendario, semanasRestantesHastaFinDeAno } from './metaCalendario'
+
 export const SEMANAS_POR_MES = 4.33
 
 export interface EstrategiaFinancieraInput {
@@ -75,17 +79,16 @@ export function calcPrimerAhorro(
   return round2(ahorroMensual / SEMANAS_POR_MES)
 }
 
+/** Meta de ahorro hasta 31 dic: ahorro semanal × semanas restantes del año. */
 export function calcMetaObjetivoAnual(
   sueldoMensual: number,
   porcentajeAhorro: number,
   ingresosExtras = 0,
+  fecha = new Date(),
 ): number {
-  const { ahorroMensual } = calcEstrategiaFinanciera({
-    sueldoMensual,
-    ingresosExtras,
-    porcentajeAhorro,
-  })
-  return round2(ahorroMensual * 12)
+  const ahorroSemanal = calcPrimerAhorro(sueldoMensual, porcentajeAhorro, ingresosExtras)
+  const semanas = semanasRestantesHastaFinDeAno(fecha)
+  return round2(ahorroSemanal * semanas)
 }
 
 export function calcDiferenciaAhorroMensual(
