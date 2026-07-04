@@ -6,6 +6,7 @@ export interface MerchantMemoryEntry {
   descripcion: string
   categoria: Categoria
   montoFrecuente: number
+  frecuencia: number
 }
 
 interface GastoHistorialRow {
@@ -39,7 +40,12 @@ function writeCache(userId: string, entries: MerchantMemoryEntry[]) {
 function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
   const groups = new Map<
     string,
-    { descripcion: string; categoria: Map<string, number>; montos: Map<number, number> }
+    {
+      descripcion: string
+      categoria: Map<string, number>
+      montos: Map<number, number>
+      frecuencia: number
+    }
   >()
 
   for (const row of rows) {
@@ -50,8 +56,10 @@ function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
       descripcion: row.descripcion.trim(),
       categoria: new Map<string, number>(),
       montos: new Map<number, number>(),
+      frecuencia: 0,
     }
 
+    current.frecuencia += 1
     current.categoria.set(row.categoria, (current.categoria.get(row.categoria) ?? 0) + 1)
     const monto = Math.round(Number(row.monto) * 100) / 100
     current.montos.set(monto, (current.montos.get(monto) ?? 0) + 1)
@@ -68,12 +76,34 @@ function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
       descripcion: group.descripcion,
       categoria: categoria as Categoria,
       montoFrecuente,
+      frecuencia: group.frecuencia,
     }
   })
 }
 
+function normalizeEntry(entry: MerchantMemoryEntry): MerchantMemoryEntry {
+  return {
+    ...entry,
+    frecuencia: entry.frecuencia > 0 ? entry.frecuencia : 1,
+  }
+}
+
 export function getMerchantMemory(userId: string): MerchantMemoryEntry[] {
-  return readCache(userId)
+  return readCache(userId).map(normalizeEntry)
+}
+
+export function getTopMerchantMemory(
+  entries: MerchantMemoryEntry[],
+  limit = 4,
+): MerchantMemoryEntry[] {
+  return [...entries]
+    .map(normalizeEntry)
+    .sort((a, b) => {
+      const freqDiff = b.frecuencia - a.frecuencia
+      if (freqDiff !== 0) return freqDiff
+      return a.descripcion.localeCompare(b.descripcion, 'es')
+    })
+    .slice(0, limit)
 }
 
 export async function refreshMerchantMemory(userId: string): Promise<MerchantMemoryEntry[]> {
@@ -98,12 +128,15 @@ export function recordMerchantMemory(
   const key = normalizeKey(descripcion)
   if (!key) return
 
-  const entries = readCache(userId).filter((entry) => entry.key !== key)
+  const cached = readCache(userId).map(normalizeEntry)
+  const existing = cached.find((entry) => entry.key === key)
+  const entries = cached.filter((entry) => entry.key !== key)
   entries.unshift({
     key,
     descripcion: descripcion.trim(),
     categoria,
     montoFrecuente: Math.round(monto * 100) / 100,
+    frecuencia: (existing?.frecuencia ?? 0) + 1,
   })
   writeCache(userId, entries.slice(0, 80))
 }

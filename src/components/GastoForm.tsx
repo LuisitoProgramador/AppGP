@@ -3,6 +3,7 @@ import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { getDefaultCuentaId } from '../services/cuentas'
 import {
   getMerchantMemory,
+  getTopMerchantMemory,
   matchMerchantMemory,
   recordMerchantMemory,
   refreshMerchantMemory,
@@ -47,12 +48,14 @@ interface QuickTap {
   descripcion: string
 }
 
-const QUICK_TAPS: QuickTap[] = [
+const DEFAULT_QUICK_TAPS: QuickTap[] = [
   { label: '☕ Café', monto: 45, categoria: 'Comida', descripcion: 'Café' },
   { label: '🚌 Transporte', monto: 15, categoria: 'Transporte', descripcion: 'Transporte' },
   { label: '🌮 Comida rápida', monto: 85, categoria: 'Comida', descripcion: 'Comida rápida' },
   { label: '🛒 Super', monto: 250, categoria: 'Comida', descripcion: 'Supermercado' },
 ]
+
+const MIN_MEMORY_FOR_DYNAMIC = 1
 
 export default memo(function GastoForm() {
   const { user } = useAuthContext()
@@ -76,7 +79,7 @@ export default memo(function GastoForm() {
     if (isOnline()) {
       refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
     }
-  }, [user])
+  }, [user, refreshKey])
 
   useEffect(() => {
     if (!user) return
@@ -118,6 +121,19 @@ export default memo(function GastoForm() {
     () => matchMerchantMemory(form.descripcion, merchantMemory),
     [form.descripcion, merchantMemory],
   )
+
+  const usaQuickTapsDinamicos = merchantMemory.length >= MIN_MEMORY_FOR_DYNAMIC
+
+  const quickTaps = useMemo((): QuickTap[] => {
+    if (!usaQuickTapsDinamicos) return DEFAULT_QUICK_TAPS
+
+    return getTopMerchantMemory(merchantMemory, 4).map((entry) => ({
+      label: entry.descripcion,
+      monto: entry.montoFrecuente,
+      categoria: entry.categoria,
+      descripcion: entry.descripcion,
+    }))
+  }, [merchantMemory, usaQuickTapsDinamicos])
 
   useEffect(() => {
     if (!merchantMatch) {
@@ -423,32 +439,17 @@ export default memo(function GastoForm() {
     )
   }
 
-  const handleQuickTap = async (tap: QuickTap) => {
+  const handleQuickTap = (tap: QuickTap) => {
     if (guardando || cuentasLoading || cuentas.length === 0) return
 
-    const cuentaId = form.cuentaId || String(getDefaultCuentaId(cuentas) ?? '')
-    const cuentaError = validateCuentaId(cuentaId)
-    if (cuentaError) {
-      showError(cuentaError)
-      return
-    }
-
-    const quickForm: FormState = {
+    setForm((prev) => ({
+      ...prev,
       monto: String(tap.monto),
       categoria: tap.categoria,
       descripcion: tap.descripcion,
-      cuentaId,
       esMsi: false,
-      mesesMsi: '3',
-    }
-
-    setForm(quickForm)
-    setGuardando(true)
-    try {
-      await submitGasto(quickForm)
-    } finally {
-      setGuardando(false)
-    }
+    }))
+    montoInputRef.current?.focus()
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -463,18 +464,25 @@ export default memo(function GastoForm() {
         <p className="text-sm text-slate-400">Registra un movimiento</p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {QUICK_TAPS.map((tap) => (
-          <button
-            key={tap.label}
-            type="button"
-            disabled={guardando || cuentasLoading || cuentas.length === 0}
-            onClick={() => handleQuickTap(tap)}
-            className={chipButtonClassName}
-          >
-            {tap.label} ({formatCurrency(tap.monto)})
-          </button>
-        ))}
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {quickTaps.map((tap) => (
+            <button
+              key={`${tap.descripcion}-${tap.monto}`}
+              type="button"
+              disabled={guardando || cuentasLoading || cuentas.length === 0}
+              onClick={() => handleQuickTap(tap)}
+              className={chipButtonClassName}
+            >
+              {tap.label} ({formatCurrency(tap.monto)})
+            </button>
+          ))}
+        </div>
+        {!usaQuickTapsDinamicos && (
+          <p className="text-xs text-slate-500">
+            Esperando datos de tus hábitos — registra gastos para ver accesos rápidos personalizados.
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">
