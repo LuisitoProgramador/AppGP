@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useCallback, useEffect, useMemo, useState, memo } from 'react'
 import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import {
   createGastoRecurrente,
@@ -12,7 +12,8 @@ import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateDiaMes, validateMonto } from '../utils/validation'
-import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, inputClassName, buttonVioletClassName } from './formStyles'
+import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, inputClassName, buttonPrimaryClassName } from './formStyles'
+import { TrashIcon } from './icons'
 import Select from './Select'
 import MontoInput from './MontoInput'
 
@@ -24,34 +25,12 @@ const initialForm = {
   cuentaId: '',
 }
 
-function TrashIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M3 6h18" />
-      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-      <line x1="10" x2="10" y1="11" y2="17" />
-      <line x1="14" x2="14" y1="11" y2="17" />
-    </svg>
-  )
-}
-
 function cuentaLabel(cuentas: { id: string; nombre: string }[], cuentaId: string | null): string {
   if (!cuentaId) return 'Cuenta predeterminada'
   return cuentas.find((c) => c.id === cuentaId)?.nombre ?? 'Cuenta asignada'
 }
 
-export default function GastosRecurrentes() {
+export default memo(function GastosRecurrentes() {
   const { user } = useAuthContext()
   const { cuentas, cuentasLoading } = useCuentas()
   const { refreshKey, refresh } = useGastosData()
@@ -206,7 +185,7 @@ export default function GastosRecurrentes() {
             >
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">{item.descripcion}</p>
-                <p className="text-xs text-slate-400">
+                <p className="truncate text-xs text-slate-400">
                   {item.categoria} · día {item.dia_mes} · {cuentaLabel(cuentas, item.cuenta_id)}
                 </p>
               </div>
@@ -337,7 +316,7 @@ export default function GastosRecurrentes() {
           <button
             type="submit"
             disabled={guardando || cuentasDisponibles.length === 0}
-            className={buttonVioletClassName}
+            className={buttonPrimaryClassName}
           >
             {guardando ? 'Guardando...' : 'Guardar gasto recurrente'}
           </button>
@@ -345,4 +324,4 @@ export default function GastosRecurrentes() {
       </form>
     </section>
   )
-}
+})

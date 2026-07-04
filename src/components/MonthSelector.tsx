@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { formatMonthLabel, shiftMonth } from '../utils/date'
+import { formatMonthLabel, formatMonthShortLabel, shiftMonth } from '../utils/date'
 import { buttonSecondaryClassName, inputClassName } from './formStyles'
 
 const MONTHS_SHORT = [
@@ -202,7 +202,8 @@ export default function MonthSelector({ value, onChange }: MonthSelectorProps) {
           aria-label={`Mes seleccionado: ${formatMonthLabel(value)}`}
           className={`flex min-w-0 flex-1 items-center justify-between gap-2 capitalize ${inputClassName}`}
         >
-          <span className="truncate">{formatMonthLabel(value)}</span>
+          <span className="truncate sm:hidden">{formatMonthShortLabel(value)}</span>
+          <span className="hidden truncate sm:inline">{formatMonthLabel(value)}</span>
           <CalendarIcon />
         </button>
 

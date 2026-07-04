@@ -39,7 +39,7 @@ export const tabPanelClassName = 'space-y-4 transition-opacity duration-200'
 
 /** Contenedor pegajoso para el botón de envío en formularios móviles */
 export const formSubmitStickyClassName =
-  'sticky bottom-0 z-10 -mx-6 mt-2 border-t border-white/8 bg-pulso-surface/95 px-6 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
+  'sticky bottom-0 z-10 -mx-5 mt-2 border-t border-white/8 bg-pulso-surface/95 px-5 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
 
 /** Panel de formulario dentro de ModalPortal */
 export const modalFormClassName =
@@ -73,15 +73,7 @@ export const buttonGhostSmClassName = `rounded-xl border border-pulso-border px-
 export const buttonGhostSmFlexClassName = `flex-1 ${buttonGhostSmClassName}`
 
 /** Acento secundario — misma paleta monocromática */
-export const buttonEmeraldClassName = buttonPrimaryClassName
-
-export const buttonEmeraldFlexClassName = buttonPrimaryFlexClassName
-
-export const buttonEmeraldFullClassName = `w-full ${buttonPrimaryClassName}`
-
-export const buttonVioletClassName = buttonPrimaryClassName
-
-export const buttonVioletFlexClassName = buttonPrimaryFlexClassName
+export const buttonPrimaryFullClassName = `w-full ${buttonPrimaryClassName}`
 
 export const buttonSkyClassName = `rounded-xl border border-pulso-border bg-pulso-surface-raised px-4 py-3 text-xs font-semibold text-pulso-accent-muted hover:border-pulso-accent/40 hover:bg-pulso-accent/10 min-h-11 ${interactive}`
 
@@ -90,14 +82,21 @@ export const toolbarButtonClassName = `inline-flex shrink-0 items-center justify
 export const togglePillClassName = `rounded-full border px-4 py-2.5 text-xs font-medium min-h-11 ${interactive}`
 
 export const navTabClassName = (active: boolean) =>
-  `w-full rounded-lg px-2 py-2.5 text-xs font-semibold min-h-11 sm:px-3 sm:text-sm ${interactive} ${
+  `w-full rounded-lg px-2 py-2.5 text-xs font-semibold min-h-11 whitespace-nowrap sm:px-3 sm:text-sm ${interactive} ${
     active
       ? 'bg-pulso-accent text-white shadow-sm active:bg-pulso-accent-active'
       : 'text-slate-400 hover:text-white active:bg-pulso-surface-raised'
   }`
 
+export const navBottomTabClassName = (active: boolean) =>
+  `w-full rounded-lg px-1 py-2 text-[11px] font-semibold leading-tight min-h-11 whitespace-nowrap ${interactive} ${
+    active
+      ? 'text-pulso-accent-muted'
+      : 'text-slate-400 active:bg-pulso-surface-raised'
+  }`
+
 export const chartToggleClassName = (active: boolean) =>
-  `flex-1 rounded-md px-3 py-2.5 text-xs font-semibold min-h-11 ${interactive} ${
+  `flex-1 rounded-md px-2 py-2.5 text-[11px] font-semibold min-h-11 whitespace-nowrap sm:px-3 sm:text-xs ${interactive} ${
     active
       ? 'bg-pulso-surface-raised text-white active:bg-pulso-surface'
       : 'text-slate-400 hover:text-white active:bg-pulso-surface-raised'

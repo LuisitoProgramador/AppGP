@@ -49,7 +49,7 @@ export default memo(function DashboardHeroCard({
             <p className="mt-2 text-4xl font-bold text-slate-500 sm:text-5xl">...</p>
           ) : (
             <p
-              className={`mt-2 text-4xl font-bold sm:text-5xl ${
+              className={`mt-2 text-4xl font-bold max-sm:text-[clamp(1.75rem,9vw,2.5rem)] sm:text-5xl ${
                 dentroDeLimite ? 'text-white' : 'text-pulso-warning'
               }`}
             >
@@ -59,8 +59,8 @@ export default memo(function DashboardHeroCard({
 
           <div className="my-5 border-t border-white/10" aria-hidden="true" />
 
-          <div className="flex items-start justify-center gap-10 sm:gap-16">
-            <div>
+          <div className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:items-start sm:gap-10">
+            <div className="w-full sm:w-auto">
               <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
                 Gasto del mes
               </p>
@@ -72,7 +72,7 @@ export default memo(function DashboardHeroCard({
                 </p>
               )}
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">
                 Presupuesto diario
               </p>
@@ -93,23 +93,25 @@ export default memo(function DashboardHeroCard({
           </div>
 
           {!cargando && (
-            <p className="mt-4 text-xs text-slate-500">
-              Límite mensual {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días
-              restantes
-            </p>
-          )}
-          {!cargando && (recibosEfectivos > 0 || msiPendientes > 0) && (
-            <p className="mt-1 text-xs text-slate-500">
-              Sin contar
-              {recibosEfectivos > 0 && ` ${formatCurrency(recibosEfectivos)} en pagos próximos`}
-              {recibosEfectivos > 0 && msiPendientes > 0 && ' ni'}
-              {msiPendientes > 0 && ` ${formatCurrency(msiPendientes)} en MSI pendientes`}
-            </p>
-          )}
-          {!cargando && diaAgotamiento != null && (
-            <p className="mt-1 text-xs text-slate-500">
-              Al ritmo actual, el presupuesto se agotaría alrededor del día {diaAgotamiento}
-            </p>
+            <ul className="mt-4 space-y-1 text-xs text-slate-500">
+              <li>
+                Límite mensual {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días
+                restantes
+              </li>
+              {(recibosEfectivos > 0 || msiPendientes > 0) && (
+                <li>
+                  Sin contar
+                  {recibosEfectivos > 0 && ` ${formatCurrency(recibosEfectivos)} en pagos próximos`}
+                  {recibosEfectivos > 0 && msiPendientes > 0 && ' ni'}
+                  {msiPendientes > 0 && ` ${formatCurrency(msiPendientes)} en MSI pendientes`}
+                </li>
+              )}
+              {diaAgotamiento != null && (
+                <li>
+                  Al ritmo actual, el presupuesto se agotaría alrededor del día {diaAgotamiento}
+                </li>
+              )}
+            </ul>
           )}
         </>
       ) : (

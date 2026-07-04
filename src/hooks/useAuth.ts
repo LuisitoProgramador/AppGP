@@ -80,6 +80,13 @@ export default function useAuth() {
     return { error: error as AuthError | null }
   }, [])
 
+  const resetPassword = useCallback(async (email: string) => {
+    const result = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: emailRedirectTo,
+    })
+    return { error: result.error as AuthError | null }
+  }, [])
+
   return {
     session,
     user: session?.user ?? null,
@@ -87,5 +94,6 @@ export default function useAuth() {
     signIn,
     signUp,
     signOut,
+    resetPassword,
   }
 }

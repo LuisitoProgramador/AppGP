@@ -23,79 +23,13 @@ import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
 import Select from './Select'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
-import { cardClassName, iconButtonDangerClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
+import { EditIcon, SpinnerIcon, TrashIcon } from './icons'
+import { cardClassName, iconButtonDangerClassName, iconButtonEditClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
 
 type HistorialItem =
   | (Gasto & { pendiente?: false; optimistic?: false })
   | (PendingGasto & { pendiente: true })
   | (OptimisticGasto & { optimistic: true })
-
-function SpinnerIcon() {
-  return (
-    <svg
-      className="h-3 w-3 animate-spin text-blue-300"
-      xmlns="http://www.w3.org/2000/svg"
-      fill="none"
-      viewBox="0 0 24 24"
-      aria-hidden="true"
-    >
-      <circle
-        className="opacity-25"
-        cx="12"
-        cy="12"
-        r="10"
-        stroke="currentColor"
-        strokeWidth="4"
-      />
-      <path
-        className="opacity-75"
-        fill="currentColor"
-        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-      />
-    </svg>
-  )
-}
-
-function TrashIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M3 6h18" />
-      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-      <line x1="10" x2="10" y1="11" y2="17" />
-      <line x1="14" x2="14" y1="11" y2="17" />
-    </svg>
-  )
-}
-
-function EditIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  )
-}
 
 interface HistorialItemRowProps {
   item: HistorialItem
@@ -113,69 +47,79 @@ const HistorialItemRow = memo(function HistorialItemRow({
   onDelete,
 }: HistorialItemRowProps) {
   return (
-    <div className="flex items-center gap-3 bg-slate-900/40 px-3 py-3">
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2 bg-slate-900/40 px-3 py-3 sm:flex-row sm:items-center sm:gap-3">
+      <div className="flex min-w-0 flex-1 items-start justify-between gap-2 sm:items-center sm:gap-3">
+        <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-white">
             {item.descripcion || item.categoria}
           </p>
-          {isOptimistic && (
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
-              <SpinnerIcon />
-              Guardando...
-            </span>
+          {(isOptimistic || item.pendiente) && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {isOptimistic && (
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+                  <SpinnerIcon />
+                  Guardando...
+                </span>
+              )}
+              {item.pendiente && (
+                <span className="shrink-0 rounded-full bg-pulso-warning/20 px-2 py-0.5 text-xs text-pulso-warning">
+                  Pendiente
+                </span>
+              )}
+            </div>
           )}
-          {item.pendiente && (
-            <span className="shrink-0 rounded-full bg-pulso-warning/20 px-2 py-0.5 text-xs text-pulso-warning">
-              Pendiente
-            </span>
-          )}
+          <p className="text-xs text-slate-400">
+            {item.categoria} · {formatShortDate(item.fecha)}
+          </p>
         </div>
-        <p className="text-xs text-slate-400">
-          {item.categoria} · {formatShortDate(item.fecha)}
+        <p className="shrink-0 text-sm font-semibold text-slate-200 sm:hidden">
+          {formatCurrency(Number(item.monto))}
         </p>
       </div>
-      <p className="shrink-0 text-sm font-semibold text-slate-200">
-        {formatCurrency(Number(item.monto))}
-      </p>
-      {!item.pendiente && !isOptimistic && (
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onEdit(item as Gasto, 'cuota')}
-            disabled={isBusy}
-            aria-label="Editar gasto"
-            title="Editar gasto"
-            className={`inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-blue-500/40 bg-blue-500/15 px-3 py-2 text-xs font-semibold text-blue-200 hover:bg-blue-500/25 active:bg-blue-500/30 disabled:cursor-not-allowed disabled:opacity-60`}
-          >
-            <EditIcon />
-            Editar
-          </button>
-          {item.es_msi && item.grupo_msi_id && (
+
+      <div className="flex shrink-0 items-center justify-end gap-1.5">
+        <p className="hidden shrink-0 text-sm font-semibold text-slate-200 sm:block">
+          {formatCurrency(Number(item.monto))}
+        </p>
+        {!item.pendiente && !isOptimistic && (
+          <>
             <button
               type="button"
-              onClick={() => onEdit(item as Gasto, 'compra')}
+              onClick={() => onEdit(item as Gasto, 'cuota')}
               disabled={isBusy}
-              aria-label="Editar compra MSI"
-              title="Editar compra MSI"
-              className={iconButtonMsiClassName}
+              aria-label="Editar gasto"
+              title="Editar gasto"
+              className={`${iconButtonEditClassName} max-sm:rounded-xl max-sm:border max-sm:border-blue-500/40 max-sm:bg-blue-500/15 max-sm:text-blue-200 max-sm:hover:bg-blue-500/25 sm:inline-flex sm:items-center sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold`}
             >
-              MSI
+              <EditIcon />
+              <span className="hidden sm:inline">Editar</span>
             </button>
-          )}
-        </div>
-      )}
-      {!isOptimistic && (
-        <button
-          type="button"
-          onClick={() => onDelete(item)}
-          disabled={isBusy}
-          aria-label="Eliminar gasto"
-          className={iconButtonDangerClassName}
-        >
-          <TrashIcon />
-        </button>
-      )}
+            {item.es_msi && item.grupo_msi_id && (
+              <button
+                type="button"
+                onClick={() => onEdit(item as Gasto, 'compra')}
+                disabled={isBusy}
+                aria-label="Editar compra MSI"
+                title="Editar compra MSI"
+                className={iconButtonMsiClassName}
+              >
+                MSI
+              </button>
+            )}
+          </>
+        )}
+        {!isOptimistic && (
+          <button
+            type="button"
+            onClick={() => onDelete(item)}
+            disabled={isBusy}
+            aria-label="Eliminar gasto"
+            className={iconButtonDangerClassName}
+          >
+            <TrashIcon />
+          </button>
+        )}
+      </div>
     </div>
   )
 })
@@ -383,7 +327,11 @@ export default memo(function Historial() {
     if ('optimistic' in item && item.optimistic) return
 
     const etiqueta = item.descripcion || item.categoria
-    if (!confirm(`¿Eliminar el gasto "${etiqueta}"?`)) return
+    const mensajeMsi =
+      item.es_msi && item.grupo_msi_id
+        ? `¿Eliminar solo esta cuota MSI de "${etiqueta}"? Las demás cuotas del plan no se borran.`
+        : `¿Eliminar el gasto "${etiqueta}"?`
+    if (!confirm(mensajeMsi)) return
 
     setAccionId(item.id)
 

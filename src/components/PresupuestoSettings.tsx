@@ -377,9 +377,16 @@ export default function PresupuestoSettings() {
               disabled={aplicandoLimite}
               className={`w-full ${buttonSecondaryClassName}`}
             >
-              {aplicandoLimite
-                ? 'Aplicando...'
-                : `Usar límite calculado (${formatCurrency(estrategiaPreview.disponibleParaGasto)})`}
+              {aplicandoLimite ? (
+                'Aplicando...'
+              ) : (
+                <>
+                  <span className="block">Usar límite calculado</span>
+                  <span className="mt-0.5 block text-sm font-bold text-white">
+                    {formatCurrency(estrategiaPreview.disponibleParaGasto)}
+                  </span>
+                </>
+              )}
             </button>
           </div>
         )}

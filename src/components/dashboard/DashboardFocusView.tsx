@@ -26,7 +26,7 @@ export default memo(function DashboardFocusView({
               Presupuesto diario
             </p>
             <p
-              className={`text-5xl font-bold transition-all duration-300 ${
+              className={`text-5xl font-bold max-sm:text-[clamp(1.75rem,9vw,2.5rem)] transition-all duration-300 ${
                 focusView.puedeGastar ? 'text-pulso-accent-muted' : 'text-pulso-warning'
               }`}
             >
@@ -38,7 +38,7 @@ export default memo(function DashboardFocusView({
               Disponible
             </p>
             <p
-              className={`text-5xl font-bold transition-all duration-300 ${
+              className={`text-5xl font-bold max-sm:text-[clamp(1.75rem,9vw,2.5rem)] transition-all duration-300 ${
                 focusView.puedeGastar ? 'text-white' : 'text-pulso-warning'
               }`}
             >

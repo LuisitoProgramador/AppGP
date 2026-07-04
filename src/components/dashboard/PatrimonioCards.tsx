@@ -19,11 +19,13 @@ export default memo(function PatrimonioCards({
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Ingreso mensual total
           </p>
-          <p className="mt-1 text-xl font-bold text-pulso-accent-muted">
+          <p className="mt-1 text-xl font-bold text-pulso-accent-muted max-sm:text-lg">
             {formatCurrency(ingresoMensualTotal)}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Ingreso mensual · límite de gasto {formatCurrency(limiteMensual)}
+            <span className="block sm:inline">Ingreso mensual</span>
+            <span className="hidden sm:inline"> · </span>
+            <span className="block sm:inline">límite de gasto {formatCurrency(limiteMensual)}</span>
           </p>
         </div>
       )}

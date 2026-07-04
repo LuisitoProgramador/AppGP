@@ -7,10 +7,17 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { PendingCuenta } from '../types/cuenta'
 import type { PendingGasto } from '../types/gasto'
 import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
 import { syncPendingMetaAhorro } from '../services/metasAhorro'
-import { getPendingGastos } from '../services/offlineQueue'
+import {
+  getPendingCuentas,
+  getPendingGastos,
+  getTotalPendingCount,
+  remapPendingGastoCuentaIds,
+} from '../services/offlineQueue'
+import { syncPendingCuentas } from '../services/syncCuentas'
 import { syncPendingGastos } from '../services/syncGastos'
 import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
@@ -21,6 +28,7 @@ interface OfflineSyncContextValue {
   isSyncing: boolean
   pendingCount: number
   pendingGastos: PendingGasto[]
+  pendingCuentas: PendingCuenta[]
   syncOffline: () => Promise<void>
 }
 
@@ -36,11 +44,17 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingGastos, setPendingGastos] = useState<PendingGasto[]>([])
+  const [pendingCuentas, setPendingCuentas] = useState<PendingCuenta[]>([])
 
   const updatePendingCount = useCallback(async () => {
-    const pending = await getPendingGastos()
-    setPendingCount(pending.length)
-    setPendingGastos(pending)
+    const [gastos, cuentas, total] = await Promise.all([
+      getPendingGastos(),
+      getPendingCuentas(),
+      getTotalPendingCount(),
+    ])
+    setPendingGastos(gastos)
+    setPendingCuentas(cuentas)
+    setPendingCount(total)
   }, [])
 
   const syncRecurring = useCallback(async () => {
@@ -57,15 +71,33 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const syncOffline = useCallback(async () => {
     if (!user || !isOnline()) return
 
-    const pendingBefore = await getPendingGastos()
-    const hadPending = pendingBefore.length > 0
+    const totalBefore = await getTotalPendingCount()
+    const hadPending = totalBefore > 0
 
     setIsSyncing(true)
     if (hadPending) {
-      showInfo('Sincronizando gastos guardados offline...')
+      showInfo('Sincronizando cambios guardados offline...')
     }
 
     try {
+      const cuentasResult = await syncPendingCuentas(user.id)
+      if (Object.keys(cuentasResult.idMap).length > 0) {
+        await remapPendingGastoCuentaIds(cuentasResult.idMap)
+      }
+
+      if (cuentasResult.synced > 0) {
+        showSuccess(`${cuentasResult.synced} cuenta(s) sincronizada(s) desde modo offline.`)
+        refresh()
+      }
+
+      if (cuentasResult.discarded > 0) {
+        showError(
+          `${cuentasResult.discarded} cuenta(s) no se pudieron sincronizar y se descartaron de la cola.`,
+        )
+      } else if (cuentasResult.failures.length > 0) {
+        showWarning('Algunas cuentas offline fallaron y se reintentarán.')
+      }
+
       const result = await syncPendingGastos()
       await updatePendingCount()
 
@@ -87,7 +119,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       }
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : 'Error inesperado al sincronizar gastos offline.'
+        err instanceof Error ? err.message : 'Error inesperado al sincronizar datos offline.'
       showError(message)
       await updatePendingCount()
     } finally {
@@ -133,9 +165,10 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       isSyncing,
       pendingCount,
       pendingGastos,
+      pendingCuentas,
       syncOffline,
     }),
-    [isSyncing, pendingCount, pendingGastos, syncOffline],
+    [isSyncing, pendingCount, pendingGastos, pendingCuentas, syncOffline],
   )
 
   return (

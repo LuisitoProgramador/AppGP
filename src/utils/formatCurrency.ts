@@ -3,6 +3,7 @@ export function formatCurrency(
   currency = 'MXN',
   locale = 'es-MX',
 ) {
+  if (!Number.isFinite(amount)) return '—'
   return new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,

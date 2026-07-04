@@ -7,8 +7,8 @@ import {
   inputClassName,
   inputInlineClassName,
   buttonPrimaryCompactClassName,
-  buttonEmeraldFlexClassName,
-  buttonEmeraldFullClassName,
+  buttonPrimaryFlexClassName,
+  buttonPrimaryFullClassName,
   buttonGhostClassName,
   buttonSecondaryFlexClassName,
 } from '../formStyles'
@@ -64,7 +64,7 @@ export default memo(function MetasAhorroSection({
             <button
               type="button"
               onClick={() => setMostrarFormMeta(true)}
-              className={buttonEmeraldFullClassName}
+              className={buttonPrimaryFullClassName}
             >
               Crear meta
             </button>
@@ -98,7 +98,7 @@ export default memo(function MetasAhorroSection({
                 <button
                   type="submit"
                   disabled={guardandoMeta}
-                  className={buttonEmeraldFlexClassName}
+                  className={buttonPrimaryFlexClassName}
                 >
                   {guardandoMeta ? 'Guardando...' : 'Crear'}
                 </button>
@@ -202,7 +202,7 @@ export default memo(function MetasAhorroSection({
                 <button
                   type="submit"
                   disabled={guardandoMeta}
-                  className={buttonEmeraldFlexClassName}
+                  className={buttonPrimaryFlexClassName}
                 >
                   {guardandoMeta ? 'Guardando...' : 'Crear meta'}
                 </button>

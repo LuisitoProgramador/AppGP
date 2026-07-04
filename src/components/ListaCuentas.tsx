@@ -187,12 +187,8 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       }
     }
 
-    if (!isOnline()) {
-      showError('Sin conexión. Conéctate para registrar una cuenta.')
-      return
-    }
-
     setGuardando(true)
+    const offline = !isOnline()
     const { error } = await createCuenta(user.id, {
       nombre,
       tipo: form.tipo,
@@ -208,7 +204,11 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       return
     }
 
-    showSuccess('Cuenta registrada correctamente.')
+    showSuccess(
+      offline
+        ? 'Cuenta guardada localmente. Se sincronizará al reconectar.'
+        : 'Cuenta registrada correctamente.',
+    )
     closeModal()
     refresh()
     await cargarCuentas()
@@ -227,20 +227,28 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
             onClick={() => setTransferenciaModalOpen(true)}
             disabled={cuentas.length < 2}
             className={toolbarButtonClassName}
+            aria-label="Transferir entre cuentas"
           >
             <TransferIcon />
-            Transferir
+            <span className="hidden sm:inline">Transferir</span>
           </button>
           <button
             type="button"
             onClick={() => setIngresoModalOpen(true)}
             className={toolbarButtonClassName}
+            aria-label="Registrar ingreso"
           >
             <IngresoIcon />
-            Ingreso
+            <span className="hidden sm:inline">Ingreso</span>
           </button>
-          <button type="button" onClick={openModal} className={toolbarButtonClassName}>
-            + Nueva cuenta
+          <button
+            type="button"
+            onClick={openModal}
+            className={toolbarButtonClassName}
+            aria-label="Nueva cuenta"
+          >
+            <span className="sm:hidden">+</span>
+            <span className="hidden sm:inline">+ Nueva cuenta</span>
           </button>
         </div>
       </div>

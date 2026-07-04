@@ -14,12 +14,10 @@ import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import {
-  buttonEmeraldFlexClassName,
+  buttonPrimaryFlexClassName,
   buttonGhostSmClassName,
   buttonGhostSmFlexClassName,
   buttonPrimaryClassName,
-  buttonPrimaryFlexClassName,
-  buttonVioletFlexClassName,
   cardClassName,
   formWithKeyboardClassName,
   inputClassName,
@@ -572,7 +570,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       Cancelar
                     </button>
-                    <button type="submit" className={buttonEmeraldFlexClassName}>
+                    <button type="submit" className={buttonPrimaryFlexClassName}>
                       Guardar cuenta
                     </button>
                   </div>
@@ -720,7 +718,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       Cancelar
                     </button>
-                    <button type="submit" className={buttonVioletFlexClassName}>
+                    <button type="submit" className={buttonPrimaryFlexClassName}>
                       Guardar tarjeta
                     </button>
                   </div>
@@ -975,7 +973,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 type="button"
                 onClick={handleFinish}
                 disabled={guardando}
-                className={buttonEmeraldFlexClassName}
+                className={buttonPrimaryFlexClassName}
               >
                 {guardando ? 'Configurando...' : 'Finalizar'}
               </button>

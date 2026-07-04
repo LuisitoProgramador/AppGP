@@ -74,19 +74,24 @@ export default memo(function DashboardHeader({
   useEffect(() => {
     if (!menuOpen) return
 
-    function handlePointerDown(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+    function handlePointerDown(event: MouseEvent | TouchEvent) {
+      const target = event.target as Node
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setMenuOpen(false)
       }
     }
 
     window.addEventListener('mousedown', handlePointerDown)
-    return () => window.removeEventListener('mousedown', handlePointerDown)
+    window.addEventListener('touchstart', handlePointerDown)
+    return () => {
+      window.removeEventListener('mousedown', handlePointerDown)
+      window.removeEventListener('touchstart', handlePointerDown)
+    }
   }, [menuOpen])
 
   if (isFocusMode) {
     return (
-      <div className="flex items-center justify-end">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <button
           type="button"
           onClick={onToggleFocusMode}
@@ -102,11 +107,12 @@ export default memo(function DashboardHeader({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
       <div className="min-w-0 flex-1">
         <MonthSelector value={selectedMonth} onChange={onMonthChange} />
       </div>
 
+      <div className="flex shrink-0 items-center justify-end gap-2">
       <button
         type="button"
         onClick={onToggleFocusMode}
@@ -172,6 +178,7 @@ export default memo(function DashboardHeader({
             </button>
           </div>
         )}
+      </div>
       </div>
     </div>
   )

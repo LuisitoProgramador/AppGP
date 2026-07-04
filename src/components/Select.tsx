@@ -175,7 +175,7 @@ export default function Select({
                             : 'text-slate-200 hover:bg-slate-700/60 hover:text-white'
                         }`}
                       >
-                        <span className="min-w-0 flex-1">{option.label}</span>
+                        <span className="min-w-0 flex-1 truncate">{option.label}</span>
                         {isSelected && <CheckIcon />}
                       </button>
                     )

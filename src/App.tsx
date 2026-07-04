@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, useCallback, type ReactNode } from 'react'
 import { AuthProvider, GastosProviders, QuietModeProvider, FocusModeProvider, useAuthContext } from './contexts'
 import {
   Ajustes,
@@ -11,7 +11,8 @@ import {
   Plan,
   OnboardingFlow,
 } from './components'
-import { navTabClassName, iconButtonClassName, tabPanelClassName } from './components/formStyles'
+import { navTabClassName, navBottomTabClassName, iconButtonClassName, tabPanelClassName } from './components/formStyles'
+import { useTabSwipe } from './hooks/useTabSwipe'
 import { checkNeedsOnboarding } from './services/onboarding'
 import { readSessionStorage, writeSessionStorage } from './utils/storage'
 import { showError } from './utils/toast'
@@ -22,11 +23,11 @@ const TAB_STORAGE_KEY = 'app-tab'
 
 const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial', 'plan']
 
-const TABS: { id: AppTab; label: string }[] = [
-  { id: 'registro', label: 'Registro' },
-  { id: 'resumen', label: 'Resumen' },
-  { id: 'historial', label: 'Historial' },
-  { id: 'plan', label: 'Plan' },
+const TABS: { id: AppTab; label: string; shortLabel: string }[] = [
+  { id: 'registro', label: 'Registro', shortLabel: 'Nuevo' },
+  { id: 'resumen', label: 'Resumen', shortLabel: 'Resumen' },
+  { id: 'historial', label: 'Historial', shortLabel: 'Historial' },
+  { id: 'plan', label: 'Plan', shortLabel: 'Plan' },
 ]
 
 function getInitialTab(): AppTab {
@@ -97,15 +98,14 @@ interface TabPanelProps {
 }
 
 function TabPanel({ id, activeTab, children }: TabPanelProps) {
-  const active = activeTab === id
+  if (activeTab !== id) return null
 
   return (
     <div
       role="tabpanel"
       id={`panel-${id}`}
       aria-labelledby={`tab-${id}`}
-      hidden={!active}
-      className={active ? tabPanelClassName : undefined}
+      className={tabPanelClassName}
     >
       {children}
     </div>
@@ -123,6 +123,20 @@ function AppContent() {
     setTab(nextTab)
     writeSessionStorage(TAB_STORAGE_KEY, nextTab)
   }
+
+  const tabIndex = TABS.findIndex(({ id }) => id === tab)
+
+  const handleSwipeLeft = useCallback(() => {
+    if (showAjustes || tabIndex >= TABS.length - 1) return
+    handleTabChange(TABS[tabIndex + 1].id)
+  }, [showAjustes, tabIndex])
+
+  const handleSwipeRight = useCallback(() => {
+    if (showAjustes || tabIndex <= 0) return
+    handleTabChange(TABS[tabIndex - 1].id)
+  }, [showAjustes, tabIndex])
+
+  const swipeHandlers = useTabSwipe(handleSwipeLeft, handleSwipeRight)
 
   function handleToggleAjustes() {
     setShowAjustes((open) => !open)
@@ -230,7 +244,7 @@ function AppContent() {
 
             {!showAjustes && (
               <div
-                className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-pulso-surface/50 p-1 backdrop-blur-sm"
+                className="hidden grid-cols-4 gap-1 rounded-xl border border-white/10 bg-pulso-surface/50 p-1 backdrop-blur-sm sm:grid"
                 role="tablist"
                 aria-label="Navegación principal"
               >
@@ -251,7 +265,7 @@ function AppContent() {
               </div>
             )}
 
-            <div className="relative">
+            <div className="relative" {...(!showAjustes ? swipeHandlers : {})}>
               {showAjustes ? (
                 <ErrorBoundary title="Error en ajustes">
                   <Ajustes />
@@ -286,6 +300,31 @@ function AppContent() {
                 </>
               )}
             </div>
+
+            {!showAjustes && (
+              <nav
+                className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-pulso-surface/95 backdrop-blur-md sm:hidden"
+                role="tablist"
+                aria-label="Navegación principal"
+                style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+              >
+                <div className="mx-auto grid max-w-lg grid-cols-4 gap-0.5 px-2 pt-1">
+                  {TABS.map(({ id, shortLabel }) => (
+                    <button
+                      key={`bottom-${id}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === id}
+                      aria-controls={`panel-${id}`}
+                      onClick={() => handleTabChange(id)}
+                      className={navBottomTabClassName(tab === id)}
+                    >
+                      {shortLabel}
+                    </button>
+                  ))}
+                </div>
+              </nav>
+            )}
           </section>
         </Layout>
       </QuietModeProvider>

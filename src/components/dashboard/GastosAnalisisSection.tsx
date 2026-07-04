@@ -24,6 +24,7 @@ export default memo(function GastosAnalisisSection({
 }: GastosAnalisisSectionProps) {
   const [mostrarGraficas, setMostrarGraficas] = useState(false)
   const [chartView, setChartView] = useState<ChartView>('categoria')
+  const chartPanelId = 'gastos-analisis-chart-panel'
 
   return (
     <div className="space-y-3 transition-all duration-300">
@@ -46,7 +47,9 @@ export default memo(function GastosAnalisisSection({
             <button
               type="button"
               role="tab"
+              id="tab-chart-categoria"
               aria-selected={chartView === 'categoria'}
+              aria-controls={chartPanelId}
               onClick={() => setChartView('categoria')}
               className={chartToggleClassName(chartView === 'categoria')}
             >
@@ -55,7 +58,9 @@ export default memo(function GastosAnalisisSection({
             <button
               type="button"
               role="tab"
+              id="tab-chart-evolucion"
               aria-selected={chartView === 'evolucion'}
+              aria-controls={chartPanelId}
               onClick={() => setChartView('evolucion')}
               className={chartToggleClassName(chartView === 'evolucion')}
             >
@@ -63,6 +68,7 @@ export default memo(function GastosAnalisisSection({
             </button>
           </div>
 
+          <div id={chartPanelId} role="tabpanel" aria-labelledby={`tab-chart-${chartView}`}>
           <Suspense
             fallback={<p className="text-center text-sm text-slate-400">Cargando gráfica...</p>}
           >
@@ -72,6 +78,7 @@ export default memo(function GastosAnalisisSection({
               <GastoBarChart data={evolucionMensual} />
             )}
           </Suspense>
+          </div>
 
           {chartView === 'categoria' && (
             <>

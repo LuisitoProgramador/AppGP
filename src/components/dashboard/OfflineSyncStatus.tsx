@@ -11,8 +11,8 @@ export default memo(function OfflineSyncStatus({ isSyncing, pendingCount }: Offl
   return (
     <p className="text-center text-xs text-pulso-warning">
       {isSyncing
-        ? 'Sincronizando gastos offline...'
-        : `${pendingCount} gasto(s) pendiente(s) de sincronizar`}
+        ? 'Sincronizando cambios offline...'
+        : `${pendingCount} elemento(s) pendiente(s) de sincronizar`}
     </p>
   )
 })

@@ -47,6 +47,7 @@ export function useDashboardData(
     ingresoMensualTotal: queries.ingresoMensualTotal,
     patrimonioLiquido: queries.patrimonioLiquido,
     recurrenteSugerido: queries.recurrenteSugerido,
+    recurrentes: queries.recurrentes,
     ...calculations,
     ...mutations,
   }

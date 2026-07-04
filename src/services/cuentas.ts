@@ -1,7 +1,7 @@
-import type { Cuenta, CuentaInput } from '../types/cuenta'
+import type { Cuenta, CuentaInput, PendingCuenta } from '../types/cuenta'
 import { calcSaldoAfterGasto, revertSaldoAfterGasto } from '../utils/cuentaSaldo'
 import { isOnline, offlineServiceError } from '../utils/network'
-import { getPendingGastos } from './offlineQueue'
+import { addPendingCuenta, getPendingCuentas, getPendingGastos } from './offlineQueue'
 import { supabase } from './supabase'
 
 const CUENTA_SELECT_BASE = 'id, nombre, tipo, limite_credito, saldo_actual' as const
@@ -91,6 +91,30 @@ function mapCuenta(row: Record<string, unknown>): Cuenta {
   }
 }
 
+export function pendingCuentaToCuenta(item: PendingCuenta): Cuenta {
+  return {
+    id: item.tempCuentaId,
+    nombre: item.nombre,
+    tipo: item.tipo,
+    limite_credito: item.limite_credito,
+    saldo_actual: item.saldo_actual,
+    dia_corte: item.dia_corte,
+    dia_pago: item.dia_pago,
+  }
+}
+
+async function appendQueuedCuentas(userId: string, cuentas: Cuenta[]): Promise<Cuenta[]> {
+  const pending = (await getPendingCuentas()).filter((item) => item.userId === userId)
+  if (pending.length === 0) return cuentas
+
+  const existingIds = new Set(cuentas.map((cuenta) => cuenta.id))
+  const extras = pending
+    .filter((item) => !existingIds.has(item.tempCuentaId))
+    .map(pendingCuentaToCuenta)
+
+  return extras.length > 0 ? [...cuentas, ...extras] : cuentas
+}
+
 export async function listCuentas(
   userId: string,
 ): Promise<{ data: Cuenta[]; error: string | null; fromCache: boolean }> {
@@ -98,8 +122,8 @@ export async function listCuentas(
     return { data: readCache(userId), error: null, fromCache: true }
   }
 
-  const pending = await getPendingGastos()
-  if (pending.length > 0) {
+  const pendingGastos = await getPendingGastos()
+  if (pendingGastos.length > 0) {
     const cached = readCache(userId)
     if (cached.length > 0) {
       return { data: cached, error: null, fromCache: true }
@@ -117,32 +141,15 @@ export async function listCuentas(
   }
 
   const cuentas = (data ?? []).map((row) => mapCuenta(row))
-  writeCache(userId, cuentas)
-  return { data: cuentas, error: null, fromCache: false }
+  const merged = await appendQueuedCuentas(userId, cuentas)
+  writeCache(userId, merged)
+  return { data: merged, error: null, fromCache: false }
 }
 
-export async function ensureCuentaEfectivo(
-  userId: string,
-): Promise<{ data: Cuenta | null; error: string | null }> {
-  const { data: existing } = await listCuentas(userId)
-  const efectivo = existing.find((c) => c.tipo === 'efectivo')
-  if (efectivo) return { data: efectivo, error: null }
-
-  return createCuenta(userId, {
-    nombre: 'Efectivo',
-    tipo: 'efectivo',
-    saldo_actual: 0,
-  })
-}
-
-export async function createCuenta(
+export async function insertCuentaRemoto(
   userId: string,
   input: CuentaInput,
 ): Promise<{ data: Cuenta | null; error: string | null }> {
-  if (!isOnline()) {
-    return offlineServiceError('Sin conexión. Conéctate para registrar una cuenta.')
-  }
-
   const row: Record<string, unknown> = {
     nombre: input.nombre.trim(),
     tipo: input.tipo,
@@ -172,8 +179,69 @@ export async function createCuenta(
     dia_corte: input.tipo === 'credito' ? (input.dia_corte ?? null) : null,
     dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
   })
+
+  return { data: cuenta, error: null }
+}
+
+async function queueCuentaOffline(
+  userId: string,
+  input: CuentaInput,
+): Promise<{ data: Cuenta | null; error: string | null }> {
+  const tempCuentaId = `pending-${crypto.randomUUID()}`
+  const saldo = input.saldo_actual ?? 0
+
+  await addPendingCuenta({
+    tempCuentaId,
+    userId,
+    nombre: input.nombre.trim(),
+    tipo: input.tipo,
+    saldo_actual: saldo,
+    limite_credito: input.tipo === 'credito' ? (input.limite_credito ?? null) : null,
+    dia_corte: input.tipo === 'credito' ? (input.dia_corte ?? null) : null,
+    dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
+  })
+
+  const cuenta: Cuenta = {
+    id: tempCuentaId,
+    nombre: input.nombre.trim(),
+    tipo: input.tipo,
+    saldo_actual: saldo,
+    limite_credito: input.tipo === 'credito' ? (input.limite_credito ?? null) : null,
+    dia_corte: input.tipo === 'credito' ? (input.dia_corte ?? null) : null,
+    dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
+  }
+
   writeCache(userId, [...readCache(userId), cuenta])
   return { data: cuenta, error: null }
+}
+
+export async function ensureCuentaEfectivo(
+  userId: string,
+): Promise<{ data: Cuenta | null; error: string | null }> {
+  const { data: existing } = await listCuentas(userId)
+  const efectivo = existing.find((c) => c.tipo === 'efectivo')
+  if (efectivo) return { data: efectivo, error: null }
+
+  return createCuenta(userId, {
+    nombre: 'Efectivo',
+    tipo: 'efectivo',
+    saldo_actual: 0,
+  })
+}
+
+export async function createCuenta(
+  userId: string,
+  input: CuentaInput,
+): Promise<{ data: Cuenta | null; error: string | null }> {
+  if (!isOnline()) {
+    return queueCuentaOffline(userId, input)
+  }
+
+  const { data, error } = await insertCuentaRemoto(userId, input)
+  if (error || !data) return { data: null, error }
+
+  writeCache(userId, [...readCache(userId), data])
+  return { data, error: null }
 }
 
 export function getDefaultCuentaId(cuentas: Cuenta[]): string | null {

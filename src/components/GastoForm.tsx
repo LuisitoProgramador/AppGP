@@ -46,18 +46,18 @@ export default memo(function GastoForm() {
   const [merchantMemory, setMerchantMemory] = useState<MerchantMemoryEntry[]>([])
   const [montoSugerido, setMontoSugerido] = useState<number | null>(null)
   const montoInputRef = useRef<HTMLInputElement>(null)
+  const urlQueryHandled = useRef(false)
 
   const selectedCuenta = cuentas.find((c) => String(c.id) === form.cuentaId)
   const isCredito = selectedCuenta?.tipo === 'credito'
 
   useEffect(() => {
     if (!user) return
-    const cached = getMerchantMemory(user.id)
-    setMerchantMemory(cached)
+    setMerchantMemory(getMerchantMemory(user.id))
     if (isOnline()) {
       refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
     }
-  }, [user, refreshKey])
+  }, [user])
 
   const merchantMatch = useMemo(
     () => matchMerchantMemory(form.descripcion, merchantMemory),
@@ -91,9 +91,13 @@ export default memo(function GastoForm() {
   }, [isCredito, form.esMsi])
 
   useEffect(() => {
+    if (urlQueryHandled.current) return
+
     const params = new URLSearchParams(window.location.search)
     const query = params.get('q')
     if (query === null) return
+
+    urlQueryHandled.current = true
 
     params.delete('q')
     const remaining = params.toString()
@@ -123,7 +127,7 @@ export default memo(function GastoForm() {
     }
 
     montoInputRef.current?.focus()
-  }, [])
+  }, [merchantMemory])
 
   async function deshacerGasto(params: {
     gastoIds: number[]
@@ -415,6 +419,7 @@ export default memo(function GastoForm() {
               type="button"
               role="switch"
               aria-checked={form.esMsi}
+              aria-label="Meses sin intereses"
               onClick={() => setForm((prev) => ({ ...prev, esMsi: !prev.esMsi }))}
               className={`relative h-7 w-12 shrink-0 rounded-full transition active:scale-[0.98] ${
                 form.esMsi ? 'bg-blue-500' : 'bg-slate-600'

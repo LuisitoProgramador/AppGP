@@ -17,9 +17,12 @@ export default memo(function CompromisosMsiWidget({ compromisos }: CompromisosMs
       </div>
       <div className="space-y-2">
         {compromisos.map((item) => (
-          <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
+          <div
+            key={item.label}
+            className="flex flex-col gap-1 text-sm sm:flex-row sm:items-center sm:justify-between sm:gap-3"
+          >
             <span className="capitalize text-slate-300">{item.label}</span>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="font-medium text-pulso-accent-muted">
                 {formatCurrency(item.comprometido)} comprometidos
               </p>

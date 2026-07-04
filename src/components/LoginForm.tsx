@@ -1,17 +1,27 @@
 import { type FormEvent, useState } from 'react'
 import { useAuthContext } from '../contexts'
 import { formatAuthError } from '../utils/authErrors'
-import { showError, showInfo } from '../utils/toast'
-import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, textLinkClassName } from './formStyles'
+import { showError, showInfo, showSuccess } from '../utils/toast'
+import {
+  cardClassName,
+  formWithKeyboardClassName,
+  iconButtonClassName,
+  inputClassName,
+  buttonPrimaryClassName,
+  textLinkClassName,
+} from './formStyles'
+import { EyeIcon, EyeOffIcon } from './icons'
 
 type ModoAuth = 'login' | 'register'
 
 export default function LoginForm() {
-  const { signIn, signUp } = useAuthContext()
+  const { signIn, signUp, resetPassword } = useAuthContext()
   const [modo, setModo] = useState<ModoAuth>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [mostrarPassword, setMostrarPassword] = useState(false)
   const [enviando, setEnviando] = useState(false)
+  const [enviandoReset, setEnviandoReset] = useState(false)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -34,6 +44,25 @@ export default function LoginForm() {
         showInfo('Revisa tu correo para confirmar la cuenta antes de entrar.')
       }
     }
+  }
+
+  async function handleForgotPassword() {
+    const correo = email.trim()
+    if (!correo) {
+      showError('Escribe tu correo arriba para enviarte el enlace de recuperación.')
+      return
+    }
+
+    setEnviandoReset(true)
+    const { error } = await resetPassword(correo)
+    setEnviandoReset(false)
+
+    if (error) {
+      showError('No pudimos enviar el enlace. Verifica el correo e inténtalo de nuevo.')
+      return
+    }
+
+    showSuccess('Revisa tu correo para restablecer la contraseña.')
   }
 
   return (
@@ -69,24 +98,41 @@ export default function LoginForm() {
         <label htmlFor="password" className="block text-sm font-medium text-slate-300">
           Contraseña
         </label>
-        <input
-          id="password"
-          type="password"
-          autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
-          placeholder="Mínimo 6 caracteres"
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={inputClassName}
-          required
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={mostrarPassword ? 'text' : 'password'}
+            autoComplete={modo === 'login' ? 'current-password' : 'new-password'}
+            placeholder="Mínimo 6 caracteres"
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className={`${inputClassName} pr-12`}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setMostrarPassword((visible) => !visible)}
+            className={`${iconButtonClassName} absolute top-1/2 right-1 -translate-y-1/2 text-slate-400 hover:text-white`}
+            aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+          >
+            {mostrarPassword ? <EyeOffIcon /> : <EyeIcon />}
+          </button>
+        </div>
       </div>
 
-      <button
-        type="submit"
-        disabled={enviando}
-        className={buttonPrimaryClassName}
-      >
+      {modo === 'login' && (
+        <button
+          type="button"
+          onClick={handleForgotPassword}
+          disabled={enviandoReset}
+          className="text-left text-sm text-slate-400 transition hover:text-white"
+        >
+          {enviandoReset ? 'Enviando enlace...' : '¿Olvidaste tu contraseña?'}
+        </button>
+      )}
+
+      <button type="submit" disabled={enviando} className={buttonPrimaryClassName}>
         {enviando
           ? 'Procesando...'
           : modo === 'login'

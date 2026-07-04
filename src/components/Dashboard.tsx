@@ -54,6 +54,7 @@ export default memo(function Dashboard() {
     tieneDatosAnalisis,
     recurrenteSugerido,
     marcandoRecurrente,
+    recurrentes,
     handleToggleModoViaje,
     handleMarcarRecurrente,
     handleDescartarRecurrente,
@@ -150,7 +151,7 @@ export default memo(function Dashboard() {
         </div>
       </section>
 
-      <SalidasTimelineSection />
+      <SalidasTimelineSection selectedMonth={selectedMonth} recurrentes={recurrentes} />
     </div>
   )
 })

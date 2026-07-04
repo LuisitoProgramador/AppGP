@@ -16,6 +16,12 @@ export function formatMonthLabel(date = new Date(), locale = 'es-MX'): string {
   }).format(date)
 }
 
+/** Etiqueta compacta para selectores en pantallas estrechas (ej. "ene 2026"). */
+export function formatMonthShortLabel(date = new Date(), locale = 'es-MX'): string {
+  const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(date)
+  return `${month} ${date.getFullYear()}`
+}
+
 export function formatShortDate(date: string | Date, locale = 'es-MX'): string {
   return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
