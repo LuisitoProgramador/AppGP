@@ -1,9 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-/**
- * Cliente Supabase con service role para uso EXCLUSIVO en funciones server-side
- * (cron). Omite RLS, así que nunca debe exponerse al navegador.
- */
+/** Cliente Supabase con service role (solo server-side, omite RLS). */
 export function createSupabaseAdmin(): SupabaseClient {
   const url = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY

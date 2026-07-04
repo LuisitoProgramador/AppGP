@@ -3,7 +3,6 @@ import axios from 'axios'
 /**
  * Envía un mensaje de texto al chat de Telegram configurado.
  * Personal: un solo TELEGRAM_CHAT_ID para toda la app.
- * Lanza si faltan variables o si la API de Telegram falla.
  */
 export async function sendTelegram(text: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN

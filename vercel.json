@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/cron.ts": {
+      "includeFiles": "server/**"
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }

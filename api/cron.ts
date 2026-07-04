@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { createSupabaseAdmin } from './_lib/supabaseAdmin'
-import { formatMonto, sendTelegram } from './_lib/telegram'
+import { createSupabaseAdmin } from '../server/supabaseAdmin'
+import { formatMonto, sendTelegram } from '../server/telegram'
 
 interface VercelRequest {
   method?: string
