@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useCuentas, useGastosData } from '../contexts'
 import { updateMsiGrupo, type MsiGrupoUndoSnapshot } from '../services/msiGrupo'
+import { updateGastoSimple } from '../services/gastos'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS, type Gasto } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -143,23 +144,6 @@ export default function EditGastoModal({
     cargarGrupo()
   }, [esMsi, gasto.grupo_msi_id, gasto.descripcion])
 
-  async function aplicarDeltaSaldo(cuentaSaldoId: string, delta: number): Promise<string | null> {
-    if (delta === 0) return null
-
-    const result =
-      delta > 0
-        ? await applyGastoSaldo(cuentaSaldoId, delta)
-        : await revertGastoSaldo(cuentaSaldoId, Math.abs(delta))
-
-    return result.error
-  }
-
-  function validarCambioCuenta(): string | null {
-    if (!cuentaCambio) return null
-    if (!isOnline()) return OFFLINE_CUENTA_MSG
-    return validateCuentaId(cuentaId)
-  }
-
   async function transferirSaldoEntreCuentas(
     cuentaOrigenId: string,
     cuentaDestinoId: string,
@@ -180,45 +164,10 @@ export default function EditGastoModal({
     return null
   }
 
-  async function ajustarSaldoAlEditar(
-    cuentaAnteriorId: string | null,
-    cuentaNuevaId: string | null,
-    montoAnterior: number,
-    montoNuevo: number,
-  ): Promise<string | null> {
-    const cambioCuenta = Boolean(cuentaAnteriorId && cuentaNuevaId && cuentaAnteriorId !== cuentaNuevaId)
-    const cambioMonto = montoAnterior !== montoNuevo
-
-    if (!cambioCuenta && !cambioMonto) return null
-
-    if (cambioCuenta && cuentaAnteriorId && cuentaNuevaId) {
-      const revertResult = await revertGastoSaldo(cuentaAnteriorId, montoAnterior)
-      if (revertResult.error) return revertResult.error
-
-      const applyResult = await applyGastoSaldo(cuentaNuevaId, montoNuevo)
-      if (applyResult.error) {
-        const rollbackResult = await applyGastoSaldo(cuentaAnteriorId, montoAnterior)
-        if (rollbackResult.error) {
-          return `${applyResult.error} (y no se pudo revertir: ${rollbackResult.error})`
-        }
-        return applyResult.error
-      }
-      return null
-    }
-
-    if (!cuentaAnteriorId && cuentaNuevaId) {
-      return (await applyGastoSaldo(cuentaNuevaId, montoNuevo)).error
-    }
-
-    if (cuentaAnteriorId && !cuentaNuevaId) {
-      return (await revertGastoSaldo(cuentaAnteriorId, montoAnterior)).error
-    }
-
-    if (cuentaAnteriorId && cambioMonto) {
-      return aplicarDeltaSaldo(cuentaAnteriorId, montoNuevo - montoAnterior)
-    }
-
-    return null
+  function validarCambioCuenta(): string | null {
+    if (!cuentaCambio) return null
+    if (!isOnline()) return OFFLINE_CUENTA_MSG
+    return validateCuentaId(cuentaId)
   }
 
   function buildUndoSnapshot(): MsiGrupoUndoSnapshot | null {
@@ -453,37 +402,23 @@ export default function EditGastoModal({
     }
 
     const newMonto = Number(monto)
-    const oldMonto = Number(gasto.monto)
-    const oldCuentaId = gasto.cuenta_id ?? null
     const newCuentaId = cuentaId || null
 
-    const saldoError = await ajustarSaldoAlEditar(
-      oldCuentaId,
-      newCuentaId,
-      oldMonto,
-      newMonto,
-    )
-    if (saldoError) {
-      showError(`No se pudo ajustar el saldo: ${saldoError}`)
-      return false
-    }
-
-    const { error } = await supabase
-      .from('gastos')
-      .update({
-        monto: newMonto,
-        categoria,
-        descripcion: descripcion.trim(),
-        cuenta_id: newCuentaId,
-      })
-      .eq('id', gasto.id)
+    const { error } = await updateGastoSimple({
+      gastoId: gasto.id,
+      monto: newMonto,
+      categoria,
+      descripcion: descripcion.trim(),
+      cuentaId: newCuentaId,
+    })
 
     if (error) {
-      await ajustarSaldoAlEditar(newCuentaId, oldCuentaId, newMonto, oldMonto)
-      showError(`Error al actualizar: ${error.message}`)
+      showError(`Error al actualizar: ${error}`)
       return false
     }
 
+    await refreshCuentas()
+    refresh()
     return true
   }
 
