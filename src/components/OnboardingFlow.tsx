@@ -32,6 +32,13 @@ import {
   PORCENTAJE_AHORRO_MIN,
   PORCENTAJE_AHORRO_STEP,
 } from '../constants/porcentajeAhorro'
+import { REGLA_503020 } from '../constants/regla503020'
+import { CATEGORIAS_DEFAULT } from '../types/gasto'
+import {
+  calcAhorroMensual503020,
+  calcLimitesRegla503020,
+  calcTotalBucket503020,
+} from '../utils/regla503020'
 
 const TOTAL_STEPS = 4
 
@@ -395,6 +402,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     sueldoNum > 0 ? calcLimiteMensual(sueldoNum, porcentajeAhorro) : null
   const ahorroPreview = sueldoNum > 0 ? calcPrimerAhorro(sueldoNum, porcentajeAhorro) : null
 
+  const regla503020Preview = useMemo(() => {
+    if (sueldoNum <= 0) return null
+    return {
+      necesidades: calcTotalBucket503020(sueldoNum, 'necesidades'),
+      caprichos: calcTotalBucket503020(sueldoNum, 'caprichos'),
+      ahorro: calcAhorroMensual503020(sueldoNum),
+      limites: calcLimitesRegla503020(sueldoNum, CATEGORIAS_DEFAULT),
+    }
+  }, [sueldoNum])
+
   return (
     <section className="space-y-6">
       <div className="space-y-3 text-center">
@@ -416,9 +433,17 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <div className="space-y-1">
               <h2 className="text-lg font-semibold text-white">¿Cuánto ganas al mes?</h2>
               <p className="text-sm text-slate-400">
-                Ingresa tu sueldo mensual; nosotros calculamos la planeación semanal
+                Ingresa tu sueldo mensual. Pulso reparte tus ingresos con la regla 50/30/20
               </p>
             </div>
+
+            <p className="rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-3 text-xs leading-relaxed text-slate-400">
+              <span className="font-medium text-slate-300">50% necesidades</span> (Comida,
+              Transporte, Casa) ·{' '}
+              <span className="font-medium text-slate-300">30% caprichos</span> (Suscripciones,
+              Compras, Otros) ·{' '}
+              <span className="font-medium text-slate-300">20% ahorro</span> para el futuro
+            </p>
 
             <div className="space-y-2">
               <label htmlFor="onb-sueldo" className="block text-sm font-medium text-slate-300">
@@ -433,11 +458,33 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
             </div>
 
-            {sueldoNum > 0 && (
-              <p className="rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3 text-sm text-pulso-accent-muted">
-                Ingreso base mensual:{' '}
-                <strong className="text-white">{formatCurrency(sueldoNum)}</strong>
-              </p>
+            {regla503020Preview && (
+              <div className="space-y-2 rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3">
+                <p className="text-sm text-pulso-accent-muted">
+                  Ingreso base:{' '}
+                  <strong className="text-white">{formatCurrency(sueldoNum)}</strong>
+                </p>
+                <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                  <div>
+                    <p className="text-slate-400">Necesidades</p>
+                    <p className="font-semibold text-white">
+                      {formatCurrency(regla503020Preview.necesidades)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Caprichos</p>
+                    <p className="font-semibold text-white">
+                      {formatCurrency(regla503020Preview.caprichos)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-400">Ahorro</p>
+                    <p className="font-semibold text-white">
+                      {formatCurrency(regla503020Preview.ahorro)}
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
             <div className="space-y-2">
@@ -915,9 +962,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
         {step === 4 && (
           <div className={cardClassName}>
             <div className="space-y-1">
-              <h2 className="text-lg font-semibold text-white">¿Cuánto quieres ahorrar?</h2>
+              <h2 className="text-lg font-semibold text-white">Tu ahorro semanal</h2>
               <p className="text-sm text-slate-400">
-                Reservaremos este porcentaje de tu sueldo cada semana
+                La regla 50/30/20 reserva {Math.round(REGLA_503020.ahorro * 100)}% para el
+                futuro. Ajusta el porcentaje si quieres ahorrar más o menos cada semana
               </p>
             </div>
 
@@ -949,13 +997,31 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
 
             {limitePreview != null && sueldoNum > 0 && (
-              <p className="rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3 text-sm text-pulso-accent-muted">
-                Con {porcentajeAhorro}% de ahorro, tu presupuesto mensual para gastar será de{' '}
-                <strong className="text-white">{formatCurrency(limitePreview)}</strong>
-                <span className="mt-1 block text-xs text-pulso-accent-muted/80">
-                  Basado en {formatCurrency(sueldoNum)} de sueldo mensual
-                </span>
-              </p>
+              <div className="space-y-3 rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3 text-sm text-pulso-accent-muted">
+                <p>
+                  Con {porcentajeAhorro}% de ahorro, tu presupuesto mensual para gastar será de{' '}
+                  <strong className="text-white">{formatCurrency(limitePreview)}</strong>
+                </p>
+                {regla503020Preview && (
+                  <>
+                    <p className="text-xs text-slate-400">
+                      Límites por categoría (50/30/20 sobre {formatCurrency(sueldoNum)}):
+                    </p>
+                    <ul className="space-y-1 text-xs text-slate-300">
+                      {CATEGORIAS_DEFAULT.map((categoria) => {
+                        const limite = regla503020Preview.limites[categoria]
+                        if (limite == null) return null
+                        return (
+                          <li key={categoria} className="flex justify-between gap-2">
+                            <span>{categoria}</span>
+                            <span>{formatCurrency(limite)}</span>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </>
+                )}
+              </div>
             )}
 
             <div className="flex gap-2 pt-1">

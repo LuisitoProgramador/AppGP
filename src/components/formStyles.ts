@@ -47,7 +47,7 @@ export const tabPanelClassName = 'space-y-4 transition-opacity duration-200'
 
 /** Contenedor pegajoso para el botón de envío en formularios móviles */
 export const formSubmitStickyClassName =
-  'sticky bottom-0 z-10 -mx-4 mt-2 border-t border-white/8 bg-pulso-surface/95 px-4 pt-3 pb-3 backdrop-blur-md sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
+  'sticky bottom-0 z-10 -mx-4 mt-2 border-t border-white/8 bg-pulso-surface/95 px-4 pt-3 pb-3 backdrop-blur-md max-sm:bottom-[var(--bottom-nav-total)] sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none'
 
 /** Panel de formulario dentro de ModalPortal */
 export const modalPanelClassName = modalFormClassName
@@ -93,6 +93,14 @@ export const navTabClassName = (active: boolean) =>
     active
       ? 'bg-pulso-accent text-neutral-950 shadow-sm active:bg-pulso-accent-active'
       : 'text-slate-400 hover:text-white active:bg-pulso-surface-raised'
+  }`
+
+/** Chip seleccionable (cuenta, categoría, etc.) */
+export const chipPickerClassName = (active: boolean) =>
+  `rounded-full border px-3.5 py-2 text-sm font-medium min-h-11 touch-manipulation transition active:scale-[0.98] ${
+    active
+      ? 'border-pulso-accent bg-pulso-accent/15 text-white shadow-sm'
+      : 'border-pulso-border bg-pulso-surface-muted/80 text-slate-300 active:bg-pulso-surface-raised hover:border-slate-500'
   }`
 
 export const navBottomTabClassName = (active: boolean) =>

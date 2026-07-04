@@ -7,6 +7,7 @@ import {
 } from '../utils/finanzas'
 import { resolveLimiteMensual, limiteTrasActualizarEstrategia } from '../utils/resolveLimiteMensual'
 import { supabase } from './supabase'
+import { aplicarLimitesRegla503020 } from './presupuestoCategorias'
 
 export { resolveLimiteMensual, limiteTrasActualizarEstrategia }
 
@@ -96,6 +97,13 @@ export function getIngresoMensualTotal(presupuesto: Presupuesto): number | null 
     presupuesto.sueldo_mensual,
     presupuesto.ingresos_extras ?? 0,
   )
+}
+
+function syncLimites503020(userId: string, presupuesto: Presupuesto): void {
+  const ingreso = getIngresoMensualTotal(presupuesto)
+  if (ingreso != null && ingreso > 0) {
+    aplicarLimitesRegla503020(userId, ingreso)
+  }
 }
 
 async function fetchPresupuestoRow(userId: string) {
@@ -292,7 +300,7 @@ export async function savePresupuesto(
   const { error } = await supabase.from('presupuestos').upsert(row, { onConflict: 'user_id' })
 
   if (!error) {
-    cachePresupuesto(userId, {
+    const cached: Presupuesto = {
       limite_mensual: input.limite_mensual,
       limite_es_manual: input.limite_es_manual ?? existing?.limite_es_manual ?? false,
       sueldo_mensual: input.sueldo_mensual ?? existing?.sueldo_mensual ?? null,
@@ -300,7 +308,9 @@ export async function savePresupuesto(
       sueldo_semanal: input.sueldo_semanal ?? existing?.sueldo_semanal ?? null,
       dia_pago: input.dia_pago ?? existing?.dia_pago ?? null,
       porcentaje_ahorro: input.porcentaje_ahorro ?? existing?.porcentaje_ahorro ?? null,
-    })
+    }
+    cachePresupuesto(userId, cached)
+    syncLimites503020(userId, cached)
   }
 
   return { error: error?.message ?? null }

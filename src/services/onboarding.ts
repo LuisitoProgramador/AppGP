@@ -57,8 +57,9 @@ export interface OnboardingData {
   cuentasLiquidas: OnboardingCuentaLiquida[]
 }
 
-const SUSCRIPCIONES_REGEX = /netflix|spotify|disney|hbo|prime|suscri|apple tv|youtube/
-const CASA_REGEX = /renta|internet|luz|agua|gas|casa|hipoteca|tel[eé]fono/
+const SUSCRIPCIONES_REGEX = /netflix|spotify|disney|hbo|prime|suscri|apple tv|youtube|att/
+const CASA_REGEX = /renta|internet|luz|agua|gas|casa|hipoteca|tel[eé]fono|cfe|recarga/
+const COMPRAS_REGEX = /amazon|mercado|liverpool|walmart|playstation|nike|paypal|tiktok|uber eats/
 
 export function guessCategoria(descripcion: string): (typeof CATEGORIAS)[number] {
   const lower = descripcion.toLowerCase()
@@ -67,6 +68,9 @@ export function guessCategoria(descripcion: string): (typeof CATEGORIAS)[number]
   }
   if (CASA_REGEX.test(lower)) {
     return 'Casa'
+  }
+  if (COMPRAS_REGEX.test(lower)) {
+    return 'Compras'
   }
   return 'Otros'
 }

@@ -15,8 +15,15 @@ import {
   calcEstrategiaFinanciera,
   calcPrimerAhorro,
 } from '../utils/finanzas'
+import { REGLA_503020 } from '../constants/regla503020'
+import { CATEGORIAS_DEFAULT } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { formatMontoFromNumber, parseMontoValue } from '../utils/montoInput'
+import {
+  calcAhorroMensual503020,
+  calcLimitesRegla503020,
+  calcTotalBucket503020,
+} from '../utils/regla503020'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateMonto } from '../utils/validation'
@@ -134,6 +141,18 @@ export default function PresupuestoSettings() {
     return Math.round((estrategiaPreview.disponibleParaGasto / dias) * 100) / 100
   }, [estrategiaPreview])
 
+  const ingresoMensualPreview = sueldoNum + extrasNum
+
+  const regla503020Preview = useMemo(() => {
+    if (ingresoMensualPreview <= 0) return null
+    return {
+      necesidades: calcTotalBucket503020(ingresoMensualPreview, 'necesidades'),
+      caprichos: calcTotalBucket503020(ingresoMensualPreview, 'caprichos'),
+      ahorro: calcAhorroMensual503020(ingresoMensualPreview),
+      limites: calcLimitesRegla503020(ingresoMensualPreview, CATEGORIAS_DEFAULT),
+    }
+  }, [ingresoMensualPreview])
+
   const hayCambios =
     sueldoNum !== valoresIniciales.sueldoMensual ||
     extrasNum !== valoresIniciales.ingresosExtras ||
@@ -246,7 +265,8 @@ export default function PresupuestoSettings() {
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-slate-300">Tu situación financiera</h3>
         <p className="text-xs text-slate-500">
-          Actualiza sueldo, extras o ahorro y el presupuesto diario se ajusta al instante
+          Tu sueldo define la regla 50/30/20: límites por categoría, necesidades, caprichos y
+          ahorro del 20%
         </p>
       </div>
 
@@ -334,6 +354,61 @@ export default function PresupuestoSettings() {
             El día de la semana en que recibes tu sueldo semanal
           </p>
         </div>
+
+        {regla503020Preview && (
+          <div className="space-y-3 rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-3">
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-white">Regla 50 / 30 / 20</p>
+              <p className="text-xs text-slate-500">
+                Sobre {formatCurrency(ingresoMensualPreview)} de ingreso mensual
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 px-2 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Necesidades</p>
+                <p className="mt-0.5 text-sm font-bold text-white">
+                  {formatCurrency(regla503020Preview.necesidades)}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {Math.round(REGLA_503020.necesidades * 100)}%
+                </p>
+              </div>
+              <div className="rounded-lg border border-slate-700/50 bg-slate-800/40 px-2 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Caprichos</p>
+                <p className="mt-0.5 text-sm font-bold text-white">
+                  {formatCurrency(regla503020Preview.caprichos)}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {Math.round(REGLA_503020.caprichos * 100)}%
+                </p>
+              </div>
+              <div className="rounded-lg border border-pulso-accent/25 bg-pulso-accent/10 px-2 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-slate-500">Ahorro</p>
+                <p className="mt-0.5 text-sm font-bold text-pulso-accent-muted">
+                  {formatCurrency(regla503020Preview.ahorro)}
+                </p>
+                <p className="text-[10px] text-slate-500">
+                  {Math.round(REGLA_503020.ahorro * 100)}%
+                </p>
+              </div>
+            </div>
+            <ul className="space-y-1 text-xs text-slate-300">
+              {CATEGORIAS_DEFAULT.map((categoria) => {
+                const limite = regla503020Preview.limites[categoria]
+                if (limite == null) return null
+                return (
+                  <li key={categoria} className="flex justify-between gap-2">
+                    <span>{categoria}</span>
+                    <span className="text-slate-400">{formatCurrency(limite)}</span>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="text-[10px] leading-snug text-slate-500">
+              Al guardar se actualizan los límites por categoría en el resumen y en Ajustes.
+            </p>
+          </div>
+        )}
 
         {estrategiaPreview && (
           <div className={`grid gap-2 ${presupuestoDiarioPreview != null ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>

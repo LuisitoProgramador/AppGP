@@ -3,6 +3,7 @@ export const CATEGORIAS_DEFAULT = [
   'Transporte',
   'Casa',
   'Suscripciones',
+  'Compras',
   'Otros',
 ] as const
 

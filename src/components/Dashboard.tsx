@@ -4,6 +4,10 @@ import { useDashboardData } from '../hooks/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
 import { calcAlertasCategoria, getLimitesPorCategoria } from '../services/presupuestoCategorias'
 import { aggregateGastosPorCategoriaPadre } from '../services/subcategorias'
+import {
+  calcAhorroMensual503020,
+  calcResumenBuckets503020,
+} from '../utils/regla503020'
 import { calcInteresEstimado, getTasaInteresMensual } from '../services/cuentaInteres'
 import { buildResumenInsights } from '../utils/resumenInsights'
 import {
@@ -20,6 +24,7 @@ import BurnRateAlert from './dashboard/BurnRateAlert'
 import WelcomeBackBanner from './dashboard/WelcomeBackBanner'
 import ResumenInsightsCard from './dashboard/ResumenInsightsCard'
 import CategoryBudgetAlerts from './dashboard/CategoryBudgetAlerts'
+import Regla503020Widget from './dashboard/Regla503020Widget'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import DashboardStatus from './dashboard/DashboardStatus'
 import GastosAnalisisSection from './dashboard/GastosAnalisisSection'
@@ -105,6 +110,14 @@ export default memo(function Dashboard() {
     return calcAlertasCategoria(getLimitesPorCategoria(user.id), gastosPorCategoria)
   }, [user, esMesActual, gastosPorCategoria])
 
+  const regla503020 = useMemo(() => {
+    if (!esMesActual || ingresoMensualTotal == null || ingresoMensualTotal <= 0) return null
+    return {
+      buckets: calcResumenBuckets503020(ingresoMensualTotal, gastosPorCategoria),
+      ahorroMensual: calcAhorroMensual503020(ingresoMensualTotal),
+    }
+  }, [esMesActual, ingresoMensualTotal, gastosPorCategoria])
+
   const insights = useMemo(() => {
     if (!esMesActual || cargando) return null
     return buildResumenInsights({
@@ -188,6 +201,14 @@ export default memo(function Dashboard() {
               />
 
               {esMesActual && !cargando && <SaludAhorroWidget saludAhorro={saludAhorro} />}
+
+              {regla503020 && ingresoMensualTotal != null && (
+                <Regla503020Widget
+                  ingresoMensual={ingresoMensualTotal}
+                  ahorroMensual={regla503020.ahorroMensual}
+                  buckets={regla503020.buckets}
+                />
+              )}
 
               <ListaCuentas embedded />
 

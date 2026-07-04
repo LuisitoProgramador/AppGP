@@ -334,7 +334,7 @@ function AppContent() {
             {!showAjustes && (
               <BottomNav>
                 <nav
-                  className="mx-auto grid max-w-lg grid-cols-4 gap-0.5 px-2 pt-1"
+                  className="grid grid-cols-4 gap-0.5"
                   role="tablist"
                   aria-label="Navegación principal"
                 >

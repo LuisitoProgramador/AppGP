@@ -336,7 +336,7 @@ async function revisarSinRegistroHoy(
   if ((count ?? 0) > 0) return false
 
   await sendTelegram(
- `📝 <b>Sin gastos hoy</b>\nSi hubo movimientos, regístralos en Pulso cuando puedas (modo rápido: monto + Enter).`,
+ `📝 <b>Sin gastos hoy</b>\nSi hubo movimientos, regístralos en Pulso cuando puedas.`,
   )
   await marcarEnviada(admin, userId, clave)
   return true

@@ -1,7 +1,7 @@
 export const PORCENTAJE_AHORRO_MIN = 5
 export const PORCENTAJE_AHORRO_MAX = 50
 export const PORCENTAJE_AHORRO_STEP = 5
-export const PORCENTAJE_AHORRO_DEFAULT = 15
+export const PORCENTAJE_AHORRO_DEFAULT = 20
 
 export function validatePorcentajeAhorro(value: number): string | null {
   if (

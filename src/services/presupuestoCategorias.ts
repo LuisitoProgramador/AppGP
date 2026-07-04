@@ -1,4 +1,6 @@
 import type { Categoria } from '../types/gasto'
+import { getCategoriasUsuario } from './categorias'
+import { calcLimitesRegla503020 } from '../utils/regla503020'
 
 export type LimitesPorCategoria = Record<string, number>
 
@@ -60,4 +62,12 @@ export function calcAlertasCategoria(
   }
 
   return alertas.sort((a, b) => b.porcentaje - a.porcentaje)
+}
+
+/** Aplica límites por categoría según regla 50/30/20 sobre el ingreso mensual. */
+export function aplicarLimitesRegla503020(userId: string, ingresoMensual: number): void {
+  if (ingresoMensual <= 0) return
+  const categorias = getCategoriasUsuario(userId)
+  const limites = calcLimitesRegla503020(ingresoMensual, categorias)
+  localStorage.setItem(storageKey(userId), JSON.stringify(limites))
 }

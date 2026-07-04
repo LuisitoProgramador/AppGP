@@ -1,14 +1,8 @@
-import type { Categoria } from '../types/gasto'
-
 export interface RegistroPrefs {
-  modoRapido: boolean
-  ultimaCategoria: Categoria | null
   ultimaCuentaId: string | null
 }
 
 const DEFAULT_PREFS: RegistroPrefs = {
-  modoRapido: true,
-  ultimaCategoria: null,
   ultimaCuentaId: null,
 }
 
@@ -32,10 +26,6 @@ export function saveRegistroPrefs(userId: string, patch: Partial<RegistroPrefs>)
   return next
 }
 
-export function recordUltimoRegistro(
-  userId: string,
-  categoria: Categoria,
-  cuentaId: string,
-): void {
-  saveRegistroPrefs(userId, { ultimaCategoria: categoria, ultimaCuentaId: cuentaId })
+export function recordUltimoRegistro(userId: string, cuentaId: string): void {
+  saveRegistroPrefs(userId, { ultimaCuentaId: cuentaId })
 }

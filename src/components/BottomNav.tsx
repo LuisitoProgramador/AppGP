@@ -17,10 +17,10 @@ function BottomNav({ children }: BottomNavProps) {
 
   return createPortal(
     <div
-      className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-pulso-surface sm:hidden"
-      style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom, 0px))' }}
+      className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-pulso-surface sm:hidden [transform:translateZ(0)]"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
-      {children}
+      <div className="mx-auto max-w-lg px-2 pt-1">{children}</div>
     </div>,
     document.body,
   )
