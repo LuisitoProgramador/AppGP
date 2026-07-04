@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveLimiteMensual, type PresupuestoLimiteInput } from '../utils/resolveLimiteMensual'
+import { resolveLimiteMensual, limiteTrasActualizarEstrategia, type PresupuestoLimiteInput } from '../utils/resolveLimiteMensual'
 
 function basePresupuesto(overrides: Partial<PresupuestoLimiteInput> = {}): PresupuestoLimiteInput {
   return {
@@ -35,5 +35,25 @@ describe('resolveLimiteMensual', () => {
         }),
       ),
     ).toBe(6000)
+  })
+})
+
+describe('limiteTrasActualizarEstrategia', () => {
+  it('preserva límite manual al guardar estrategia', () => {
+    expect(
+      limiteTrasActualizarEstrategia(
+        { limite_mensual: 7500, limite_es_manual: true },
+        8000,
+      ),
+    ).toEqual({ limite_mensual: 7500, limite_es_manual: true })
+  })
+
+  it('aplica límite calculado cuando no es manual', () => {
+    expect(
+      limiteTrasActualizarEstrategia(
+        { limite_mensual: 7000, limite_es_manual: false },
+        8200,
+      ),
+    ).toEqual({ limite_mensual: 8200, limite_es_manual: false })
   })
 })

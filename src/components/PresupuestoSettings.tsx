@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useAuthContext, useGastosData } from '../contexts'
-import { getPresupuesto, savePresupuestoFinanciero } from '../services/presupuesto'
+import { getPresupuesto, savePresupuestoFinanciero, applyLimiteCalculado } from '../services/presupuesto'
 import { DIAS_PAGO } from '../constants/diasPago'
 import { getDaysRemainingInMonth } from '../utils/date'
 import {
@@ -14,6 +14,7 @@ import { showError, showSuccess } from '../utils/toast'
 import { validateMonto } from '../utils/validation'
 import {
   buttonPrimaryClassName,
+  buttonSecondaryClassName,
   formWithKeyboardClassName,
   inputClassName,
 } from './formStyles'
@@ -33,6 +34,10 @@ export default function PresupuestoSettings() {
 
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
+  const [aplicandoLimite, setAplicandoLimite] = useState(false)
+
+  const [limiteEsManual, setLimiteEsManual] = useState(false)
+  const [limiteManualActual, setLimiteManualActual] = useState<number | null>(null)
 
   const [sueldoMensual, setSueldoMensual] = useState('')
   const [ingresosExtras, setIngresosExtras] = useState('')
@@ -66,6 +71,8 @@ export default function PresupuestoSettings() {
         setPorcentajeAhorro(ahorro)
         setDiaPago(presupuesto.dia_pago ?? 5)
         setDiaPagoInicial(presupuesto.dia_pago ?? 5)
+        setLimiteEsManual(presupuesto.limite_es_manual)
+        setLimiteManualActual(presupuesto.limite_es_manual ? presupuesto.limite_mensual : null)
         setValoresIniciales({
           sueldoMensual: sueldo,
           ingresosExtras: extras,
@@ -141,7 +148,7 @@ export default function PresupuestoSettings() {
 
     setGuardando(true)
 
-    const { error } = await savePresupuestoFinanciero(user.id, {
+    const { error, limiteManualPreservado } = await savePresupuestoFinanciero(user.id, {
       sueldo_mensual: sueldoNum,
       ingresos_extras: extrasNum,
       porcentaje_ahorro: porcentajeAhorro,
@@ -163,7 +170,39 @@ export default function PresupuestoSettings() {
     setDiaPagoInicial(diaPago)
 
     refresh()
+    if (limiteManualPreservado && limiteManualActual != null) {
+      showSuccess(
+        `Estrategia actualizada. Tu límite manual de ${formatCurrency(limiteManualActual)} se mantiene.`,
+      )
+      return
+    }
+
+    setLimiteEsManual(false)
+    setLimiteManualActual(null)
     showSuccess('Tu nueva estrategia financiera se actualizó correctamente.')
+  }
+
+  async function handleAplicarLimiteCalculado() {
+    if (!user || !estrategiaPreview) return
+
+    if (!isOnline()) {
+      showError('Sin conexión. Conéctate a internet para actualizar el límite.')
+      return
+    }
+
+    setAplicandoLimite(true)
+    const { error, limite } = await applyLimiteCalculado(user.id)
+    setAplicandoLimite(false)
+
+    if (error) {
+      showError(error)
+      return
+    }
+
+    setLimiteEsManual(false)
+    setLimiteManualActual(null)
+    refresh()
+    showSuccess(`Límite de gasto actualizado a ${formatCurrency(limite ?? estrategiaPreview.disponibleParaGasto)}.`)
   }
 
   if (cargando) {
@@ -287,7 +326,7 @@ export default function PresupuestoSettings() {
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="rounded-xl border border-blue-500/25 bg-blue-500/10 px-3 py-2.5 text-center">
               <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
-                Disponible para gasto
+                {limiteEsManual ? 'Límite calculado' : 'Disponible para gasto'}
               </p>
               <p className="mt-0.5 text-lg font-bold text-blue-300">
                 {formatCurrency(estrategiaPreview.disponibleParaGasto)}
@@ -303,6 +342,27 @@ export default function PresupuestoSettings() {
                 </p>
               </div>
             )}
+          </div>
+        )}
+
+        {limiteEsManual && limiteManualActual != null && estrategiaPreview && (
+          <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <p className="text-sm text-amber-100">
+              Tienes un límite manual de{' '}
+              <span className="font-semibold">{formatCurrency(limiteManualActual)}</span> en el
+              resumen. Guardar la estrategia no lo cambia; el calculado sería{' '}
+              {formatCurrency(estrategiaPreview.disponibleParaGasto)}.
+            </p>
+            <button
+              type="button"
+              onClick={handleAplicarLimiteCalculado}
+              disabled={aplicandoLimite}
+              className={`w-full ${buttonSecondaryClassName}`}
+            >
+              {aplicandoLimite
+                ? 'Aplicando...'
+                : `Usar límite calculado (${formatCurrency(estrategiaPreview.disponibleParaGasto)})`}
+            </button>
           </div>
         )}
 

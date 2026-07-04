@@ -21,3 +21,14 @@ export function resolveLimiteMensual(presupuesto: PresupuestoLimiteInput): numbe
   }
   return presupuesto.limite_mensual
 }
+
+/** Al guardar estrategia, respeta un límite manual activo. */
+export function limiteTrasActualizarEstrategia(
+  existing: Pick<PresupuestoLimiteInput, 'limite_mensual' | 'limite_es_manual'>,
+  limiteCalculado: number,
+): { limite_mensual: number; limite_es_manual: boolean } {
+  if (existing.limite_es_manual) {
+    return { limite_mensual: existing.limite_mensual, limite_es_manual: true }
+  }
+  return { limite_mensual: limiteCalculado, limite_es_manual: false }
+}

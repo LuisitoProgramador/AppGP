@@ -4,10 +4,10 @@ import {
   calcIngresoMensualTotal,
   SEMANAS_POR_MES,
 } from '../utils/finanzas'
-import { resolveLimiteMensual } from '../utils/resolveLimiteMensual'
+import { resolveLimiteMensual, limiteTrasActualizarEstrategia } from '../utils/resolveLimiteMensual'
 import { supabase } from './supabase'
 
-export { resolveLimiteMensual }
+export { resolveLimiteMensual, limiteTrasActualizarEstrategia }
 
 export interface Presupuesto {
   limite_mensual: number
@@ -252,7 +252,7 @@ export interface PresupuestoFinancieroInput {
 export async function savePresupuestoFinanciero(
   userId: string,
   input: PresupuestoFinancieroInput,
-): Promise<{ error: string | null; presupuesto: Presupuesto | null }> {
+): Promise<{ error: string | null; presupuesto: Presupuesto | null; limiteManualPreservado: boolean }> {
   const ingresosExtras = input.ingresos_extras ?? 0
   const estrategia = calcEstrategiaFinanciera({
     sueldoMensual: input.sueldo_mensual,
@@ -260,9 +260,18 @@ export async function savePresupuestoFinanciero(
     porcentajeAhorro: input.porcentaje_ahorro,
   })
 
+  const existing = await getPresupuesto(userId)
+  const { limite_mensual, limite_es_manual } = limiteTrasActualizarEstrategia(
+    {
+      limite_mensual: existing?.limite_mensual ?? estrategia.disponibleParaGasto,
+      limite_es_manual: existing?.limite_es_manual ?? false,
+    },
+    estrategia.disponibleParaGasto,
+  )
+
   const { error } = await savePresupuesto(userId, {
-    limite_mensual: estrategia.disponibleParaGasto,
-    limite_es_manual: false,
+    limite_mensual,
+    limite_es_manual,
     sueldo_mensual: input.sueldo_mensual,
     ingresos_extras: ingresosExtras,
     sueldo_semanal: estrategia.sueldoSemanal,
@@ -270,11 +279,11 @@ export async function savePresupuestoFinanciero(
     porcentaje_ahorro: input.porcentaje_ahorro,
   })
 
-  if (error) return { error, presupuesto: null }
+  if (error) return { error, presupuesto: null, limiteManualPreservado: false }
 
   const presupuesto: Presupuesto = {
-    limite_mensual: estrategia.disponibleParaGasto,
-    limite_es_manual: false,
+    limite_mensual,
+    limite_es_manual,
     sueldo_mensual: input.sueldo_mensual,
     ingresos_extras: ingresosExtras,
     sueldo_semanal: estrategia.sueldoSemanal,
@@ -282,5 +291,33 @@ export async function savePresupuestoFinanciero(
     porcentaje_ahorro: input.porcentaje_ahorro,
   }
 
-  return { error: null, presupuesto }
+  return { error: null, presupuesto, limiteManualPreservado: limite_es_manual }
+}
+
+export async function applyLimiteCalculado(
+  userId: string,
+): Promise<{ error: string | null; limite: number | null }> {
+  const existing = await getPresupuesto(userId)
+  if (!existing?.sueldo_mensual || existing.porcentaje_ahorro == null) {
+    return { error: 'Configura sueldo y porcentaje de ahorro antes de aplicar el límite calculado.', limite: null }
+  }
+
+  const estrategia = calcEstrategiaFinanciera({
+    sueldoMensual: existing.sueldo_mensual,
+    ingresosExtras: existing.ingresos_extras ?? 0,
+    porcentajeAhorro: existing.porcentaje_ahorro,
+  })
+
+  const { error } = await savePresupuesto(userId, {
+    limite_mensual: estrategia.disponibleParaGasto,
+    limite_es_manual: false,
+    sueldo_mensual: existing.sueldo_mensual,
+    ingresos_extras: existing.ingresos_extras ?? 0,
+    sueldo_semanal: existing.sueldo_semanal,
+    dia_pago: existing.dia_pago,
+    porcentaje_ahorro: existing.porcentaje_ahorro,
+  })
+
+  if (error) return { error, limite: null }
+  return { error: null, limite: estrategia.disponibleParaGasto }
 }
