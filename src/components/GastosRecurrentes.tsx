@@ -8,11 +8,13 @@ import {
 import { getDefaultCuentaId } from '../services/cuentas'
 import { CATEGORIAS, type GastoRecurrente } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateDiaMes, validateMonto } from '../utils/validation'
 import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, inputClassName, buttonVioletClassName } from './formStyles'
 import Select from './Select'
+import MontoInput from './MontoInput'
 
 const initialForm = {
   descripcion: '',
@@ -133,7 +135,7 @@ export default function GastosRecurrentes() {
 
     const { error: createError } = await createGastoRecurrente({
       descripcion: form.descripcion.trim(),
-      monto: Number(form.monto),
+      monto: parseMontoValue(form.monto),
       categoria: form.categoria,
       dia_mes: diaMes,
       cuenta_id: form.cuentaId,
@@ -256,16 +258,11 @@ export default function GastosRecurrentes() {
             <label htmlFor="rec-monto" className="block text-sm font-medium text-slate-300">
               Monto
             </label>
-            <input
+            <MontoInput
               id="rec-monto"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="0.00"
               value={form.monto}
-              onChange={(e) => setForm((prev) => ({ ...prev, monto: e.target.value }))}
-              className={inputClassName}
+              onChange={(value) => setForm((prev) => ({ ...prev, monto: value }))}
+              placeholder="0"
               required
             />
           </div>

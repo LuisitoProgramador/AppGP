@@ -3,17 +3,18 @@ import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { getDefaultCuentaId, realizarTransferencia } from '../services/cuentas'
 import type { Cuenta } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateCuentaId, validateMonto } from '../utils/validation'
 import ModalPortal from './ModalPortal'
 import Select from './Select'
+import MontoInput from './MontoInput'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
   cardClassName,
   formWithKeyboardClassName,
-  inputClassName,
 } from './formStyles'
 
 interface TransferenciaModalProps {
@@ -140,7 +141,7 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
       return
     }
 
-    const montoNum = Number(monto)
+    const montoNum = parseMontoValue(monto)
 
     const saldoError = saldoOrigenInsuficiente(cuentaOrigen, montoNum)
     if (saldoError) {
@@ -170,7 +171,7 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
     onClose()
   }
 
-  const montoNum = Number(monto)
+  const montoNum = parseMontoValue(monto)
   const saldoAdvertencia =
     monto.trim() && !Number.isNaN(montoNum)
       ? saldoOrigenInsuficiente(cuentaOrigen, montoNum)
@@ -236,16 +237,11 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
               <label htmlFor="transferencia-monto" className="block text-sm font-medium text-slate-300">
                 Monto
               </label>
-              <input
+              <MontoInput
                 id="transferencia-monto"
-                type="number"
-                inputMode="decimal"
-                min="0.01"
-                step="0.01"
-                placeholder="0.00"
                 value={monto}
-                onChange={(e) => setMonto(e.target.value)}
-                className={inputClassName}
+                onChange={setMonto}
+                placeholder="0"
                 required
                 autoFocus
               />

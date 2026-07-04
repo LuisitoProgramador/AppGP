@@ -2,11 +2,13 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { getDefaultCuentaId, registrarIngreso } from '../services/cuentas'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import ModalPortal from './ModalPortal'
 import Select from './Select'
+import MontoInput from './MontoInput'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
@@ -80,7 +82,7 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
     }
 
     setGuardando(true)
-    const { error } = await registrarIngreso(user.id, cuentaId, Number(monto))
+    const { error } = await registrarIngreso(user.id, cuentaId, parseMontoValue(monto))
     setGuardando(false)
 
     if (error) {
@@ -88,7 +90,7 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
       return
     }
 
-    showSuccess(`Ingreso de ${formatCurrency(Number(monto))} registrado.`)
+    showSuccess(`Ingreso de ${formatCurrency(parseMontoValue(monto))} registrado.`)
     await refreshCuentas()
     refresh()
     onClose()
@@ -131,16 +133,11 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
           <label htmlFor="ingreso-monto" className="block text-sm font-medium text-slate-300">
             Monto
           </label>
-          <input
+          <MontoInput
             id="ingreso-monto"
-            type="number"
-            inputMode="decimal"
-            min="0.01"
-            step="0.01"
-            placeholder="0.00"
             value={monto}
-            onChange={(e) => setMonto(e.target.value)}
-            className={inputClassName}
+            onChange={setMonto}
+            placeholder="0"
             required
           />
         </div>

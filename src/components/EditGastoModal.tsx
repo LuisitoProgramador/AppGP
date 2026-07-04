@@ -5,6 +5,7 @@ import { updateGastoSimple } from '../services/gastos'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS, type Gasto, type MsiInstallmentUpdate } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
+import { formatMontoFromNumber, parseMontoValue } from '../utils/montoInput'
 import { sumMsiGrupoMontos } from '../utils/gastoSaldo'
 import { buildMsiGastos, parseMsiDescripcion, toMsiInstallmentUpdates } from '../utils/msi'
 import { isGastoFechaPasada } from '../utils/date'
@@ -19,6 +20,7 @@ import {
 } from '../utils/validation'
 import ModalPortal from './ModalPortal'
 import Select from './Select'
+import MontoInput from './MontoInput'
 import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName } from './formStyles'
 
 interface GrupoMsiRow {
@@ -47,7 +49,7 @@ export default function EditGastoModal({
 }: EditGastoModalProps) {
   const { refresh } = useGastosData()
   const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
-  const [monto, setMonto] = useState(String(gasto.monto))
+  const [monto, setMonto] = useState(formatMontoFromNumber(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [descripcion, setDescripcion] = useState(gasto.descripcion ?? '')
   const [cuentaId, setCuentaId] = useState(gasto.cuenta_id ?? '')
@@ -78,7 +80,7 @@ export default function EditGastoModal({
     const mesesError = validateMsiMeses(mesesMsi)
     if (totalError || mesesError) return []
 
-    const total = Number(totalCompra)
+    const total = parseMontoValue(totalCompra)
     const meses = Number(mesesMsi)
     const base =
       descripcionBase.trim() ||
@@ -135,7 +137,7 @@ export default function EditGastoModal({
 
       const rows = (data ?? []) as GrupoMsiRow[]
       setGrupoRows(rows)
-      setTotalCompra(String(sumMsiGrupoMontos(rows)))
+      setTotalCompra(formatMontoFromNumber(sumMsiGrupoMontos(rows)))
       setMesesMsi(String(rows.length))
 
       const parsed = parseMsiDescripcion(rows[0]?.descripcion ?? gasto.descripcion ?? '')
@@ -260,7 +262,7 @@ export default function EditGastoModal({
       return false
     }
 
-    const newTotal = Number(totalCompra)
+    const newTotal = parseMontoValue(totalCompra)
     const newCuentaId = cuentaId || cuentaAnteriorId!
     const cambioCuentaMsi = cuentaAnteriorId !== newCuentaId
     const installments = toMsiInstallmentUpdates(previewCuotas)
@@ -305,7 +307,7 @@ export default function EditGastoModal({
 
     const hayCambiosCuota =
       !edicionBloqueada &&
-      (Number(monto) !== Number(gasto.monto) ||
+      (parseMontoValue(monto) !== gasto.monto ||
         descripcion.trim() !== (gasto.descripcion ?? '').trim() ||
         categoria !== gasto.categoria)
 
@@ -337,7 +339,7 @@ export default function EditGastoModal({
       const totalGrupo = sumMsiGrupoMontos(grupoRows)
       const installments = buildInstallmentsFromGrupo(
         hayCambiosCuota
-          ? { monto: Number(monto), descripcion: descripcion.trim() }
+          ? { monto: parseMontoValue(monto), descripcion: descripcion.trim() }
           : undefined,
       )
 
@@ -381,7 +383,7 @@ export default function EditGastoModal({
     const { error } = await supabase
       .from('gastos')
       .update({
-        monto: Number(monto),
+        monto: parseMontoValue(monto),
         categoria,
         descripcion: descripcion.trim(),
       })
@@ -419,7 +421,7 @@ export default function EditGastoModal({
       return false
     }
 
-    const newMonto = Number(monto)
+    const newMonto = parseMontoValue(monto)
     const newCuentaId = cuentaId || null
 
     const { error } = await updateGastoSimple({
@@ -467,7 +469,7 @@ export default function EditGastoModal({
       showSuccess(
         `Cuenta de la compra MSI actualizada. Se movieron ${grupoRows.length} cuotas (${formatCurrency(totalGrupo)}).`,
       )
-    } else if (esMsi && Number(monto) !== Number(gasto.monto)) {
+    } else if (esMsi && parseMontoValue(monto) !== gasto.monto) {
       showInfo(
         'Cuota actualizada. El saldo de crédito no cambia — usa "Editar compra MSI" si el monto total estaba mal.',
       )
@@ -555,15 +557,11 @@ export default function EditGastoModal({
                 <label htmlFor="edit-total-msi" className="block text-sm font-medium text-slate-300">
                   Total de la compra
                 </label>
-                <input
+                <MontoInput
                   id="edit-total-msi"
-                  type="number"
-                  inputMode="decimal"
-                  min="0.01"
-                  step="0.01"
                   value={totalCompra}
-                  onChange={(e) => setTotalCompra(e.target.value)}
-                  className={inputClassName}
+                  onChange={setTotalCompra}
+                  placeholder="0"
                   required
                   disabled={cargandoGrupo}
                 />
@@ -607,15 +605,11 @@ export default function EditGastoModal({
             <label htmlFor="edit-monto" className="block text-sm font-medium text-slate-300">
               {esMsi ? 'Monto de esta cuota' : 'Monto'}
             </label>
-            <input
+            <MontoInput
               id="edit-monto"
-              type="number"
-              inputMode="decimal"
-              min="0.01"
-              step="0.01"
               value={monto}
-              onChange={(e) => setMonto(e.target.value)}
-              className={inputClassName}
+              onChange={setMonto}
+              placeholder="0"
               required
               disabled={edicionBloqueada}
             />

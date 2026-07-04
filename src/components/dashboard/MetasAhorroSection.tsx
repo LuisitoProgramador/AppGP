@@ -12,6 +12,7 @@ import {
   buttonGhostClassName,
   buttonSecondaryFlexClassName,
 } from '../formStyles'
+import MontoInput from '../MontoInput'
 
 type MetasAhorroSectionProps = ReturnType<typeof useMetasAhorro>
 
@@ -79,15 +80,11 @@ export default memo(function MetasAhorroSection({
                 maxLength={100}
                 required
               />
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
+              <MontoInput
+                id="meta-objetivo-nueva"
                 value={metaObjetivo}
-                onChange={(e) => setMetaObjetivo(e.target.value)}
+                onChange={setMetaObjetivo}
                 placeholder="Monto objetivo"
-                className={inputClassName}
                 required
               />
               <div className="flex gap-2">
@@ -138,16 +135,13 @@ export default memo(function MetasAhorroSection({
                   />
                 </div>
                 <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
+                  <MontoInput
+                    id={`meta-sumar-${meta.id}`}
                     value={ahorroInputs[meta.id] ?? ''}
-                    onChange={(e) =>
+                    onChange={(value) =>
                       setAhorroInputs((current) => ({
                         ...current,
-                        [meta.id]: e.target.value,
+                        [meta.id]: value,
                       }))
                     }
                     placeholder="Sumar..."
@@ -190,15 +184,11 @@ export default memo(function MetasAhorroSection({
                 maxLength={100}
                 required
               />
-              <input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
+              <MontoInput
+                id="meta-objetivo-extra"
                 value={metaObjetivo}
-                onChange={(e) => setMetaObjetivo(e.target.value)}
+                onChange={setMetaObjetivo}
                 placeholder="Monto objetivo"
-                className={inputClassName}
                 required
               />
               <div className="flex gap-2">

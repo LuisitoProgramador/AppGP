@@ -5,8 +5,10 @@ import {
   MIN_MSI_MESES,
 } from '../types/gasto'
 
+import { parseMontoValue } from './montoInput'
+
 export function validateMonto(value: string): string | null {
-  const monto = Number(value)
+  const monto = parseMontoValue(value)
   if (!value.trim() || Number.isNaN(monto) || monto <= 0) {
     return 'Ingresa un monto válido mayor a 0.'
   }

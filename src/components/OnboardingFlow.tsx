@@ -9,6 +9,7 @@ import {
   type OnboardingTarjeta,
 } from '../services/onboarding'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
@@ -24,6 +25,7 @@ import {
   inputClassName,
 } from './formStyles'
 import Select from './Select'
+import MontoInput from './MontoInput'
 
 import { DIAS_PAGO } from '../constants/diasPago'
 import {
@@ -248,7 +250,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    const saldo = Number(tarjetaForm.saldo_actual)
+    const saldo = parseMontoValue(tarjetaForm.saldo_actual)
     if (Number.isNaN(saldo) || saldo < 0) {
       showError('La deuda actual debe ser un número válido.')
       return
@@ -256,7 +258,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     const limite = tarjetaForm.limite_credito
     if (limite.trim()) {
-      const limiteNum = Number(limite)
+      const limiteNum = parseMontoValue(limite)
       if (Number.isNaN(limiteNum) || limiteNum <= 0) {
         showError('El límite de crédito debe ser mayor a 0.')
         return
@@ -297,7 +299,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    const saldo = Number(cuentaLiquidaForm.saldo_actual)
+    const saldo = parseMontoValue(cuentaLiquidaForm.saldo_actual)
     if (Number.isNaN(saldo) || saldo < 0) {
       showError('El saldo actual debe ser un número válido mayor o igual a 0.')
       return
@@ -348,24 +350,24 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     const tarjetasData: OnboardingTarjeta[] = tarjetas.map((t) => ({
       draftId: t.id,
       nombre: t.nombre.trim(),
-      saldo_actual: Number(t.saldo_actual) || 0,
-      limite_credito: t.limite_credito.trim() ? Number(t.limite_credito) : null,
+      saldo_actual: parseMontoValue(t.saldo_actual) || 0,
+      limite_credito: t.limite_credito.trim() ? parseMontoValue(t.limite_credito) : null,
       dia_corte: t.dia_corte.trim() ? Number(t.dia_corte) : null,
     }))
 
     const cuentasLiquidasData: OnboardingCuentaLiquida[] = cuentasLiquidas.map((c) => ({
       draftId: c.id,
       nombre: c.nombre.trim(),
-      saldo_actual: Number(c.saldo_actual) || 0,
+      saldo_actual: parseMontoValue(c.saldo_actual) || 0,
     }))
 
     const { error } = await completeOnboarding(user.id, {
-      sueldoMensual: Number(sueldoMensual),
+      sueldoMensual: parseMontoValue(sueldoMensual),
       diaPago,
       porcentajeAhorro,
       gastosFijos: gastosFijos.map((g) => ({
         descripcion: g.descripcion,
-        monto: Number(g.monto),
+        monto: parseMontoValue(g.monto),
         categoria: guessCategoria(g.descripcion),
         dia_mes: 1,
         cuenta_id: g.cuenta_id,
@@ -381,7 +383,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    const primerAhorro = calcPrimerAhorro(Number(sueldoMensual), porcentajeAhorro)
+    const primerAhorro = calcPrimerAhorro(parseMontoValue(sueldoMensual), porcentajeAhorro)
     showSuccess(
       primerAhorro > 0
         ? `¡Listo! Ya registramos tu primer ahorro de ${formatCurrency(primerAhorro)}.`
@@ -390,7 +392,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     onComplete()
   }
 
-  const sueldoNum = Number(sueldoMensual) || 0
+  const sueldoNum = parseMontoValue(sueldoMensual) || 0
   const limitePreview =
     sueldoNum > 0 ? calcLimiteMensual(sueldoNum, porcentajeAhorro) : null
   const ahorroPreview = sueldoNum > 0 ? calcPrimerAhorro(sueldoNum, porcentajeAhorro) : null
@@ -424,16 +426,11 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <label htmlFor="onb-sueldo" className="block text-sm font-medium text-slate-300">
                 Sueldo mensual
               </label>
-              <input
+              <MontoInput
                 id="onb-sueldo"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
                 value={sueldoMensual}
-                onChange={(e) => setSueldoMensual(e.target.value)}
-                className={inputClassName}
+                onChange={setSueldoMensual}
+                placeholder="0"
                 autoFocus
               />
             </div>
@@ -497,7 +494,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       <div>
                         <p className="text-sm font-semibold text-white">{cuenta.nombre}</p>
                         <p className="text-xs text-pulso-accent-muted">
-                          Saldo: {formatCurrency(Number(cuenta.saldo_actual) || 0)}
+                          Saldo: {formatCurrency(parseMontoValue(cuenta.saldo_actual) || 0)}
                         </p>
                       </div>
                       <button
@@ -554,18 +551,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       Saldo actual
                     </label>
-                    <input
+                    <MontoInput
                       id="onb-cuenta-saldo"
-                      type="number"
-                      inputMode="decimal"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
                       value={cuentaLiquidaForm.saldo_actual}
-                      onChange={(e) =>
-                        setCuentaLiquidaForm((prev) => ({ ...prev, saldo_actual: e.target.value }))
+                      onChange={(value) =>
+                        setCuentaLiquidaForm((prev) => ({ ...prev, saldo_actual: value }))
                       }
-                      className={inputClassName}
+                      placeholder="0"
                     />
                   </div>
 
@@ -604,7 +596,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                         <p className="text-sm font-semibold text-white">{tarjeta.nombre}</p>
                         {tarjeta.limite_credito && (
                           <p className="text-xs text-slate-400">
-                            Límite: {formatCurrency(Number(tarjeta.limite_credito))}
+                            Límite: {formatCurrency(parseMontoValue(tarjeta.limite_credito))}
                           </p>
                         )}
                       </div>
@@ -663,18 +655,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       >
                         Límite
                       </label>
-                      <input
+                      <MontoInput
                         id="onb-tarjeta-limite"
-                        type="number"
-                        inputMode="decimal"
-                        min="0"
-                        step="0.01"
-                        placeholder="Opcional"
                         value={tarjetaForm.limite_credito}
-                        onChange={(e) =>
-                          setTarjetaForm((prev) => ({ ...prev, limite_credito: e.target.value }))
+                        onChange={(value) =>
+                          setTarjetaForm((prev) => ({ ...prev, limite_credito: value }))
                         }
-                        className={inputClassName}
+                        placeholder="Opcional"
                       />
                     </div>
                     <div className="space-y-2">
@@ -707,16 +694,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       Deuda actual
                     </label>
-                    <input
+                    <MontoInput
                       id="onb-tarjeta-deuda"
-                      type="number"
-                      inputMode="decimal"
-                      step="0.01"
                       value={tarjetaForm.saldo_actual}
-                      onChange={(e) =>
-                        setTarjetaForm((prev) => ({ ...prev, saldo_actual: e.target.value }))
+                      onChange={(value) =>
+                        setTarjetaForm((prev) => ({ ...prev, saldo_actual: value }))
                       }
-                      className={inputClassName}
+                      placeholder="0"
                     />
                   </div>
 
@@ -816,7 +800,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                           </p>
                         </div>
                         <p className="shrink-0 text-sm font-semibold text-slate-200">
-                          {formatCurrency(Number(gasto.monto))}
+                          {formatCurrency(parseMontoValue(gasto.monto))}
                         </p>
                         <button
                           type="button"
@@ -876,18 +860,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       Monto mensual
                     </label>
-                    <input
+                    <MontoInput
                       id="onb-gasto-monto"
-                      type="number"
-                      inputMode="decimal"
-                      min="0.01"
-                      step="0.01"
-                      placeholder="0.00"
                       value={gastoForm.monto}
-                      onChange={(e) =>
-                        setGastoForm((prev) => ({ ...prev, monto: e.target.value }))
+                      onChange={(value) =>
+                        setGastoForm((prev) => ({ ...prev, monto: value }))
                       }
-                      className={inputClassName}
+                      placeholder="0"
                     />
                   </div>
 

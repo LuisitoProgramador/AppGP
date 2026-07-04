@@ -13,6 +13,7 @@ import { supabase } from '../services/supabase'
 import { CATEGORIAS } from '../types/gasto'
 import { parseGastoInput } from '../utils/parser'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
 import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
 import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
@@ -21,6 +22,7 @@ import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/
 import { validateCuentaId, validateDescripcion, validateMonto, validateMsiMeses } from '../utils/validation'
 import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, registroFormClassName } from './formStyles'
 import Select from './Select'
+import MontoInput from './MontoInput'
 
 const initialForm = {
   monto: '',
@@ -185,7 +187,7 @@ export default memo(function GastoForm() {
       return
     }
 
-    const monto = Number(data.monto)
+    const monto = parseMontoValue(data.monto)
     const categoria = data.categoria
     const descripcion = data.descripcion.trim()
 
@@ -362,17 +364,12 @@ export default memo(function GastoForm() {
         <label htmlFor="monto" className="block text-sm font-medium text-slate-300">
           Monto
         </label>
-        <input
+        <MontoInput
           ref={montoInputRef}
           id="monto"
-          type="number"
-          inputMode="decimal"
-          min="0.01"
-          step="0.01"
-          placeholder={montoSugerido ? `Sugerido: ${formatCurrency(montoSugerido)}` : '0.00'}
           value={form.monto}
-          onChange={(e) => setForm((prev) => ({ ...prev, monto: e.target.value }))}
-          className={inputClassName}
+          onChange={(value) => setForm((prev) => ({ ...prev, monto: value }))}
+          placeholder={montoSugerido ? formatCurrency(montoSugerido) : '0'}
           required
         />
         {merchantMatch && (
@@ -453,7 +450,7 @@ export default memo(function GastoForm() {
                 <p className="text-xs text-slate-400">
                   {Number(form.mesesMsi)} pagos de{' '}
                   {formatCurrency(
-                    Math.floor((Number(form.monto) / Number(form.mesesMsi)) * 100) / 100,
+                    Math.floor((parseMontoValue(form.monto) / Number(form.mesesMsi)) * 100) / 100,
                   )}{' '}
                   aprox. por mes
                 </p>

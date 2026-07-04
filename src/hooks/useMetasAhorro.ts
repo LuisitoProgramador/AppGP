@@ -7,6 +7,7 @@ import {
 } from '../services/metasAhorro'
 import type { MetaAhorro } from '../types/metaAhorro'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { showError, showSuccess, showWarning } from '../utils/toast'
 import { validateMonto, validateNombre } from '../utils/validation'
 
@@ -73,7 +74,7 @@ export function useMetasAhorro(enabled = true) {
       setGuardandoMeta(true)
       const { data, error: createError } = await createMetaAhorro(user.id, {
         nombre,
-        monto_objetivo: Number(metaObjetivo),
+        monto_objetivo: parseMontoValue(metaObjetivo),
       })
       setGuardandoMeta(false)
 
@@ -105,7 +106,7 @@ export function useMetasAhorro(enabled = true) {
         return
       }
 
-      const amount = Number(inputValue)
+      const amount = parseMontoValue(inputValue)
       setSumandoMetaId(meta.id)
 
       const previousMetas = metas

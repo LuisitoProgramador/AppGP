@@ -16,6 +16,7 @@ import {
   calcPrimerAhorro,
 } from '../utils/finanzas'
 import { formatCurrency } from '../utils/formatCurrency'
+import { formatMontoFromNumber, parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateMonto } from '../utils/validation'
@@ -23,13 +24,13 @@ import {
   buttonPrimaryClassName,
   buttonSecondaryClassName,
   formWithKeyboardClassName,
-  inputClassName,
 } from './formStyles'
 import Select from './Select'
+import MontoInput from './MontoInput'
 
 function validateIngresosExtrasOpcional(value: string): string | null {
   if (!value.trim()) return null
-  const monto = Number(value)
+  const monto = parseMontoValue(value)
   if (Number.isNaN(monto) || monto < 0) {
     return 'Los ingresos extras deben ser un número válido mayor o igual a 0.'
   }
@@ -80,8 +81,8 @@ export default function PresupuestoSettings() {
           const extras = presupuesto.ingresos_extras ?? 0
           const ahorro = presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT
 
-          setSueldoMensual(String(sueldo))
-          setIngresosExtras(extras > 0 ? String(extras) : '')
+          setSueldoMensual(formatMontoFromNumber(sueldo))
+          setIngresosExtras(extras > 0 ? formatMontoFromNumber(extras) : '')
           setPorcentajeAhorro(ahorro)
           setDiaPago(presupuesto.dia_pago ?? 5)
           setDiaPagoInicial(presupuesto.dia_pago ?? 5)
@@ -103,8 +104,8 @@ export default function PresupuestoSettings() {
     }
   }, [user, refreshKey])
 
-  const sueldoNum = Number(sueldoMensual) || 0
-  const extrasNum = ingresosExtras.trim() ? Number(ingresosExtras) || 0 : 0
+  const sueldoNum = parseMontoValue(sueldoMensual) || 0
+  const extrasNum = ingresosExtras.trim() ? parseMontoValue(ingresosExtras) || 0 : 0
 
   const estrategiaPreview = useMemo(() => {
     if (sueldoNum <= 0) return null
@@ -253,16 +254,11 @@ export default function PresupuestoSettings() {
           <label htmlFor="cfg-sueldo" className="block text-sm font-medium text-slate-300">
             Sueldo mensual
           </label>
-          <input
+          <MontoInput
             id="cfg-sueldo"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
             value={sueldoMensual}
-            onChange={(e) => setSueldoMensual(e.target.value)}
-            className={inputClassName}
+            onChange={setSueldoMensual}
+            placeholder="0"
             required
           />
         </div>
@@ -272,16 +268,11 @@ export default function PresupuestoSettings() {
             Ingresos extras mensuales
             <span className="ml-1 font-normal text-slate-500">(opcional)</span>
           </label>
-          <input
+          <MontoInput
             id="cfg-extras"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.01"
-            placeholder="Bonos, ventas, intereses..."
             value={ingresosExtras}
-            onChange={(e) => setIngresosExtras(e.target.value)}
-            className={inputClassName}
+            onChange={setIngresosExtras}
+            placeholder="Bonos, ventas, intereses..."
           />
         </div>
 

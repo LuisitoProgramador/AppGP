@@ -3,6 +3,7 @@ import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import { createCuenta } from '../services/cuentas'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
+import { parseMontoValue } from '../utils/montoInput'
 import { getCorteEstado } from '../utils/diaCorte'
 import { getCreditUtilization, utilizationColor } from '../utils/creditUtilization'
 import { isOnline } from '../utils/network'
@@ -11,6 +12,7 @@ import ModalPortal from './ModalPortal'
 import RegistrarIngresoModal from './RegistrarIngresoModal'
 import TransferenciaModal from './TransferenciaModal'
 import Select from './Select'
+import MontoInput from './MontoInput'
 import {
   cardClassName,
   dashboardCardClassName,
@@ -151,7 +153,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       return
     }
 
-    const saldo = Number(form.saldo_actual)
+    const saldo = parseMontoValue(form.saldo_actual)
     if (Number.isNaN(saldo)) {
       showError('El saldo debe ser un número válido.')
       return
@@ -160,7 +162,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
     let limite_credito: number | null = null
 
     if (form.tipo === 'credito' && form.limite_credito) {
-      limite_credito = Number(form.limite_credito)
+      limite_credito = parseMontoValue(form.limite_credito)
       if (Number.isNaN(limite_credito) || limite_credito <= 0) {
         showError('El límite de crédito debe ser mayor a 0.')
         return
@@ -338,16 +340,13 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
               <label htmlFor="cuenta-saldo" className="block text-sm font-medium text-slate-300">
                 {form.tipo === 'credito' ? 'Deuda actual' : 'Saldo actual'}
               </label>
-              <input
+              <MontoInput
                 id="cuenta-saldo"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
                 value={form.saldo_actual}
-                onChange={(e) =>
-                  setForm((prev) => ({ ...prev, saldo_actual: e.target.value }))
+                onChange={(value) =>
+                  setForm((prev) => ({ ...prev, saldo_actual: value }))
                 }
-                className={inputClassName}
+                placeholder="0"
                 required
               />
             </div>
@@ -361,18 +360,13 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
                   >
                     Límite de crédito
                   </label>
-                  <input
+                  <MontoInput
                     id="cuenta-limite"
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
-                    placeholder="Opcional"
                     value={form.limite_credito}
-                    onChange={(e) =>
-                      setForm((prev) => ({ ...prev, limite_credito: e.target.value }))
+                    onChange={(value) =>
+                      setForm((prev) => ({ ...prev, limite_credito: value }))
                     }
-                    className={inputClassName}
+                    placeholder="Opcional"
                   />
                 </div>
                 <div className="space-y-2">
