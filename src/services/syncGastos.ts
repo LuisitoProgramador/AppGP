@@ -74,6 +74,11 @@ export async function syncPendingGastos(): Promise<SyncResult> {
     optimisticTempIdsRemoved: [],
   }
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  let cachedCuentas = user ? getCachedCuentas(user.id) : []
+
   for (const gasto of pending) {
     const rows = rowsToInsert(gasto)
     const msiError = validateMsiGroup(rows)
@@ -105,19 +110,15 @@ export async function syncPendingGastos(): Promise<SyncResult> {
       const retryCount = (gasto.retryCount ?? 0) + 1
 
       if (shouldDiscardAfterRetry(retryCount)) {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
         if (user && gasto.cuenta_id) {
-          const cuentas = getCachedCuentas(user.id)
           const montoRevert = montoSaldoAlEliminarPendiente(gasto)
-          const updated = revertGastoSaldoLocal(
+          cachedCuentas = revertGastoSaldoLocal(
             user.id,
-            cuentas,
+            cachedCuentas,
             gasto.cuenta_id,
             montoRevert,
           )
-          const cuenta = updated.find((c) => c.id === gasto.cuenta_id)
+          const cuenta = cachedCuentas.find((c) => c.id === gasto.cuenta_id)
           if (cuenta) {
             await persistCuentaSaldo(user.id, gasto.cuenta_id, cuenta.saldo_actual)
           }
@@ -146,11 +147,8 @@ export async function syncPendingGastos(): Promise<SyncResult> {
       continue
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
     if (user && gasto.cuenta_id) {
-      const cuenta = getCachedCuentas(user.id).find((c) => c.id === gasto.cuenta_id)
+      const cuenta = cachedCuentas.find((c) => c.id === gasto.cuenta_id)
       if (cuenta) {
         await persistCuentaSaldo(user.id, gasto.cuenta_id, cuenta.saldo_actual)
       }

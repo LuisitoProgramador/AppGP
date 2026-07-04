@@ -52,6 +52,9 @@ export function detectarRecurrentesSugeridos(
     if (!key || recurrentesKeys.has(key)) continue
 
     const monto = Math.round(Number(gasto.monto) * 100) / 100
+    const fechaDate = new Date(gasto.fecha)
+    const diaMes = fechaDate.getDate()
+    const mes = monthKey(gasto.fecha)
     const existing = groups.get(key)
 
     if (!existing) {
@@ -59,16 +62,16 @@ export function detectarRecurrentesSugeridos(
         descripcion: gasto.descripcion.trim(),
         categoria: gasto.categoria,
         monto,
-        meses: new Set([monthKey(gasto.fecha)]),
-        dias: [new Date(gasto.fecha).getDate()],
+        meses: new Set([mes]),
+        dias: [diaMes],
       })
       continue
     }
 
     if (!montosSimilares(existing.monto, monto)) continue
 
-    existing.meses.add(monthKey(gasto.fecha))
-    existing.dias.push(new Date(gasto.fecha).getDate())
+    existing.meses.add(mes)
+    existing.dias.push(diaMes)
   }
 
   const sugeridos: RecurrenteSugerido[] = []
@@ -76,11 +79,18 @@ export function detectarRecurrentesSugeridos(
   for (const group of groups.values()) {
     if (group.meses.size < 3) continue
 
-    const diaFrecuente = [...group.dias].sort(
-      (a, b) =>
-        group.dias.filter((dia) => dia === b).length -
-        group.dias.filter((dia) => dia === a).length,
-    )[0]
+    const dayCounts = new Map<number, number>()
+    for (const dia of group.dias) {
+      dayCounts.set(dia, (dayCounts.get(dia) ?? 0) + 1)
+    }
+    let diaFrecuente = 1
+    let maxCount = 0
+    for (const [dia, count] of dayCounts) {
+      if (count > maxCount) {
+        maxCount = count
+        diaFrecuente = dia
+      }
+    }
 
     sugeridos.push({
       descripcion: group.descripcion,

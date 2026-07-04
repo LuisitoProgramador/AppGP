@@ -3,9 +3,9 @@ import { calcSafeToSpend, sumRecibosPendientes } from './safeToSpend'
 
 describe('safeToSpend', () => {
   const recurrentes = [
-    { id: 1, descripcion: 'Netflix', monto: 200, categoria: 'Suscripciones', dia_mes: 5, ultimo_registro: null },
-    { id: 2, descripcion: 'Internet', monto: 500, categoria: 'Casa', dia_mes: 20, ultimo_registro: null },
-    { id: 3, descripcion: 'Spotify', monto: 100, categoria: 'Suscripciones', dia_mes: 10, ultimo_registro: null },
+    { id: 1, descripcion: 'Netflix', monto: 200, categoria: 'Suscripciones', dia_mes: 5, ultimo_registro: null, cuenta_id: null },
+    { id: 2, descripcion: 'Internet', monto: 500, categoria: 'Casa', dia_mes: 20, ultimo_registro: null, cuenta_id: null },
+    { id: 3, descripcion: 'Spotify', monto: 100, categoria: 'Suscripciones', dia_mes: 10, ultimo_registro: null, cuenta_id: null },
   ]
 
   it('suma solo recibos con dia_mes mayor al día actual', () => {

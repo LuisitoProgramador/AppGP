@@ -71,6 +71,20 @@ const KEYWORDS: Record<Categoria, readonly string[]> = {
 
 const DEFAULT_CATEGORIA: Categoria = 'Otros'
 
+const KEYWORD_PATTERNS: Record<Categoria, RegExp[]> = Object.fromEntries(
+  CATEGORIAS.map((categoria) => {
+    if (categoria === DEFAULT_CATEGORIA) return [categoria, [] as RegExp[]]
+    const patterns = KEYWORDS[categoria].map((keyword) => {
+      const normalized = keyword
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+      return new RegExp(`\\b${normalized}\\b`, 'i')
+    })
+    return [categoria, patterns]
+  }),
+) as Record<Categoria, RegExp[]>
+
 function normalizeText(value: string): string {
   return value
     .toLowerCase()
@@ -124,11 +138,7 @@ function detectCategoria(text: string, historial: CategoriaMemoryEntry[] = []): 
   for (const categoria of CATEGORIAS) {
     if (categoria === DEFAULT_CATEGORIA) continue
 
-    const matches = KEYWORDS[categoria].some((keyword) => {
-      const pattern = new RegExp(`\\b${normalizeText(keyword)}\\b`, 'i')
-      return pattern.test(normalized)
-    })
-
+    const matches = KEYWORD_PATTERNS[categoria].some((pattern) => pattern.test(normalized))
     if (matches) return categoria
   }
 

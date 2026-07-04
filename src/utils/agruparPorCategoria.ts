@@ -3,15 +3,19 @@ import type { CategoriaResumen } from '../types/gasto'
 export function agruparPorCategoria(
   gastos: { monto: number; categoria: string }[],
 ): CategoriaResumen[] {
-  const totales = gastos.reduce<Record<string, number>>((acc, gasto) => {
-    const monto = Number(gasto.monto)
-    acc[gasto.categoria] = (acc[gasto.categoria] ?? 0) + monto
-    return acc
-  }, {})
+  const totales = gastos.reduce<{ acc: Record<string, number>; totalGeneral: number }>(
+    (state, gasto) => {
+      const monto = Number(gasto.monto)
+      state.acc[gasto.categoria] = (state.acc[gasto.categoria] ?? 0) + monto
+      state.totalGeneral += monto
+      return state
+    },
+    { acc: {}, totalGeneral: 0 },
+  )
 
-  const totalGeneral = Object.values(totales).reduce((sum, monto) => sum + monto, 0)
+  const { acc, totalGeneral } = totales
 
-  return Object.entries(totales)
+  return Object.entries(acc)
     .map(([categoria, total]) => ({
       categoria,
       total,

@@ -20,8 +20,10 @@ function createSupabaseAdmin(): SupabaseClient {
   })
 }
 
+const mxCurrencyFormatter = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' })
+
 function formatMonto(monto: number): string {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(monto)
+  return mxCurrencyFormatter.format(monto)
 }
 
 async function sendTelegram(text: string): Promise<void> {

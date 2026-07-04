@@ -29,6 +29,9 @@ const PRESUPUESTO_SELECT_LEGACY =
 const PRESUPUESTO_SELECT_NO_MANUAL =
   'limite_mensual, sueldo_mensual, ingresos_extras, sueldo_semanal, dia_pago, porcentaje_ahorro' as const
 
+type PresupuestoSelectMode = 'full' | 'no_manual' | 'legacy' | 'minimal'
+let presupuestoSelectMode: PresupuestoSelectMode | null = null
+
 function limiteLocalStorageKey(userId: string) {
   return `presupuesto_limite_${userId}`
 }
@@ -96,13 +99,79 @@ export function getIngresoMensualTotal(presupuesto: Presupuesto): number | null 
 }
 
 async function fetchPresupuestoRow(userId: string) {
+  if (presupuestoSelectMode === 'full') {
+    return supabase
+      .from('presupuestos')
+      .select(PRESUPUESTO_SELECT)
+      .eq('user_id', userId)
+      .maybeSingle()
+  }
+
+  if (presupuestoSelectMode === 'no_manual') {
+    const withoutManual = await supabase
+      .from('presupuestos')
+      .select(PRESUPUESTO_SELECT_NO_MANUAL)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (!withoutManual.error) {
+      return {
+        data: withoutManual.data
+          ? { ...withoutManual.data, limite_es_manual: false }
+          : null,
+        error: null,
+      }
+    }
+    presupuestoSelectMode = null
+  }
+
+  if (presupuestoSelectMode === 'legacy') {
+    const withOnboarding = await supabase
+      .from('presupuestos')
+      .select(PRESUPUESTO_SELECT_LEGACY)
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (!withOnboarding.error) {
+      return {
+        data: withOnboarding.data
+          ? { ...withOnboarding.data, sueldo_mensual: null, ingresos_extras: 0, limite_es_manual: false }
+          : null,
+        error: null,
+      }
+    }
+    presupuestoSelectMode = null
+  }
+
+  if (presupuestoSelectMode === 'minimal') {
+    const fallback = await supabase
+      .from('presupuestos')
+      .select('limite_mensual')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (fallback.error || !fallback.data) return fallback
+    return {
+      data: {
+        ...fallback.data,
+        limite_es_manual: false,
+        sueldo_mensual: null,
+        ingresos_extras: 0,
+        sueldo_semanal: null,
+        dia_pago: null,
+        porcentaje_ahorro: null,
+      },
+      error: null,
+    }
+  }
+
   const withManual = await supabase
     .from('presupuestos')
     .select(PRESUPUESTO_SELECT)
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (!withManual.error) return withManual
+  if (!withManual.error) {
+    presupuestoSelectMode = 'full'
+    return withManual
+  }
 
   const withoutManual = await supabase
     .from('presupuestos')
@@ -111,6 +180,7 @@ async function fetchPresupuestoRow(userId: string) {
     .maybeSingle()
 
   if (!withoutManual.error) {
+    presupuestoSelectMode = 'no_manual'
     return {
       data: withoutManual.data
         ? { ...withoutManual.data, limite_es_manual: false }
@@ -126,6 +196,7 @@ async function fetchPresupuestoRow(userId: string) {
     .maybeSingle()
 
   if (!withOnboarding.error) {
+    presupuestoSelectMode = 'legacy'
     return {
       data: withOnboarding.data
         ? { ...withOnboarding.data, sueldo_mensual: null, ingresos_extras: 0, limite_es_manual: false }
@@ -142,6 +213,7 @@ async function fetchPresupuestoRow(userId: string) {
 
   if (fallback.error || !fallback.data) return fallback
 
+  presupuestoSelectMode = 'minimal'
   return {
     data: {
       ...fallback.data,
@@ -195,6 +267,7 @@ export async function savePresupuesto(
     dia_pago?: number | null
     porcentaje_ahorro?: number | null
   },
+  existingPresupuesto?: Presupuesto | null,
 ): Promise<{ error: string | null }> {
   if (input.porcentaje_ahorro !== undefined && input.porcentaje_ahorro != null) {
     const porcentajeError = validatePorcentajeAhorro(input.porcentaje_ahorro)
@@ -214,7 +287,7 @@ export async function savePresupuesto(
   if (input.dia_pago !== undefined) row.dia_pago = input.dia_pago
   if (input.porcentaje_ahorro !== undefined) row.porcentaje_ahorro = input.porcentaje_ahorro
 
-  const existing = await getPresupuesto(userId)
+  const existing = existingPresupuesto ?? (await getPresupuesto(userId))
 
   const { error } = await supabase.from('presupuestos').upsert(row, { onConflict: 'user_id' })
 
@@ -265,15 +338,19 @@ export async function savePresupuestoFinanciero(
     estrategia.disponibleParaGasto,
   )
 
-  const { error } = await savePresupuesto(userId, {
-    limite_mensual,
-    limite_es_manual,
-    sueldo_mensual: input.sueldo_mensual,
-    ingresos_extras: ingresosExtras,
-    sueldo_semanal: estrategia.sueldoSemanal,
-    dia_pago: input.dia_pago,
-    porcentaje_ahorro: input.porcentaje_ahorro,
-  })
+  const { error } = await savePresupuesto(
+    userId,
+    {
+      limite_mensual,
+      limite_es_manual,
+      sueldo_mensual: input.sueldo_mensual,
+      ingresos_extras: ingresosExtras,
+      sueldo_semanal: estrategia.sueldoSemanal,
+      dia_pago: input.dia_pago,
+      porcentaje_ahorro: input.porcentaje_ahorro,
+    },
+    existing,
+  )
 
   if (error) return { error, presupuesto: null, limiteManualPreservado: false }
 

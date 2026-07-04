@@ -1,21 +1,65 @@
 import type { Cuenta, CuentaInput, PendingCuenta } from '../types/cuenta'
 import { calcSaldoAfterGasto, revertSaldoAfterGasto } from '../utils/cuentaSaldo'
 import { isOnline, offlineServiceError } from '../utils/network'
-import { addPendingCuenta, getPendingCuentas, getPendingGastos } from './offlineQueue'
+import { addPendingCuenta, getPendingCuentas, getPendingGastosCount } from './offlineQueue'
 import { supabase } from './supabase'
 
 const CUENTA_SELECT_BASE = 'id, nombre, tipo, limite_credito, saldo_actual' as const
 const CUENTA_SELECT_CORTE = `${CUENTA_SELECT_BASE}, dia_corte` as const
 const CUENTA_SELECT = `${CUENTA_SELECT_CORTE}, dia_pago` as const
 
+type CuentaSelectMode = 'full' | 'corte' | 'base'
+let cuentaSelectMode: CuentaSelectMode | null = null
+
 async function fetchCuentasRows(userId: string) {
+  if (cuentaSelectMode === 'full') {
+    return supabase
+      .from('cuentas')
+      .select(CUENTA_SELECT)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+  }
+
+  if (cuentaSelectMode === 'corte') {
+    const withCorte = await supabase
+      .from('cuentas')
+      .select(CUENTA_SELECT_CORTE)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (!withCorte.error) {
+      return {
+        data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null })),
+        error: null,
+      }
+    }
+    cuentaSelectMode = null
+  }
+
+  if (cuentaSelectMode === 'base') {
+    const base = await supabase
+      .from('cuentas')
+      .select(CUENTA_SELECT_BASE)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: true })
+    if (!base.error) {
+      return {
+        data: (base.data ?? []).map((row) => ({ ...row, dia_corte: null, dia_pago: null })),
+        error: null,
+      }
+    }
+    cuentaSelectMode = null
+  }
+
   const full = await supabase
     .from('cuentas')
     .select(CUENTA_SELECT)
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
-  if (!full.error) return full
+  if (!full.error) {
+    cuentaSelectMode = 'full'
+    return full
+  }
 
   const withCorte = await supabase
     .from('cuentas')
@@ -24,6 +68,7 @@ async function fetchCuentasRows(userId: string) {
     .order('created_at', { ascending: true })
 
   if (!withCorte.error) {
+    cuentaSelectMode = 'corte'
     return {
       data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null })),
       error: null,
@@ -38,6 +83,7 @@ async function fetchCuentasRows(userId: string) {
 
   if (base.error) return base
 
+  cuentaSelectMode = 'base'
   return {
     data: (base.data ?? []).map((row) => ({ ...row, dia_corte: null, dia_pago: null })),
     error: null,
@@ -122,8 +168,8 @@ export async function listCuentas(
     return { data: readCache(userId), error: null, fromCache: true }
   }
 
-  const pendingGastos = await getPendingGastos()
-  if (pendingGastos.length > 0) {
+  const pendingGastosCount = await getPendingGastosCount()
+  if (pendingGastosCount > 0) {
     const cached = readCache(userId)
     if (cached.length > 0) {
       return { data: cached, error: null, fromCache: true }
@@ -147,7 +193,7 @@ export async function listCuentas(
 }
 
 export async function insertCuentaRemoto(
-  userId: string,
+  _userId: string,
   input: CuentaInput,
 ): Promise<{ data: Cuenta | null; error: string | null }> {
   const row: Record<string, unknown> = {
@@ -211,8 +257,13 @@ async function queueCuentaOffline(
     dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
   }
 
-  writeCache(userId, [...readCache(userId), cuenta])
+  appendToCache(userId, cuenta)
   return { data: cuenta, error: null }
+}
+
+function appendToCache(userId: string, item: Cuenta): void {
+  const cached = readCache(userId)
+  writeCache(userId, [...cached, item])
 }
 
 export async function ensureCuentaEfectivo(
@@ -240,7 +291,7 @@ export async function createCuenta(
   const { data, error } = await insertCuentaRemoto(userId, input)
   if (error || !data) return { data: null, error }
 
-  writeCache(userId, [...readCache(userId), data])
+  appendToCache(userId, data)
   return { data, error: null }
 }
 
@@ -256,13 +307,15 @@ export function applyGastoSaldoLocal(
   cuentaId: string,
   monto: number,
 ): { cuentas: Cuenta[]; error: string | null } {
-  const cuenta = cuentas.find((c) => c.id === cuentaId)
-  if (!cuenta) return { cuentas, error: 'Cuenta no encontrada' }
+  let found = false
+  const updated = cuentas.map((c) => {
+    if (c.id !== cuentaId) return c
+    found = true
+    const newSaldo = calcSaldoAfterGasto(c.tipo, c.saldo_actual, monto)
+    return { ...c, saldo_actual: newSaldo }
+  })
+  if (!found) return { cuentas, error: 'Cuenta no encontrada' }
 
-  const newSaldo = calcSaldoAfterGasto(cuenta.tipo, cuenta.saldo_actual, monto)
-  const updated = cuentas.map((c) =>
-    c.id === cuentaId ? { ...c, saldo_actual: newSaldo } : c,
-  )
   writeCache(userId, updated)
   return { cuentas: updated, error: null }
 }
@@ -319,13 +372,15 @@ export function revertGastoSaldoLocal(
   cuentaId: string,
   monto: number,
 ): Cuenta[] {
-  const cuenta = cuentas.find((c) => c.id === cuentaId)
-  if (!cuenta) return cuentas
+  let found = false
+  const updated = cuentas.map((c) => {
+    if (c.id !== cuentaId) return c
+    found = true
+    const newSaldo = revertSaldoAfterGasto(c.tipo, c.saldo_actual, monto)
+    return { ...c, saldo_actual: newSaldo }
+  })
+  if (!found) return cuentas
 
-  const newSaldo = revertSaldoAfterGasto(cuenta.tipo, cuenta.saldo_actual, monto)
-  const updated = cuentas.map((c) =>
-    c.id === cuentaId ? { ...c, saldo_actual: newSaldo } : c,
-  )
   writeCache(userId, updated)
   return updated
 }
@@ -352,10 +407,7 @@ export async function realizarTransferencia(
 
   if (error) return { error: error.message }
 
-  const { data: cuentas } = await listCuentas(userId)
-  if (cuentas.length > 0) {
-    writeCache(userId, cuentas)
-  }
+  await listCuentas(userId)
 
   return { error: null }
 }

@@ -23,6 +23,13 @@ function normalizeKey(descripcion: string): string {
   return descripcion.trim().toLowerCase()
 }
 
+function normalizeEntry(entry: MerchantMemoryEntry): MerchantMemoryEntry {
+  return {
+    ...entry,
+    frecuencia: entry.frecuencia > 0 ? entry.frecuencia : 1,
+  }
+}
+
 function readCache(userId: string): MerchantMemoryEntry[] {
   try {
     const raw = localStorage.getItem(cacheKey(userId))
@@ -35,10 +42,23 @@ function readCache(userId: string): MerchantMemoryEntry[] {
 
 function writeCache(userId: string, entries: MerchantMemoryEntry[]) {
   try {
-    localStorage.setItem(cacheKey(userId), JSON.stringify(entries))
+    const normalized = entries.map(normalizeEntry)
+    localStorage.setItem(cacheKey(userId), JSON.stringify(normalized))
   } catch {
     /* ignore QuotaExceededError and other storage failures */
   }
+}
+
+function modeFromCounts<T>(counts: Map<T, number>, fallback: T): T {
+  let best = fallback
+  let max = 0
+  for (const [value, count] of counts) {
+    if (count > max) {
+      max = count
+      best = value
+    }
+  }
+  return best
 }
 
 function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
@@ -71,9 +91,8 @@ function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
   }
 
   return Array.from(groups.entries()).map(([key, group]) => {
-    const categoria = [...group.categoria.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'Otros'
-    const montoFrecuente =
-      [...group.montos.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? 0
+    const categoria = modeFromCounts(group.categoria, 'Otros')
+    const montoFrecuente = modeFromCounts(group.montos, 0)
 
     return {
       key,
@@ -85,15 +104,12 @@ function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
   })
 }
 
-function normalizeEntry(entry: MerchantMemoryEntry): MerchantMemoryEntry {
-  return {
-    ...entry,
-    frecuencia: entry.frecuencia > 0 ? entry.frecuencia : 1,
-  }
+function entriesToMap(entries: MerchantMemoryEntry[]): Map<string, MerchantMemoryEntry> {
+  return new Map(entries.map((entry) => [entry.key, entry]))
 }
 
 export function getMerchantMemory(userId: string): MerchantMemoryEntry[] {
-  return readCache(userId).map(normalizeEntry)
+  return readCache(userId)
 }
 
 export function getTopMerchantMemory(
@@ -101,7 +117,6 @@ export function getTopMerchantMemory(
   limit = 4,
 ): MerchantMemoryEntry[] {
   return [...entries]
-    .map(normalizeEntry)
     .sort((a, b) => {
       const freqDiff = b.frecuencia - a.frecuencia
       if (freqDiff !== 0) return freqDiff
@@ -132,16 +147,21 @@ export function recordMerchantMemory(
   const key = normalizeKey(descripcion)
   if (!key) return
 
-  const cached = readCache(userId).map(normalizeEntry)
-  const existing = cached.find((entry) => entry.key === key)
-  const entries = cached.filter((entry) => entry.key !== key)
-  entries.unshift({
-    key,
-    descripcion: descripcion.trim(),
-    categoria,
-    montoFrecuente: Math.round(monto * 100) / 100,
-    frecuencia: (existing?.frecuencia ?? 0) + 1,
-  })
+  const cached = readCache(userId)
+  const byKey = entriesToMap(cached)
+  const existing = byKey.get(key)
+
+  byKey.delete(key)
+  const entries = [
+    {
+      key,
+      descripcion: descripcion.trim(),
+      categoria,
+      montoFrecuente: Math.round(monto * 100) / 100,
+      frecuencia: (existing?.frecuencia ?? 0) + 1,
+    },
+    ...byKey.values(),
+  ]
   writeCache(userId, entries.slice(0, 80))
 }
 
@@ -152,7 +172,8 @@ export function matchMerchantMemory(
   const key = normalizeKey(descripcion)
   if (key.length < 2) return null
 
-  const exact = entries.find((entry) => entry.key === key)
+  const byKey = entriesToMap(entries)
+  const exact = byKey.get(key)
   if (exact) return exact
 
   return (

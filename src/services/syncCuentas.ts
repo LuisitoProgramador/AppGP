@@ -1,8 +1,6 @@
-import type { Cuenta } from '../types/cuenta'
 import {
   getCachedCuentas,
   insertCuentaRemoto,
-  pendingCuentaToCuenta,
   setCachedCuentas,
 } from './cuentas'
 import {
@@ -11,6 +9,8 @@ import {
   updatePendingCuenta,
 } from './offlineQueue'
 import { shouldDiscardAfterRetry } from './syncPolicy'
+import { mapWithConcurrency } from '../utils/concurrency'
+import type { Cuenta } from '../types/cuenta'
 
 export interface SyncCuentaFailure {
   id: string
@@ -25,13 +25,19 @@ export interface SyncCuentasResult {
   idMap: Record<string, string>
 }
 
+const SYNC_CONCURRENCY = 3
+
 function replaceTempCuentaInCache(
   userId: string,
   tempId: string,
   cuenta: Cuenta,
 ): void {
   const cached = getCachedCuentas(userId)
-  const updated = cached.map((item) => (item.id === tempId ? cuenta : item))
+  const index = cached.findIndex((item) => item.id === tempId)
+  if (index === -1) return
+
+  const updated = [...cached]
+  updated[index] = cuenta
   setCachedCuentas(userId, updated)
 }
 
@@ -44,7 +50,9 @@ export async function syncPendingCuentas(userId: string): Promise<SyncCuentasRes
     idMap: {},
   }
 
-  for (const item of pending) {
+  if (pending.length === 0) return result
+
+  const outcomes = await mapWithConcurrency(pending, SYNC_CONCURRENCY, async (item) => {
     const { data, error } = await insertCuentaRemoto(userId, {
       nombre: item.nombre,
       tipo: item.tipo,
@@ -53,7 +61,10 @@ export async function syncPendingCuentas(userId: string): Promise<SyncCuentasRes
       dia_corte: item.dia_corte,
       dia_pago: item.dia_pago,
     })
+    return { item, data, error: error ?? (data ? null : 'No se pudo crear la cuenta en el servidor.') }
+  })
 
+  for (const { item, data, error } of outcomes) {
     if (error || !data) {
       const retryCount = (item.retryCount ?? 0) + 1
 

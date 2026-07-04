@@ -17,7 +17,12 @@ export function setModoViaje(activo: boolean): void {
 }
 
 export function toggleModoViaje(): boolean {
-  const next = !isModoViaje()
-  setModoViaje(next)
-  return next
+  try {
+    const current = sessionStorage.getItem(STORAGE_KEY) === '1'
+    const next = !current
+    sessionStorage.setItem(STORAGE_KEY, next ? '1' : '0')
+    return next
+  } catch {
+    return false
+  }
 }

@@ -53,12 +53,15 @@ export interface OnboardingData {
   cuentasLiquidas: OnboardingCuentaLiquida[]
 }
 
+const SUSCRIPCIONES_REGEX = /netflix|spotify|disney|hbo|prime|suscri|apple tv|youtube/
+const CASA_REGEX = /renta|internet|luz|agua|gas|casa|hipoteca|tel[eé]fono/
+
 export function guessCategoria(descripcion: string): (typeof CATEGORIAS)[number] {
   const lower = descripcion.toLowerCase()
-  if (/netflix|spotify|disney|hbo|prime|suscri|apple tv|youtube/.test(lower)) {
+  if (SUSCRIPCIONES_REGEX.test(lower)) {
     return 'Suscripciones'
   }
-  if (/renta|internet|luz|agua|gas|casa|hipoteca|tel[eé]fono/.test(lower)) {
+  if (CASA_REGEX.test(lower)) {
     return 'Casa'
   }
   return 'Otros'
@@ -101,30 +104,42 @@ export async function completeOnboarding(
 
   const cuentaIdByDraft = new Map<string, string>()
 
-  for (const cuenta of data.cuentasLiquidas) {
-    const input: CuentaInput = {
-      nombre: cuenta.nombre,
-      tipo: 'debito',
-      saldo_actual: cuenta.saldo_actual,
-    }
-    const { data: created, error } = await createCuenta(userId, input)
-    if (error) return { error }
-    if (!created) return { error: 'No se pudo crear la cuenta.' }
-    cuentaIdByDraft.set(cuenta.draftId, created.id)
+  const liquidasResults = await Promise.all(
+    data.cuentasLiquidas.map(async (cuenta) => {
+      const input: CuentaInput = {
+        nombre: cuenta.nombre,
+        tipo: 'debito',
+        saldo_actual: cuenta.saldo_actual,
+      }
+      const { data: created, error } = await createCuenta(userId, input)
+      return { draftId: cuenta.draftId, created, error }
+    }),
+  )
+
+  for (const result of liquidasResults) {
+    if (result.error) return { error: result.error }
+    if (!result.created) return { error: 'No se pudo crear la cuenta.' }
+    cuentaIdByDraft.set(result.draftId, result.created.id)
   }
 
-  for (const tarjeta of data.tarjetas) {
-    const input: CuentaInput = {
-      nombre: tarjeta.nombre,
-      tipo: 'credito',
-      saldo_actual: tarjeta.saldo_actual,
-      limite_credito: tarjeta.limite_credito,
-      dia_corte: tarjeta.dia_corte,
-    }
-    const { data: created, error } = await createCuenta(userId, input)
-    if (error) return { error }
-    if (!created) return { error: 'No se pudo crear la tarjeta.' }
-    cuentaIdByDraft.set(tarjeta.draftId, created.id)
+  const tarjetasResults = await Promise.all(
+    data.tarjetas.map(async (tarjeta) => {
+      const input: CuentaInput = {
+        nombre: tarjeta.nombre,
+        tipo: 'credito',
+        saldo_actual: tarjeta.saldo_actual,
+        limite_credito: tarjeta.limite_credito,
+        dia_corte: tarjeta.dia_corte,
+      }
+      const { data: created, error } = await createCuenta(userId, input)
+      return { draftId: tarjeta.draftId, created, error }
+    }),
+  )
+
+  for (const result of tarjetasResults) {
+    if (result.error) return { error: result.error }
+    if (!result.created) return { error: 'No se pudo crear la tarjeta.' }
+    cuentaIdByDraft.set(result.draftId, result.created.id)
   }
 
   const defaultCuentaId = efectivo?.id ?? null

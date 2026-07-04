@@ -8,14 +8,14 @@ export interface AuthRedirectResult {
   error: string | null
 }
 
-const EMAIL_OTP_TYPES: EmailOtpType[] = [
+const EMAIL_OTP_TYPES = new Set<EmailOtpType>([
   'signup',
   'email',
   'email_change',
   'recovery',
   'invite',
   'magiclink',
-]
+])
 
 const AUTH_PARAM_KEYS = [
   'token_hash',
@@ -73,7 +73,7 @@ export async function handleAuthRedirect(): Promise<AuthRedirectResult> {
   const tokenHash = params.get('token_hash')
   const type = params.get('type') as EmailOtpType | null
 
-  if (tokenHash && type && EMAIL_OTP_TYPES.includes(type)) {
+  if (tokenHash && type && EMAIL_OTP_TYPES.has(type)) {
     const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
     cleanAuthParamsFromUrl()
     if (error) {

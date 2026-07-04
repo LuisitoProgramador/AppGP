@@ -1,3 +1,5 @@
+import { getDateTimeFormat } from './intlCache'
+
 export function getMonthRange(date = new Date()) {
   const inicio = new Date(date.getFullYear(), date.getMonth(), 1)
   const fin = new Date(date.getFullYear(), date.getMonth() + 1, 1)
@@ -10,20 +12,17 @@ export function getDaysRemainingInMonth(date = new Date()): number {
 }
 
 export function formatMonthLabel(date = new Date(), locale = 'es-MX'): string {
-  return new Intl.DateTimeFormat(locale, {
-    month: 'long',
-    year: 'numeric',
-  }).format(date)
+  return getDateTimeFormat(locale, { month: 'long', year: 'numeric' }).format(date)
 }
 
 /** Etiqueta compacta para selectores en pantallas estrechas (ej. "ene 2026"). */
 export function formatMonthShortLabel(date = new Date(), locale = 'es-MX'): string {
-  const month = new Intl.DateTimeFormat(locale, { month: 'short' }).format(date)
+  const month = getDateTimeFormat(locale, { month: 'short' }).format(date)
   return `${month} ${date.getFullYear()}`
 }
 
 export function formatShortDate(date: string | Date, locale = 'es-MX'): string {
-  return new Intl.DateTimeFormat(locale, {
+  return getDateTimeFormat(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -41,8 +40,18 @@ export const APP_TIMEZONE = 'America/Mexico_City'
 
 const MX_UTC_OFFSET = '-06:00'
 
+const calendarDateFormatter = getDateTimeFormat('en-CA', {
+  timeZone: APP_TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 function getCalendarDateInTimezone(date: Date, timeZone = APP_TIMEZONE): string {
-  return new Intl.DateTimeFormat('en-CA', {
+  if (timeZone === APP_TIMEZONE) {
+    return calendarDateFormatter.format(date)
+  }
+  return getDateTimeFormat('en-CA', {
     timeZone,
     year: 'numeric',
     month: '2-digit',

@@ -1,5 +1,5 @@
 import type { OptimisticGasto, PendingGasto } from '../types/gasto'
-import { formatMonthLabel, getMonthRange, shiftMonth } from './date'
+import { formatMonthLabel, shiftMonth } from './date'
 import { expandPendingToLineItems, filterPendingNotInOptimistic } from './optimisticGastos'
 
 export interface MsiCompromisoMes {
@@ -15,14 +15,19 @@ interface GastoMsiRow {
   fecha: string
 }
 
-function sumMsiInMonth(rows: GastoMsiRow[], month: Date): number {
-  const { inicio, fin } = getMonthRange(month)
-  return rows
-    .filter((row) => {
-      const fecha = new Date(row.fecha)
-      return fecha >= inicio && fecha < fin
-    })
-    .reduce((sum, row) => sum + row.monto, 0)
+function bucketRowsByMonth(rows: GastoMsiRow[]): Map<string, number> {
+  const buckets = new Map<string, number>()
+  for (const row of rows) {
+    const fecha = new Date(row.fecha)
+    const key = `${fecha.getFullYear()}-${fecha.getMonth()}`
+    buckets.set(key, (buckets.get(key) ?? 0) + row.monto)
+  }
+  return buckets
+}
+
+function sumMsiInMonth(buckets: Map<string, number>, month: Date): number {
+  const key = `${month.getFullYear()}-${month.getMonth()}`
+  return buckets.get(key) ?? 0
 }
 
 export function calcularCompromisosMsi(
@@ -45,11 +50,12 @@ export function calcularCompromisosMsi(
     ...pendingMsi,
   ]
 
+  const buckets = bucketRowsByMonth(allRows)
   const baseMonth = new Date(desde.getFullYear(), desde.getMonth(), 1)
 
   return Array.from({ length: meses }, (_, index) => {
     const mes = shiftMonth(baseMonth, index)
-    const comprometido = sumMsiInMonth(allRows, mes)
+    const comprometido = sumMsiInMonth(buckets, mes)
     const disponibleReal = limiteMensual - comprometido
 
     return {

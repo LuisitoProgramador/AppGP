@@ -1,3 +1,6 @@
+import { APP_TIMEZONE } from './date'
+import { getDateTimeFormat } from './intlCache'
+
 export interface GastoDiaRow {
   descripcion: string
   monto: number
@@ -30,18 +33,15 @@ export function findDuplicadoHoy(
   )
 }
 
+const mxCalendarFormatter = getDateTimeFormat('en-CA', {
+  timeZone: APP_TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 export function isToday(isoFecha: string, hoy = new Date()): boolean {
-  const hoyCal = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Mexico_City',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(hoy)
-  const fechaCal = new Intl.DateTimeFormat('en-CA', {
-    timeZone: 'America/Mexico_City',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date(isoFecha))
+  const hoyCal = mxCalendarFormatter.format(hoy)
+  const fechaCal = mxCalendarFormatter.format(new Date(isoFecha))
   return fechaCal === hoyCal
 }

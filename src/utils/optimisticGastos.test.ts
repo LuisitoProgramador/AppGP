@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { OptimisticGasto, PendingGasto } from '../types/gasto'
-import { filterOptimisticGastos, filterPendingNotInOptimistic, mergeResumenWithOptimistic } from './optimisticGastos'
+import { filterOptimisticGastos, mergeResumenWithOptimistic } from './optimisticGastos'
 
 const mes = new Date(2026, 2, 15)
 

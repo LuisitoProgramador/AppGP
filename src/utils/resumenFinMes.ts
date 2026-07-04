@@ -14,13 +14,17 @@ export function shouldShowResumenFinMes(selectedMonth: Date, now = new Date()): 
   return now.getDate() <= 3
 }
 
-export function mesParaResumenFinMes(selectedMonth: Date, now = new Date()): Date {
+export function mesParaResumenFinMes(selectedMonth: Date, _now = new Date()): Date {
   if (!isCurrentMonth(selectedMonth)) return selectedMonth
   return shiftMonth(selectedMonth, -1)
 }
 
 export function contarMetasCumplidas(metas: MetaAhorro[]): number {
-  return metas.filter((meta) => meta.monto_actual >= meta.monto_objetivo).length
+  let cumplidas = 0
+  for (const meta of metas) {
+    if (meta.monto_actual >= meta.monto_objetivo) cumplidas += 1
+  }
+  return cumplidas
 }
 
 export function buildResumenFinMes(params: {
@@ -38,11 +42,16 @@ export function buildResumenFinMes(params: {
     )
   }
 
+  let metasCumplidas = 0
+  for (const meta of metas) {
+    if (meta.monto_actual >= meta.monto_objetivo) metasCumplidas += 1
+  }
+
   return {
     mesLabel: formatMonthLabel(mes),
     gastoTotal: gastoTotalMes,
     variacionPct,
-    metasCumplidas: contarMetasCumplidas(metas),
+    metasCumplidas,
     metasTotal: metas.length,
   }
 }

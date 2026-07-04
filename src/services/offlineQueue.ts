@@ -63,6 +63,16 @@ export async function addPendingGasto(
   return pending
 }
 
+export async function getPendingGastosCount(): Promise<number> {
+  const db = await getDB()
+  return db.count(STORE_GASTOS)
+}
+
+export async function getPendingCuentasCount(): Promise<number> {
+  const db = await getDB()
+  return db.count(STORE_CUENTAS)
+}
+
 export async function getPendingGastos(): Promise<PendingGasto[]> {
   const db = await getDB()
   const items = await db.getAll(STORE_GASTOS)
@@ -113,14 +123,25 @@ export async function remapPendingGastoCuentaIds(idMap: Record<string, string>):
   const entries = Object.entries(idMap)
   if (entries.length === 0) return
 
-  const pending = await getPendingGastos()
-  for (const gasto of pending) {
-    if (!gasto.cuenta_id || !idMap[gasto.cuenta_id]) continue
-    await updatePendingGasto({ ...gasto, cuenta_id: idMap[gasto.cuenta_id] })
-  }
+  const db = await getDB()
+  const pending = await db.getAll(STORE_GASTOS)
+  const tx = db.transaction(STORE_GASTOS, 'readwrite')
+
+  await Promise.all(
+    pending.map(async (gasto) => {
+      if (!gasto.cuenta_id || !idMap[gasto.cuenta_id]) return
+      await tx.store.put(
+        normalizePendingGasto({ ...gasto, cuenta_id: idMap[gasto.cuenta_id] }),
+      )
+    }),
+  )
+  await tx.done
 }
 
 export async function getTotalPendingCount(): Promise<number> {
-  const [gastos, cuentas] = await Promise.all([getPendingGastos(), getPendingCuentas()])
-  return gastos.length + cuentas.length
+  const [gastosCount, cuentasCount] = await Promise.all([
+    getPendingGastosCount(),
+    getPendingCuentasCount(),
+  ])
+  return gastosCount + cuentasCount
 }
