@@ -76,10 +76,18 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest,json}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
+            // Nunca cachear auth: rompe refresh de token y cierra sesión en Safari/PWA.
+            urlPattern: ({ url }) => /\/auth\/v1\//.test(url.pathname),
+            handler: 'NetworkOnly',
+          },
+          {
+            urlPattern: ({ url, request }) =>
+              /\.supabase\.co$/i.test(url.hostname) &&
+              url.pathname.startsWith('/rest/v1/') &&
+              request.method === 'GET',
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-api-cache',
+              cacheName: 'supabase-rest-cache',
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60 * 24,

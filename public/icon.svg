@@ -1,23 +1,55 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="112" fill="#0a0f1a"/>
-  <rect width="512" height="512" rx="112" fill="url(#bg)" opacity="0.55"/>
-  <path
-  d="M96 288h72l36-108 48 192 36-108h72"
-  stroke="url(#pulse)"
-  stroke-width="36"
-  stroke-linecap="round"
-  stroke-linejoin="round"
-  />
-  <circle cx="256" cy="288" r="20" fill="#60a5fa"/>
   <defs>
-    <linearGradient id="bg" x1="96" y1="64" x2="416" y2="448" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#1d4ed8" stop-opacity="0.35"/>
-      <stop offset="1" stop-color="#3b82f6" stop-opacity="0"/>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#081018"/>
+      <stop offset="0.45" stop-color="#0f1c30"/>
+      <stop offset="1" stop-color="#162640"/>
     </linearGradient>
-    <linearGradient id="pulse" x1="96" y1="288" x2="416" y2="288" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#2563eb"/>
-      <stop offset="0.5" stop-color="#60a5fa"/>
-      <stop offset="1" stop-color="#3b82f6"/>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(256 270) rotate(90) scale(190 150)">
+      <stop stop-color="#2a5a9e" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#2a5a9e" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="shield" x1="256" y1="108" x2="256" y2="396" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2f6eb8"/>
+      <stop offset="1" stop-color="#1a4f8c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="180" y1="160" x2="332" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f0d78c"/>
+      <stop offset="0.5" stop-color="#d4af5a"/>
+      <stop offset="1" stop-color="#a88432"/>
+    </linearGradient>
+    <linearGradient id="marble" x1="256" y1="196" x2="256" y2="348" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#f7fafc"/>
+      <stop offset="1" stop-color="#c8d5e6"/>
     </linearGradient>
   </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect width="512" height="512" rx="112" fill="url(#glow)"/>
+
+  <path
+    d="M256 100 164 142v126c0 74 38 124 92 148 54-24 92-74 92-148V142L256 100Z"
+    fill="url(#shield)"
+    stroke="url(#gold)"
+    stroke-width="12"
+    stroke-linejoin="round"
+  />
+
+  <path
+    d="M188 214 256 176l68 38"
+    stroke="url(#gold)"
+    stroke-width="12"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <rect x="202" y="220" width="28" height="118" rx="6" fill="url(#marble)"/>
+  <rect x="242" y="220" width="28" height="118" rx="6" fill="url(#marble)"/>
+  <rect x="282" y="220" width="28" height="118" rx="6" fill="url(#marble)"/>
+
+  <rect x="194" y="206" width="44" height="16" rx="4" fill="url(#gold)"/>
+  <rect x="234" y="206" width="44" height="16" rx="4" fill="url(#gold)"/>
+  <rect x="274" y="206" width="44" height="16" rx="4" fill="url(#gold)"/>
+
+  <rect x="176" y="338" width="160" height="18" rx="5" fill="url(#gold)" opacity="0.92"/>
 </svg>
