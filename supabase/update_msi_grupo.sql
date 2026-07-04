@@ -1,11 +1,15 @@
--- RPC atómico para redistribuir / rearmar un grupo MSI (cambio de total, meses o cuotas).
--- Ejecutar en el SQL Editor de Supabase después de gastos_cuentas_msi_alter.sql
+-- RPC atómico para redistribuir / rearmar un grupo MSI con ajuste de saldo e idempotencia.
+-- Ejecutar msi_idempotency_schema.sql y gastos_cuentas_msi_alter.sql antes.
 
 create or replace function public.update_msi_grupo(
   p_grupo_msi_id uuid,
   p_categoria text,
   p_cuenta_id uuid,
-  p_installments jsonb
+  p_installments jsonb,
+  p_idempotency_key uuid default null,
+  p_saldo_cuenta_anterior_id uuid default null,
+  p_saldo_total_anterior numeric default null,
+  p_saldo_total_nuevo numeric default null
 )
 returns jsonb
 language plpgsql
@@ -23,12 +27,30 @@ declare
   v_updated_ids bigint[] := '{}';
   v_inserted_ids bigint[] := '{}';
   v_deleted_ids bigint[] := '{}';
+  v_cached_result jsonb;
+  v_result jsonb;
+  v_delta numeric;
+  v_cuenta_tipo public.cuenta_tipo;
+  v_saldo numeric;
+  v_saldo_delta numeric;
 begin
   perform set_config('app.bypass_past_gasto_guard', 'true', true);
 
   v_user_id := auth.uid();
   if v_user_id is null then
     raise exception 'No autenticado';
+  end if;
+
+  if p_idempotency_key is not null then
+    select result
+    into v_cached_result
+    from public.msi_idempotency_keys
+    where idempotency_key = p_idempotency_key
+      and user_id = v_user_id;
+
+    if found then
+      return v_cached_result;
+    end if;
   end if;
 
   if p_grupo_msi_id is null then
@@ -72,6 +94,86 @@ begin
       raise exception 'Cada cuota requiere fecha';
     end if;
   end loop;
+
+  -- Ajuste de saldo atómico con la actualización del grupo.
+  if p_saldo_cuenta_anterior_id is not null
+     and p_saldo_cuenta_anterior_id is distinct from p_cuenta_id
+     and coalesce(p_saldo_total_anterior, 0) > 0
+     and coalesce(p_saldo_total_nuevo, 0) >= 0 then
+  -- Cambio de cuenta: revertir total anterior y aplicar total nuevo.
+    select tipo, saldo_actual
+    into v_cuenta_tipo, v_saldo
+    from public.cuentas
+    where id = p_saldo_cuenta_anterior_id
+      and user_id = v_user_id
+    for update;
+
+    if not found then
+      raise exception 'Cuenta anterior no encontrada';
+    end if;
+
+    if v_cuenta_tipo = 'credito' then
+      v_saldo_delta := -p_saldo_total_anterior;
+    else
+      v_saldo_delta := p_saldo_total_anterior;
+    end if;
+
+    update public.cuentas
+    set saldo_actual = round((v_saldo + v_saldo_delta)::numeric, 2)
+    where id = p_saldo_cuenta_anterior_id
+      and user_id = v_user_id;
+
+    select tipo, saldo_actual
+    into v_cuenta_tipo, v_saldo
+    from public.cuentas
+    where id = p_cuenta_id
+      and user_id = v_user_id
+    for update;
+
+    if not found then
+      raise exception 'Cuenta nueva no encontrada';
+    end if;
+
+    if v_cuenta_tipo = 'credito' then
+      v_saldo_delta := p_saldo_total_nuevo;
+    else
+      v_saldo_delta := -p_saldo_total_nuevo;
+    end if;
+
+    update public.cuentas
+    set saldo_actual = round((v_saldo + v_saldo_delta)::numeric, 2)
+    where id = p_cuenta_id
+      and user_id = v_user_id;
+
+  elsif p_saldo_total_anterior is not null
+        and p_saldo_total_nuevo is not null
+        and p_saldo_total_anterior is distinct from p_saldo_total_nuevo then
+    v_delta := round((p_saldo_total_nuevo - p_saldo_total_anterior)::numeric, 2);
+
+    if v_delta <> 0 then
+      select tipo, saldo_actual
+      into v_cuenta_tipo, v_saldo
+      from public.cuentas
+      where id = p_cuenta_id
+        and user_id = v_user_id
+      for update;
+
+      if not found then
+        raise exception 'Cuenta no encontrada';
+      end if;
+
+      if v_cuenta_tipo = 'credito' then
+        v_saldo_delta := v_delta;
+      else
+        v_saldo_delta := -v_delta;
+      end if;
+
+      update public.cuentas
+      set saldo_actual = round((v_saldo + v_saldo_delta)::numeric, 2)
+      where id = p_cuenta_id
+        and user_id = v_user_id;
+    end if;
+  end if;
 
   for v_idx in 1..v_new_count loop
     v_installment := p_installments -> (v_idx - 1);
@@ -125,12 +227,22 @@ begin
     end loop;
   end if;
 
-  return jsonb_build_object(
+  v_result := jsonb_build_object(
     'updated_ids', to_jsonb(v_updated_ids),
     'inserted_ids', to_jsonb(v_inserted_ids),
     'deleted_ids', to_jsonb(v_deleted_ids)
   );
+
+  if p_idempotency_key is not null then
+    insert into public.msi_idempotency_keys (idempotency_key, user_id, result)
+    values (p_idempotency_key, v_user_id, v_result)
+    on conflict (idempotency_key) do nothing;
+  end if;
+
+  return v_result;
 end;
 $$;
 
-grant execute on function public.update_msi_grupo(uuid, text, uuid, jsonb) to authenticated;
+grant execute on function public.update_msi_grupo(
+  uuid, text, uuid, jsonb, uuid, uuid, numeric, numeric
+) to authenticated;

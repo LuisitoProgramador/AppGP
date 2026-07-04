@@ -13,7 +13,7 @@ import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import { getPendingGastos } from '../services/offlineQueue'
 import { syncPendingGastos } from '../services/syncGastos'
 import { isOnline } from '../utils/network'
-import { showError, showSuccess, showWarning } from '../utils/toast'
+import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
 import { useAuthContext } from './AuthContext'
 import { useGastosData } from './GastosDataContext'
 
@@ -57,7 +57,14 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const syncOffline = useCallback(async () => {
     if (!user || !isOnline()) return
 
+    const pendingBefore = await getPendingGastos()
+    const hadPending = pendingBefore.length > 0
+
     setIsSyncing(true)
+    if (hadPending) {
+      showInfo('Sincronizando gastos guardados offline...')
+    }
+
     try {
       const result = await syncPendingGastos()
       await updatePendingCount()

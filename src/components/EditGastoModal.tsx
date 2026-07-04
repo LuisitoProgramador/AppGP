@@ -4,7 +4,7 @@ import { updateMsiGrupo, type MsiGrupoUndoSnapshot } from '../services/msiGrupo'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS, type Gasto } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
-import { saldoDeltaAlCorregirMsiGrupo, sumMsiGrupoMontos } from '../utils/gastoSaldo'
+import { sumMsiGrupoMontos } from '../utils/gastoSaldo'
 import { buildMsiGastos, parseMsiDescripcion, toMsiInstallmentUpdates } from '../utils/msi'
 import { isGastoFechaPasada } from '../utils/date'
 import { isOnline } from '../utils/network'
@@ -44,7 +44,7 @@ export default function EditGastoModal({
   modoInicial = 'cuota',
 }: EditGastoModalProps) {
   const { refresh } = useGastosData()
-  const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
+  const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo, refreshCuentas } = useCuentas()
   const [monto, setMonto] = useState(String(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [descripcion, setDescripcion] = useState(gasto.descripcion ?? '')
@@ -246,6 +246,11 @@ export default function EditGastoModal({
       categoria: snapshot.categoria,
       cuentaId: snapshot.cuentaId,
       installments: snapshot.installments,
+      idempotencyKey: crypto.randomUUID(),
+      saldo: {
+        totalAnterior: newTotal,
+        totalNuevo: snapshot.totalCompra,
+      },
     })
 
     if (error) {
@@ -253,16 +258,7 @@ export default function EditGastoModal({
       return
     }
 
-    const deltaSaldo = saldoDeltaAlCorregirMsiGrupo(newTotal, snapshot.totalCompra)
-    if (deltaSaldo !== 0) {
-      const saldoError = await aplicarDeltaSaldo(snapshot.cuentaId, deltaSaldo)
-      if (saldoError) {
-        showError(`Grupo restaurado, pero el saldo no se revirtió: ${saldoError}`)
-        refresh()
-        return
-      }
-    }
-
+    await refreshCuentas()
     refresh()
     showInfo('Corrección MSI deshecha.')
   }
@@ -317,50 +313,32 @@ export default function EditGastoModal({
     const newTotal = Number(totalCompra)
     const newCuentaId = cuentaId || cuentaAnteriorId!
     const cambioCuentaMsi = cuentaAnteriorId !== newCuentaId
-    const deltaSaldo = saldoDeltaAlCorregirMsiGrupo(snapshot.totalCompra, newTotal)
     const installments = toMsiInstallmentUpdates(previewCuotas)
 
-    if (cambioCuentaMsi) {
-      const revertResult = await revertGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
-      if (revertResult.error) {
-        showError(`No se pudo revertir el saldo de la cuenta original: ${revertResult.error}`)
-        return false
-      }
-
-      const applyResult = await applyGastoSaldo(newCuentaId, newTotal)
-      if (applyResult.error) {
-        await applyGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
-        showError(`No se pudo aplicar el saldo a la nueva cuenta: ${applyResult.error}`)
-        return false
-      }
-    } else if (deltaSaldo !== 0) {
-      const saldoError = await aplicarDeltaSaldo(cuentaAnteriorId!, deltaSaldo)
-      if (saldoError) {
-        showError(`No se pudo ajustar el saldo: ${saldoError}`)
-        return false
-      }
-    }
-
-    const { error } = await updateMsiGrupo({
+    const result = await updateMsiGrupo({
       grupoMsiId: gasto.grupo_msi_id,
       categoria,
       cuentaId: newCuentaId,
       installments,
+      idempotencyKey: crypto.randomUUID(),
+      saldo: {
+        cuentaAnteriorId: cambioCuentaMsi ? cuentaAnteriorId : undefined,
+        totalAnterior: snapshot.totalCompra,
+        totalNuevo: newTotal,
+      },
     })
 
-    if (error) {
-      if (cambioCuentaMsi) {
-        await revertGastoSaldo(newCuentaId, newTotal)
-        await applyGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
-      } else if (deltaSaldo !== 0) {
-        await aplicarDeltaSaldo(cuentaAnteriorId!, -deltaSaldo)
-      }
-      showError(`Error al actualizar compra MSI: ${error}`)
+    if (result.error) {
+      showError(`Error al actualizar compra MSI: ${result.error}`)
       return false
     }
 
+    await refreshCuentas()
     refresh()
     const meses = Number(mesesMsi)
+    if (result.recoveredFromServer) {
+      showInfo('Compra MSI confirmada en el servidor tras un error de red.')
+    }
     showSuccessWithUndo(
       `Compra MSI actualizada: ${formatCurrency(newTotal)} en ${meses} cuotas.`,
       () => deshacerCorreccionMsi(snapshot, newTotal),

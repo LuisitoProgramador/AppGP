@@ -21,6 +21,7 @@ import { showError, showInfo, showSuccessWithUndo } from '../utils/toast'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
 import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
+import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import { cardClassName, iconButtonDangerClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
 
 type HistorialItem =
@@ -182,7 +183,7 @@ export default memo(function Historial() {
   const { user } = useAuthContext()
   const { refreshKey, refresh, optimisticGastos, removeOptimisticGastos, addOptimisticGasto } =
     useGastosData()
-  const { pendingGastos } = useOfflineSync()
+  const { pendingGastos, isSyncing, pendingCount } = useOfflineSync()
   const { revertGastoSaldo, applyGastoSaldo } = useCuentas()
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -484,6 +485,8 @@ export default memo(function Historial() {
           aria-label="Buscar por descripción"
         />
       </div>
+
+      <OfflineSyncStatus isSyncing={isSyncing} pendingCount={pendingCount} />
 
       {error && (
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
