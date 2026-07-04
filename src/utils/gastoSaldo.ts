@@ -3,8 +3,15 @@ import { montoParaSaldoCuenta } from './cuentaSaldo'
 import { parseMsiDescripcion, splitMsiAmount } from './msi'
 
 /** Monto que se aplicó al saldo de la cuenta al registrar el gasto. */
-export function montoSaldoAlRegistrar(monto: number, esMsi: boolean): number {
-  return montoParaSaldoCuenta(monto, esMsi, monto)
+export function montoSaldoAlRegistrar(
+  monto: number,
+  esMsi: boolean,
+  totalCompra?: number,
+): number {
+  if (esMsi) {
+    return montoParaSaldoCuenta(monto, true, totalCompra ?? monto)
+  }
+  return monto
 }
 
 /** Monto a revertir del saldo al eliminar un gasto pendiente (offline). */
@@ -12,7 +19,8 @@ export function montoSaldoAlEliminarPendiente(pending: {
   monto: number
   msiInstallments?: GastoInsertFields[]
 }): number {
-  return montoSaldoAlRegistrar(pending.monto, Boolean(pending.msiInstallments?.length))
+  const esMsi = Boolean(pending.msiInstallments?.length)
+  return montoSaldoAlRegistrar(pending.monto, esMsi, esMsi ? pending.monto : undefined)
 }
 
 export interface SaldoRevertAlEliminar {

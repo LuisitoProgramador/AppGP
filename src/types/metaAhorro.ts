@@ -15,4 +15,5 @@ export interface PendingMetaAhorroUpdate {
   metaId: number
   amount: number
   createdAt: number
+  retryCount?: number
 }

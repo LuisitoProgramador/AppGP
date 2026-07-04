@@ -118,12 +118,7 @@ export function useMetasAhorro(enabled = true) {
         ),
       )
 
-      const { data, error: addError, offline } = await addAhorroToMeta(
-        user.id,
-        meta.id,
-        amount,
-        meta.monto_actual,
-      )
+      const { data, error: addError, offline } = await addAhorroToMeta(user.id, meta.id, amount)
 
       setSumandoMetaId(null)
 

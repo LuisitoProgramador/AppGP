@@ -51,6 +51,7 @@ export type GastoInsertFields = Omit<Gasto, 'id' | 'descripcion' | 'cuenta_id' |
   cuenta_id: string | null
   es_msi: boolean
   grupo_msi_id: string | null
+  offline_id?: string | null
 }
 
 export interface MsiInstallmentUpdate {

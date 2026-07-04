@@ -24,6 +24,10 @@ import type {
   UseDashboardDataOptions,
 } from './dashboardTypes'
 
+function appendQueryError(errors: string[], label: string, message: string | undefined | null) {
+  if (message) errors.push(`${label}: ${message}`)
+}
+
 export function useDashboardQueries(
   selectedMonth: Date,
   options: UseDashboardDataOptions = {},
@@ -82,7 +86,7 @@ export function useDashboardQueries(
       ] = await Promise.all([
         getLimiteMensual(userId),
         lite ? Promise.resolve(null) : getPresupuesto(userId),
-        lite ? Promise.resolve({ data: [] as Awaited<ReturnType<typeof listCuentas>>['data'] }) : listCuentas(userId),
+        lite ? Promise.resolve({ data: [] as Awaited<ReturnType<typeof listCuentas>>['data'], error: null, fromCache: false }) : listCuentas(userId),
         supabase
           .from('gastos_resumen_mensual')
           .select('categoria, total, cantidad')
@@ -113,6 +117,13 @@ export function useDashboardQueries(
         )
       }
 
+      const partialErrors: string[] = []
+
+      if (!lite && cuentasResult.error) {
+        appendQueryError(partialErrors, 'Cuentas', cuentasResult.error)
+        setPatrimonioLiquido(null)
+      }
+
       const { data, error: queryError } = resumenResult
 
       if (queryError) {
@@ -132,18 +143,16 @@ export function useDashboardQueries(
       )
 
       if (msiResult.error) {
+        appendQueryError(partialErrors, 'Compromisos MSI', msiResult.error.message)
         setGastosMsi([])
-        setError(`No se pudieron cargar los compromisos MSI: ${msiResult.error.message}`)
-        if (isMounted) setCargando(false)
-        return
+      } else {
+        setGastosMsi(
+          (msiResult.data ?? []).map((item) => ({
+            monto: Number(item.monto),
+            fecha: item.fecha,
+          })),
+        )
       }
-
-      setGastosMsi(
-        (msiResult.data ?? []).map((item) => ({
-          monto: Number(item.monto),
-          fecha: item.fecha,
-        })),
-      )
 
       if (lite) {
         setEvolucionRows([])
@@ -151,7 +160,10 @@ export function useDashboardQueries(
         setGastoTotalAntesResumen(null)
         setPatronGastos([])
         setRecurrenteSugerido(null)
-        if (isMounted) setCargando(false)
+        if (isMounted) {
+          setError(partialErrors.length > 0 ? partialErrors.join(' · ') : null)
+          setCargando(false)
+        }
         return
       }
 
@@ -196,35 +208,58 @@ export function useDashboardQueries(
 
       if (!isMounted) return
 
-      const grouped = new Map<string, number>()
-      for (const row of evoResult.data ?? []) {
-        const key = row.mes as string
-        grouped.set(key, (grouped.get(key) ?? 0) + Number(row.total))
+      if (evoResult.error) {
+        appendQueryError(partialErrors, 'Evolución mensual', evoResult.error.message)
+        setEvolucionRows([])
+      } else {
+        const grouped = new Map<string, number>()
+        for (const row of evoResult.data ?? []) {
+          const key = row.mes as string
+          grouped.set(key, (grouped.get(key) ?? 0) + Number(row.total))
+        }
+        setEvolucionRows(
+          Array.from(grouped.entries()).map(([mes, total]) => ({ mes, total })),
+        )
       }
-      setEvolucionRows(
-        Array.from(grouped.entries()).map(([mes, total]) => ({ mes, total })),
-      )
 
-      const totalResumen = (resumenMesResult.data ?? []).reduce(
-        (sum, row) => sum + Number(row.total),
-        0,
-      )
-      setGastoTotalResumen(totalResumen)
+      if (resumenMesResult.error) {
+        appendQueryError(partialErrors, 'Resumen del mes', resumenMesResult.error.message)
+        setGastoTotalResumen(null)
+      } else {
+        const totalResumen = (resumenMesResult.data ?? []).reduce(
+          (sum, row) => sum + Number(row.total),
+          0,
+        )
+        setGastoTotalResumen(totalResumen)
+      }
 
-      setGastoTotalAntesResumen(
-        (resumenAntResult.data ?? []).reduce((sum, row) => sum + Number(row.total), 0),
-      )
+      if (resumenAntResult.error) {
+        appendQueryError(partialErrors, 'Resumen mes anterior', resumenAntResult.error.message)
+        setGastoTotalAntesResumen(null)
+      } else {
+        setGastoTotalAntesResumen(
+          (resumenAntResult.data ?? []).reduce((sum, row) => sum + Number(row.total), 0),
+        )
+      }
 
-      setPatronGastos(
-        (patronResult.data ?? []) as {
-          descripcion: string
-          monto: number
-          categoria: string
-          fecha: string
-        }[],
-      )
+      if (patronResult.error) {
+        appendQueryError(partialErrors, 'Patrones de gasto', patronResult.error.message)
+        setPatronGastos([])
+      } else {
+        setPatronGastos(
+          (patronResult.data ?? []) as {
+            descripcion: string
+            monto: number
+            categoria: string
+            fecha: string
+          }[],
+        )
+      }
 
-      if (isMounted) setCargando(false)
+      if (isMounted) {
+        setError(partialErrors.length > 0 ? partialErrors.join(' · ') : null)
+        setCargando(false)
+      }
     }
 
     cargarDashboard()

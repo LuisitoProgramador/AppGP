@@ -1,6 +1,7 @@
 import type { GastoInsertFields } from '../types/gasto'
 import type { SaldoRevertAlEliminar } from './gastoSaldo'
-import { montoSaldoAlRegistrar } from './gastoSaldo'
+import { montoSaldoAlRegistrar, sumMsiGrupoMontos } from './gastoSaldo'
+import { parseMsiDescripcion, splitMsiAmount } from './msi'
 
 export interface GastoEliminadoSnapshot {
   row: GastoInsertFields
@@ -37,5 +38,18 @@ export function montoSaldoAlRestaurar(snapshot: GastoEliminadoSnapshot): number 
   if (snapshot.saldoAplicado) {
     return snapshot.saldoAplicado.monto
   }
-  return montoSaldoAlRegistrar(snapshot.row.monto, snapshot.row.es_msi)
+
+  const { row } = snapshot
+  if (row.es_msi) {
+    const parsed = parseMsiDescripcion(row.descripcion)
+    if (parsed && parsed.total > 1) {
+      const inferredTotal = Math.round(row.monto * parsed.total * 100) / 100
+      return sumMsiGrupoMontos(
+        splitMsiAmount(inferredTotal, parsed.total).map((monto) => ({ monto })),
+      )
+    }
+    return montoSaldoAlRegistrar(row.monto, true, row.monto)
+  }
+
+  return montoSaldoAlRegistrar(row.monto, false)
 }

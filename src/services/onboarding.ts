@@ -181,6 +181,6 @@ export async function registrarPrimerAhorro(
 
   if (createError || !meta) return createError ?? 'No se pudo crear la meta de ahorro.'
 
-  const { error: addError } = await addAhorroToMeta(userId, meta.id, monto, meta.monto_actual)
+  const { error: addError } = await addAhorroToMeta(userId, meta.id, monto)
   return addError
 }

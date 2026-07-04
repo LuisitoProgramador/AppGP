@@ -6,8 +6,7 @@ import {
 import { getPendingGastos, removePendingGasto, updatePendingGasto } from './offlineQueue'
 import { shouldDiscardAfterRetry } from './syncPolicy'
 import { supabase } from './supabase'
-import type { GastoInsertFields } from '../types/gasto'
-import type { PendingGasto } from '../types/gasto'
+import type { GastoInsertFields, PendingGasto } from '../types/gasto'
 import { montoSaldoAlEliminarPendiente } from '../utils/gastoSaldo'
 import { mapWithConcurrency } from '../utils/concurrency'
 
@@ -26,31 +25,29 @@ export interface SyncResult {
 
 const SYNC_GASTOS_CONCURRENCY = 3
 
-function rowsToInsert(gasto: {
-  monto: number
-  categoria: string
-  descripcion: string
-  fecha: string
-  cuenta_id?: string | null
-  es_msi?: boolean
-  grupo_msi_id?: string | null
-  msiInstallments?: GastoInsertFields[]
-}): GastoInsertFields[] {
-  if (gasto.msiInstallments && gasto.msiInstallments.length > 0) {
-    return gasto.msiInstallments
+function rowsToInsert(gasto: PendingGasto): GastoInsertFields[] {
+  const base: GastoInsertFields[] =
+    gasto.msiInstallments && gasto.msiInstallments.length > 0
+      ? gasto.msiInstallments
+      : [
+          {
+            monto: gasto.monto,
+            categoria: gasto.categoria,
+            descripcion: gasto.descripcion,
+            fecha: gasto.fecha,
+            cuenta_id: gasto.cuenta_id ?? null,
+            es_msi: gasto.es_msi ?? false,
+            grupo_msi_id: gasto.grupo_msi_id ?? null,
+          },
+        ]
+
+  if (base.length === 1) {
+    return [{ ...base[0], offline_id: gasto.id }]
   }
 
-  return [
-    {
-      monto: gasto.monto,
-      categoria: gasto.categoria,
-      descripcion: gasto.descripcion,
-      fecha: gasto.fecha,
-      cuenta_id: gasto.cuenta_id ?? null,
-      es_msi: gasto.es_msi ?? false,
-      grupo_msi_id: gasto.grupo_msi_id ?? null,
-    },
-  ]
+  return base.map((row, index) =>
+    index === 0 ? { ...row, offline_id: gasto.id } : row,
+  )
 }
 
 function validateMsiGroup(rows: GastoInsertFields[]): string | null {
@@ -75,10 +72,7 @@ type GastoInsertOutcome =
   | { kind: 'insert_error'; gasto: PendingGasto; error: string }
   | { kind: 'persist_error'; gasto: PendingGasto; error: string }
 
-async function alreadySyncedOnServer(
-  gasto: PendingGasto,
-  userId: string,
-): Promise<boolean> {
+async function legacyAlreadySynced(gasto: PendingGasto, userId: string): Promise<boolean> {
   const rows = rowsToInsert(gasto)
 
   if (gasto.grupo_msi_id && rows.length > 1) {
@@ -105,6 +99,39 @@ async function alreadySyncedOnServer(
 
   if (error) return false
   return (count ?? 0) > 0
+}
+
+async function alreadySyncedOnServer(gasto: PendingGasto, userId: string): Promise<boolean> {
+  const expectedRows = rowsToInsert(gasto).length
+
+  const { count, error } = await supabase
+    .from('gastos')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('offline_id', gasto.id)
+
+  if (error) {
+    return legacyAlreadySynced(gasto, userId)
+  }
+
+  if ((count ?? 0) === 0) {
+    return legacyAlreadySynced(gasto, userId)
+  }
+
+  if (expectedRows <= 1) return true
+
+  if (gasto.grupo_msi_id) {
+    const { count: grupoCount, error: grupoError } = await supabase
+      .from('gastos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('grupo_msi_id', gasto.grupo_msi_id)
+
+    if (grupoError) return true
+    return (grupoCount ?? 0) >= expectedRows
+  }
+
+  return true
 }
 
 async function revertPendingSaldo(

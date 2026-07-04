@@ -11,7 +11,7 @@ export default memo(function DashboardStatus({ error, cargando, sinGastos }: Das
     <>
       {error && (
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          Error al cargar gastos: {error}
+          Error al cargar datos: {error}
         </p>
       )}
       {!cargando && !error && sinGastos && (
