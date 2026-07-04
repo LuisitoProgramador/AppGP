@@ -9,6 +9,7 @@ import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import ModalPortal from './ModalPortal'
 import RegistrarIngresoModal from './RegistrarIngresoModal'
+import TransferenciaModal from './TransferenciaModal'
 import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryCompactClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName, buttonGhostFlexClassName, buttonGhostSmClassName, modalFormClassName } from './formStyles'
 
 const initialForm = {
@@ -83,6 +84,7 @@ export default function ListaCuentas() {
   const { refresh } = useGastosData()
   const [modalOpen, setModalOpen] = useState(false)
   const [ingresoModalOpen, setIngresoModalOpen] = useState(false)
+  const [transferenciaModalOpen, setTransferenciaModalOpen] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
 
@@ -178,7 +180,15 @@ export default function ListaCuentas() {
             Efectivo, débito y tarjetas de crédito
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setTransferenciaModalOpen(true)}
+            className={buttonGhostSmClassName}
+            disabled={cuentas.length < 2}
+          >
+            Transferir
+          </button>
           <button
             type="button"
             onClick={() => setIngresoModalOpen(true)}
@@ -212,6 +222,16 @@ export default function ListaCuentas() {
             <CuentaCard key={cuenta.id} cuenta={cuenta} />
           ))}
         </div>
+      )}
+
+      {transferenciaModalOpen && (
+        <TransferenciaModal
+          onClose={() => {
+            setTransferenciaModalOpen(false)
+            refresh()
+            void cargarCuentas()
+          }}
+        />
       )}
 
       {ingresoModalOpen && (
