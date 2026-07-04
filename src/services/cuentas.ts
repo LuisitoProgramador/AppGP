@@ -49,7 +49,11 @@ export function getCachedCuentas(userId: string): Cuenta[] {
 }
 
 function writeCache(userId: string, cuentas: Cuenta[]) {
-  localStorage.setItem(cacheKey(userId), JSON.stringify(cuentas))
+  try {
+    localStorage.setItem(cacheKey(userId), JSON.stringify(cuentas))
+  } catch {
+    /* ignore QuotaExceededError and other storage failures */
+  }
 }
 
 export function setCachedCuentas(userId: string, cuentas: Cuenta[]) {

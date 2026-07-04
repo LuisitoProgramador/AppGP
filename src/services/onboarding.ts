@@ -105,7 +105,8 @@ export async function completeOnboarding(
     }
     const { data: created, error } = await createCuenta(userId, input)
     if (error) return { error }
-    if (created) cuentaIdByDraft.set(cuenta.draftId, created.id)
+    if (!created) return { error: 'No se pudo crear la cuenta.' }
+    cuentaIdByDraft.set(cuenta.draftId, created.id)
   }
 
   for (const tarjeta of data.tarjetas) {
@@ -118,7 +119,8 @@ export async function completeOnboarding(
     }
     const { data: created, error } = await createCuenta(userId, input)
     if (error) return { error }
-    if (created) cuentaIdByDraft.set(tarjeta.draftId, created.id)
+    if (!created) return { error: 'No se pudo crear la tarjeta.' }
+    cuentaIdByDraft.set(tarjeta.draftId, created.id)
   }
 
   const defaultCuentaId = efectivo?.id ?? null

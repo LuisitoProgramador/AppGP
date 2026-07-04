@@ -23,7 +23,11 @@ function readCache(userId: string): MetaAhorro[] {
 }
 
 function writeCache(userId: string, metas: MetaAhorro[]) {
-  localStorage.setItem(cacheKey(userId), JSON.stringify(metas))
+  try {
+    localStorage.setItem(cacheKey(userId), JSON.stringify(metas))
+  } catch {
+    /* ignore QuotaExceededError and other storage failures */
+  }
 }
 
 function readPending(userId: string): PendingMetaAhorroUpdate[] {
@@ -37,7 +41,11 @@ function readPending(userId: string): PendingMetaAhorroUpdate[] {
 }
 
 function writePending(userId: string, pending: PendingMetaAhorroUpdate[]) {
-  localStorage.setItem(pendingKey(userId), JSON.stringify(pending))
+  try {
+    localStorage.setItem(pendingKey(userId), JSON.stringify(pending))
+  } catch {
+    /* ignore QuotaExceededError and other storage failures */
+  }
 }
 
 function mapMeta(row: Record<string, unknown>): MetaAhorro {

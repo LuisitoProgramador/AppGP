@@ -254,32 +254,50 @@ export function useDashboardData(
     resumen.length > 0 || evolucionMensual.some((item) => item.total > 0)
 
   useEffect(() => {
-    if (!user) return
+    let isMounted = true
+
+    if (!user) {
+      return () => {
+        isMounted = false
+      }
+    }
 
     async function cargarDashboard() {
-      setCargando(true)
-      setError(null)
+      if (isMounted) {
+        setCargando(true)
+        setError(null)
+      }
 
       const { inicio, fin } = getMonthRange(selectedMonth)
       const limite = await getLimiteMensual(user.id)
-      setLimiteMensual(limite)
-      setLimiteInput(String(limite))
+      if (isMounted) {
+        setLimiteMensual(limite)
+        setLimiteInput(String(limite))
+      }
 
       if (lite) {
-        setIngresoMensualTotal(null)
-        setPatrimonioLiquido(null)
+        if (isMounted) {
+          setIngresoMensualTotal(null)
+          setPatrimonioLiquido(null)
+        }
       } else {
         const presupuestoData = await getPresupuesto(user.id)
-        setIngresoMensualTotal(presupuestoData ? getIngresoMensualTotal(presupuestoData) : null)
+        if (isMounted) {
+          setIngresoMensualTotal(presupuestoData ? getIngresoMensualTotal(presupuestoData) : null)
+        }
 
         const { data: cuentasData } = await listCuentas(user.id)
-        setPatrimonioLiquido(
-          cuentasData.length > 0 ? calcPatrimonioLiquido(cuentasData) : null,
-        )
+        if (isMounted) {
+          setPatrimonioLiquido(
+            cuentasData.length > 0 ? calcPatrimonioLiquido(cuentasData) : null,
+          )
+        }
       }
 
       const { data: recurrentesData } = await listGastosRecurrentes(user.id)
-      setRecurrentes(recurrentesData)
+      if (isMounted) {
+        setRecurrentes(recurrentesData)
+      }
 
       const { data, error: queryError } = await supabase
         .from('gastos_resumen_mensual')
@@ -287,6 +305,8 @@ export function useDashboardData(
         .eq('user_id', user.id)
         .gte('mes', inicio.toISOString())
         .lt('mes', fin.toISOString())
+
+      if (!isMounted) return
 
       setCargando(false)
 
@@ -312,10 +332,12 @@ export function useDashboardData(
           .gte('fecha', qInicio.toISOString())
           .lt('fecha', qFin.toISOString())
 
+        if (!isMounted) return
+
         setGastoQuincenaBase(
           (quincenaData ?? []).reduce((sum, row) => sum + Number(row.monto), 0),
         )
-      } else {
+      } else if (isMounted) {
         setGastoQuincenaBase(0)
       }
 
@@ -331,6 +353,8 @@ export function useDashboardData(
         .gte('fecha', inicioMsi.toISOString())
         .lt('fecha', finMsi.toISOString())
 
+      if (!isMounted) return
+
       setGastosMsi(
         (msiData ?? []).map((item) => ({
           monto: Number(item.monto),
@@ -339,10 +363,12 @@ export function useDashboardData(
       )
 
       if (lite) {
-        setEvolucionRows([])
-        setGastoTotalResumen(null)
-        setGastoTotalAntesResumen(null)
-        setRecurrenteSugerido(null)
+        if (isMounted) {
+          setEvolucionRows([])
+          setGastoTotalResumen(null)
+          setGastoTotalAntesResumen(null)
+          setRecurrenteSugerido(null)
+        }
         return
       }
 
@@ -355,6 +381,8 @@ export function useDashboardData(
         .eq('user_id', user.id)
         .gte('mes', inicioEvolucion.toISOString())
         .lt('mes', finEvolucion.toISOString())
+
+      if (!isMounted) return
 
       const grouped = new Map<string, number>()
       for (const row of evoData ?? []) {
@@ -374,6 +402,8 @@ export function useDashboardData(
         .gte('mes', inicioResumen.toISOString())
         .lt('mes', finResumen.toISOString())
 
+      if (!isMounted) return
+
       const totalResumen = (resumenData ?? []).reduce(
         (sum, row) => sum + Number(row.total),
         0,
@@ -389,6 +419,8 @@ export function useDashboardData(
         .gte('mes', inicioAnt.toISOString())
         .lt('mes', finAnt.toISOString())
 
+      if (!isMounted) return
+
       setGastoTotalAntesResumen(
         (resumenAntData ?? []).reduce((sum, row) => sum + Number(row.total), 0),
       )
@@ -400,6 +432,8 @@ export function useDashboardData(
         .eq('user_id', user.id)
         .gte('fecha', inicioPatron.toISOString())
         .lt('fecha', finMsi.toISOString())
+
+      if (!isMounted) return
 
       const sugeridos = detectarRecurrentesSugeridos(
         (patronData ?? []) as {
@@ -415,6 +449,10 @@ export function useDashboardData(
     }
 
     cargarDashboard()
+
+    return () => {
+      isMounted = false
+    }
   }, [user, refreshKey, selectedMonth, lite])
 
   const handleGuardarLimite = useCallback(

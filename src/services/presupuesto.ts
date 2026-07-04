@@ -60,8 +60,12 @@ function mapPresupuesto(row: Record<string, unknown>): Presupuesto {
 }
 
 function cachePresupuesto(userId: string, presupuesto: Presupuesto) {
-  localStorage.setItem(limiteLocalStorageKey(userId), String(presupuesto.limite_mensual))
-  localStorage.setItem(configLocalStorageKey(userId), JSON.stringify(presupuesto))
+  try {
+    localStorage.setItem(limiteLocalStorageKey(userId), String(presupuesto.limite_mensual))
+    localStorage.setItem(configLocalStorageKey(userId), JSON.stringify(presupuesto))
+  } catch {
+    /* ignore QuotaExceededError and other storage failures */
+  }
 }
 
 function readCachedPresupuesto(userId: string): Presupuesto | null {

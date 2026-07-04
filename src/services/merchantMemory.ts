@@ -34,7 +34,11 @@ function readCache(userId: string): MerchantMemoryEntry[] {
 }
 
 function writeCache(userId: string, entries: MerchantMemoryEntry[]) {
-  localStorage.setItem(cacheKey(userId), JSON.stringify(entries))
+  try {
+    localStorage.setItem(cacheKey(userId), JSON.stringify(entries))
+  } catch {
+    /* ignore QuotaExceededError and other storage failures */
+  }
 }
 
 function buildEntries(rows: GastoHistorialRow[]): MerchantMemoryEntry[] {
