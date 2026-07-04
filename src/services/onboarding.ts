@@ -1,3 +1,4 @@
+import { validatePorcentajeAhorro } from '../constants/porcentajeAhorro'
 import { createCuenta, ensureCuentaEfectivo } from './cuentas'
 import { createGastoRecurrente } from './gastosRecurrentes'
 import { addAhorroToMeta, createMetaAhorro } from './metasAhorro'
@@ -79,6 +80,9 @@ export async function completeOnboarding(
   userId: string,
   data: OnboardingData,
 ): Promise<{ error: string | null }> {
+  const porcentajeError = validatePorcentajeAhorro(data.porcentajeAhorro)
+  if (porcentajeError) return { error: porcentajeError }
+
   const sueldoSemanal = calcSueldoSemanalDesdeMensual(data.sueldoMensual)
   const limiteMensual = calcLimiteMensual(data.sueldoMensual, data.porcentajeAhorro)
 

@@ -61,14 +61,26 @@ export function calcLimiteMensual(
   }).disponibleParaGasto
 }
 
-export function calcPrimerAhorro(sueldoMensual: number, porcentajeAhorro: number): number {
-  const sueldoSemanal = calcSueldoSemanalDesdeMensual(sueldoMensual)
-  return round2(sueldoSemanal * (porcentajeAhorro / 100))
+/** Ahorro semanal sobre ingreso total (sueldo + extras), alineado con calcEstrategiaFinanciera. */
+export function calcPrimerAhorro(
+  sueldoMensual: number,
+  porcentajeAhorro: number,
+  ingresosExtras = 0,
+): number {
+  const { ahorroMensual } = calcEstrategiaFinanciera({
+    sueldoMensual,
+    ingresosExtras,
+    porcentajeAhorro,
+  })
+  return round2(ahorroMensual / SEMANAS_POR_MES)
 }
 
-export function calcMetaObjetivoAnual(sueldoMensual: number, porcentajeAhorro: number): number {
-  const sueldoSemanal = calcSueldoSemanalDesdeMensual(sueldoMensual)
-  return round2(sueldoSemanal * (porcentajeAhorro / 100) * 52)
+export function calcMetaObjetivoAnual(
+  sueldoMensual: number,
+  porcentajeAhorro: number,
+  ingresosExtras = 0,
+): number {
+  return round2(calcPrimerAhorro(sueldoMensual, porcentajeAhorro, ingresosExtras) * 52)
 }
 
 export function calcDiferenciaAhorroMensual(

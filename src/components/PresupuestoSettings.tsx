@@ -68,23 +68,28 @@ export default function PresupuestoSettings() {
       const presupuesto = await getPresupuesto(user.id)
       if (cancelled) return
 
-      if (presupuesto?.sueldo_mensual != null) {
-        const sueldo = presupuesto.sueldo_mensual
-        const extras = presupuesto.ingresos_extras ?? 0
-        const ahorro = presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT
-
-        setSueldoMensual(String(sueldo))
-        setIngresosExtras(extras > 0 ? String(extras) : '')
-        setPorcentajeAhorro(ahorro)
-        setDiaPago(presupuesto.dia_pago ?? 5)
-        setDiaPagoInicial(presupuesto.dia_pago ?? 5)
+      if (presupuesto) {
         setLimiteEsManual(presupuesto.limite_es_manual)
-        setLimiteManualActual(presupuesto.limite_es_manual ? presupuesto.limite_mensual : null)
-        setValoresIniciales({
-          sueldoMensual: sueldo,
-          ingresosExtras: extras,
-          porcentajeAhorro: ahorro,
-        })
+        setLimiteManualActual(
+          presupuesto.limite_es_manual ? presupuesto.limite_mensual : null,
+        )
+
+        if (presupuesto.sueldo_mensual != null) {
+          const sueldo = presupuesto.sueldo_mensual
+          const extras = presupuesto.ingresos_extras ?? 0
+          const ahorro = presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT
+
+          setSueldoMensual(String(sueldo))
+          setIngresosExtras(extras > 0 ? String(extras) : '')
+          setPorcentajeAhorro(ahorro)
+          setDiaPago(presupuesto.dia_pago ?? 5)
+          setDiaPagoInicial(presupuesto.dia_pago ?? 5)
+          setValoresIniciales({
+            sueldoMensual: sueldo,
+            ingresosExtras: extras,
+            porcentajeAhorro: ahorro,
+          })
+        }
       }
 
       setCargando(false)
@@ -110,7 +115,7 @@ export default function PresupuestoSettings() {
   }, [sueldoNum, extrasNum, porcentajeAhorro])
 
   const ahorroSemanalPreview =
-    sueldoNum > 0 ? calcPrimerAhorro(sueldoNum, porcentajeAhorro) : null
+    sueldoNum > 0 ? calcPrimerAhorro(sueldoNum, porcentajeAhorro, extrasNum) : null
 
   const diferenciaAhorroMensual = useMemo(() => {
     if (sueldoNum <= 0) return null
@@ -161,12 +166,13 @@ export default function PresupuestoSettings() {
 
     setGuardando(true)
 
-    const { error, limiteManualPreservado } = await savePresupuestoFinanciero(user.id, {
-      sueldo_mensual: sueldoNum,
-      ingresos_extras: extrasNum,
-      porcentaje_ahorro: porcentajeAhorro,
-      dia_pago: diaPago,
-    })
+    const { error, limiteManualPreservado, presupuesto: presupuestoGuardado } =
+      await savePresupuestoFinanciero(user.id, {
+        sueldo_mensual: sueldoNum,
+        ingresos_extras: extrasNum,
+        porcentaje_ahorro: porcentajeAhorro,
+        dia_pago: diaPago,
+      })
 
     setGuardando(false)
 
@@ -183,11 +189,17 @@ export default function PresupuestoSettings() {
     setDiaPagoInicial(diaPago)
 
     refresh()
-    if (limiteManualPreservado && limiteManualActual != null) {
-      showSuccess(
-        `Estrategia actualizada. Tu límite manual de ${formatCurrency(limiteManualActual)} se mantiene.`,
-      )
-      return
+    if (limiteManualPreservado) {
+      const limite =
+        presupuestoGuardado?.limite_mensual ?? limiteManualActual ?? null
+      setLimiteEsManual(true)
+      if (limite != null) setLimiteManualActual(limite)
+      if (limite != null) {
+        showSuccess(
+          `Estrategia actualizada. Tu límite manual de ${formatCurrency(limite)} se mantiene.`,
+        )
+        return
+      }
     }
 
     setLimiteEsManual(false)
