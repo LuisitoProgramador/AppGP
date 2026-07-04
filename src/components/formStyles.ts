@@ -12,11 +12,11 @@ export const inputInlineClassName = `min-w-0 flex-1 rounded-xl border border-pul
 
 /** Tarjeta base con glassmorphism sutil */
 export const cardClassName =
-  'space-y-6 rounded-2xl border border-white/8 bg-pulso-surface/90 p-6 shadow-xl shadow-black/30 backdrop-blur-md'
+  'space-y-4 rounded-2xl border border-white/8 bg-pulso-surface/90 p-5 shadow-xl shadow-black/30 backdrop-blur-md sm:p-6'
 
 /** Contenedor premium del Dashboard at-a-glance */
 export const dashboardShellClassName =
-  'space-y-6 rounded-2xl border border-white/8 bg-pulso-surface/80 p-5 shadow-xl shadow-black/25 backdrop-blur-md sm:p-6'
+  'space-y-4 rounded-2xl border border-white/8 bg-pulso-surface/80 p-4 shadow-xl shadow-black/25 backdrop-blur-md sm:p-5'
 
 /** Tarjetas internas del Dashboard (widgets) */
 export const dashboardCardClassName =
@@ -35,7 +35,7 @@ export const formWithKeyboardClassName = 'scroll-pb-32 max-sm:pb-32'
 export const registroFormClassName = 'mx-auto w-full max-w-md'
 
 /** Contenedor de pestaña con transición suave */
-export const tabPanelClassName = 'space-y-6 transition-opacity duration-200'
+export const tabPanelClassName = 'space-y-4 transition-opacity duration-200'
 
 /** Contenedor pegajoso para el botón de envío en formularios móviles */
 export const formSubmitStickyClassName =

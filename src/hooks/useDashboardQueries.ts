@@ -12,7 +12,8 @@ import {
 } from '../utils/detectarRecurrentes'
 import { calcPatrimonioLiquido } from '../utils/patrimonioLiquido'
 import {
-  getMonthRange,
+  getMonthBucketBounds,
+  getMonthFechaBounds,
   shiftMonth,
 } from '../utils/date'
 import { mesParaResumenFinMes } from '../utils/resumenFinMes'
@@ -61,7 +62,7 @@ export function useDashboardQueries(
         setError(null)
       }
 
-      const { inicio, fin } = getMonthRange(selectedMonth)
+      const { inicio, fin } = getMonthBucketBounds(selectedMonth)
       const limite = await getLimiteMensual(user.id)
       if (isMounted) {
         setLimiteMensual(limite)
@@ -95,8 +96,8 @@ export function useDashboardQueries(
         .from('gastos_resumen_mensual')
         .select('categoria, total, cantidad')
         .eq('user_id', user.id)
-        .gte('mes', inicio.toISOString())
-        .lt('mes', fin.toISOString())
+        .gte('mes', inicio)
+        .lt('mes', fin)
 
       if (!isMounted) return
 
@@ -116,16 +117,18 @@ export function useDashboardQueries(
       )
 
       const ahora = new Date()
-      const inicioMsi = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
-      const finMsi = shiftMonth(inicioMsi, 3)
+      const inicioMsiDate = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
+      const finMsiDate = shiftMonth(inicioMsiDate, 3)
+      const msiBounds = getMonthFechaBounds(inicioMsiDate)
+      const finMsiBounds = getMonthFechaBounds(finMsiDate)
 
       const { data: msiData } = await supabase
         .from('gastos')
         .select('monto, fecha')
         .eq('user_id', user.id)
         .eq('es_msi', true)
-        .gte('fecha', inicioMsi.toISOString())
-        .lt('fecha', finMsi.toISOString())
+        .gte('fecha', msiBounds.inicio)
+        .lt('fecha', finMsiBounds.fin)
 
       if (!isMounted) return
 
@@ -146,15 +149,17 @@ export function useDashboardQueries(
         return
       }
 
-      const inicioEvolucion = shiftMonth(inicioMsi, -3)
-      const finEvolucion = shiftMonth(inicioMsi, 1)
+      const inicioEvolucion = shiftMonth(inicioMsiDate, -3)
+      const finEvolucion = shiftMonth(inicioMsiDate, 1)
+      const evoInicio = getMonthBucketBounds(inicioEvolucion)
+      const evoFin = getMonthBucketBounds(finEvolucion)
 
       const { data: evoData } = await supabase
         .from('gastos_resumen_mensual')
         .select('mes, total')
         .eq('user_id', user.id)
-        .gte('mes', inicioEvolucion.toISOString())
-        .lt('mes', finEvolucion.toISOString())
+        .gte('mes', evoInicio.inicio)
+        .lt('mes', evoFin.fin)
 
       if (!isMounted) return
 
@@ -168,13 +173,13 @@ export function useDashboardQueries(
       )
 
       const mesResumen = mesParaResumenFinMes(selectedMonth)
-      const { inicio: inicioResumen, fin: finResumen } = getMonthRange(mesResumen)
+      const resumenBounds = getMonthBucketBounds(mesResumen)
       const { data: resumenData } = await supabase
         .from('gastos_resumen_mensual')
         .select('total')
         .eq('user_id', user.id)
-        .gte('mes', inicioResumen.toISOString())
-        .lt('mes', finResumen.toISOString())
+        .gte('mes', resumenBounds.inicio)
+        .lt('mes', resumenBounds.fin)
 
       if (!isMounted) return
 
@@ -185,13 +190,13 @@ export function useDashboardQueries(
       setGastoTotalResumen(totalResumen)
 
       const mesAntesResumen = shiftMonth(mesResumen, -1)
-      const { inicio: inicioAnt, fin: finAnt } = getMonthRange(mesAntesResumen)
+      const antBounds = getMonthBucketBounds(mesAntesResumen)
       const { data: resumenAntData } = await supabase
         .from('gastos_resumen_mensual')
         .select('total')
         .eq('user_id', user.id)
-        .gte('mes', inicioAnt.toISOString())
-        .lt('mes', finAnt.toISOString())
+        .gte('mes', antBounds.inicio)
+        .lt('mes', antBounds.fin)
 
       if (!isMounted) return
 
@@ -199,13 +204,14 @@ export function useDashboardQueries(
         (resumenAntData ?? []).reduce((sum, row) => sum + Number(row.total), 0),
       )
 
-      const inicioPatron = shiftMonth(inicioMsi, -2)
+      const inicioPatron = shiftMonth(inicioMsiDate, -2)
+      const patronBounds = getMonthFechaBounds(inicioPatron)
       const { data: patronData } = await supabase
         .from('gastos')
         .select('descripcion, monto, categoria, fecha')
         .eq('user_id', user.id)
-        .gte('fecha', inicioPatron.toISOString())
-        .lt('fecha', finMsi.toISOString())
+        .gte('fecha', patronBounds.inicio)
+        .lt('fecha', finMsiBounds.fin)
 
       if (!isMounted) return
 

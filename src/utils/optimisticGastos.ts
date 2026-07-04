@@ -1,5 +1,5 @@
 import type { OptimisticGasto, PendingGasto } from '../types/gasto'
-import { getMonthRange } from './date'
+import { isFechaInMonth } from './date'
 
 interface ResumenMensual {
   categoria: string
@@ -44,11 +44,7 @@ export function filterPendingNotInOptimistic(
 }
 
 function filterLineItemsByMonth(items: ResumenLineItem[], month: Date): ResumenLineItem[] {
-  const { inicio, fin } = getMonthRange(month)
-  return items.filter((item) => {
-    const fecha = new Date(item.fecha)
-    return fecha >= inicio && fecha < fin
-  })
+  return items.filter((item) => isFechaInMonth(item.fecha, month))
 }
 
 export function mergeResumenWithOptimistic(
@@ -87,12 +83,10 @@ export function filterOptimisticGastos(
   categoria: string,
   busqueda: string,
 ): OptimisticGasto[] {
-  const { inicio, fin } = getMonthRange(month)
   const termino = busqueda.trim().toLowerCase()
 
   return optimisticGastos.filter((gasto) => {
-    const fecha = new Date(gasto.fecha)
-    if (fecha < inicio || fecha >= fin) return false
+    if (!isFechaInMonth(gasto.fecha, month)) return false
     if (categoria !== 'Todas' && gasto.categoria !== categoria) return false
     if (termino && !gasto.descripcion.toLowerCase().includes(termino)) return false
     return true

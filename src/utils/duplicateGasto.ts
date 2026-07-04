@@ -31,10 +31,17 @@ export function findDuplicadoHoy(
 }
 
 export function isToday(isoFecha: string, hoy = new Date()): boolean {
-  const fecha = new Date(isoFecha)
-  return (
-    fecha.getFullYear() === hoy.getFullYear() &&
-    fecha.getMonth() === hoy.getMonth() &&
-    fecha.getDate() === hoy.getDate()
-  )
+  const hoyCal = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(hoy)
+  const fechaCal = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Mexico_City',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date(isoFecha))
+  return fechaCal === hoyCal
 }

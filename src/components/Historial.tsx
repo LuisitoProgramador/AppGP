@@ -10,7 +10,7 @@ import {
   type PendingGasto,
 } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
-import { formatShortDate, getMonthRange } from '../utils/date'
+import { formatShortDate, getMonthFechaBounds } from '../utils/date'
 import { filterOptimisticGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import {
   buildGastoEliminadoSnapshot,
@@ -301,7 +301,7 @@ export default memo(function Historial() {
       }
       setError(null)
 
-      const { inicio, fin } = getMonthRange(selectedMonth)
+      const { inicio, fin } = getMonthFechaBounds(selectedMonth)
       const from = page * HISTORIAL_PAGE_SIZE
       const to = from + HISTORIAL_PAGE_SIZE - 1
 
@@ -309,8 +309,8 @@ export default memo(function Historial() {
         .from('gastos')
         .select('id, monto, categoria, descripcion, fecha, cuenta_id, es_msi, grupo_msi_id')
         .eq('user_id', user.id)
-        .gte('fecha', inicio.toISOString())
-        .lt('fecha', fin.toISOString())
+        .gte('fecha', inicio)
+        .lt('fecha', fin)
         .order('fecha', { ascending: false })
         .range(from, to)
 

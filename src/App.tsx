@@ -10,7 +10,6 @@ import {
   LoginForm,
   Plan,
   OnboardingFlow,
-  SalidasTimelineSection,
 } from './components'
 import { navTabClassName, iconButtonClassName, tabPanelClassName } from './components/formStyles'
 import { checkNeedsOnboarding } from './services/onboarding'
@@ -269,9 +268,6 @@ function AppContent() {
                 <FocusModeProvider>
                   <ErrorBoundary title="Error en el Dashboard">
                     <Dashboard />
-                  </ErrorBoundary>
-                  <ErrorBoundary title="Error en salidas del mes">
-                    <SalidasTimelineSection />
                   </ErrorBoundary>
                 </FocusModeProvider>
               </TabPanel>

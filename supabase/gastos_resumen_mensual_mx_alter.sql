@@ -1,4 +1,4 @@
--- Vista que pre-calcula totales mensuales por usuario y categoría (mes en America/Mexico_City)
+-- Agrupa gastos por mes calendario en America/Mexico_City (evita desfases UTC)
 
 create or replace view public.gastos_resumen_mensual
 with (security_invoker = true)

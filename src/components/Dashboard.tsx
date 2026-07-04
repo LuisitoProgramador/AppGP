@@ -16,7 +16,8 @@ import SaludAhorroWidget from './dashboard/SaludAhorroWidget'
 import ResumenFinMesBanner from './dashboard/ResumenFinMesBanner'
 import RecurrenteSugeridoBanner from './dashboard/RecurrenteSugeridoBanner'
 import CompromisosMsiWidget from './dashboard/CompromisosMsiWidget'
-import { dashboardShellClassName, formWithKeyboardClassName } from './formStyles'
+import SalidasTimelineSection from './SalidasTimelineSection'
+import { dashboardShellClassName } from './formStyles'
 
 export default memo(function Dashboard() {
   const { isSyncing, pendingCount } = useOfflineSync()
@@ -64,9 +65,9 @@ export default memo(function Dashboard() {
   )
 
   return (
-    <div className={`flex flex-col gap-6 ${formWithKeyboardClassName}`}>
+    <div className="flex flex-col gap-4">
       <section className={dashboardShellClassName}>
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
           <DashboardHeader
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
@@ -148,6 +149,8 @@ export default memo(function Dashboard() {
           )}
         </div>
       </section>
+
+      <SalidasTimelineSection />
     </div>
   )
 })

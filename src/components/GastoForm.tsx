@@ -16,6 +16,7 @@ import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
 import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
 import { montoParaSaldoCuenta } from '../utils/cuentaSaldo'
+import { getDayFechaBounds } from '../utils/date'
 import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
 import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
@@ -199,14 +200,13 @@ export default memo(function GastoForm() {
 
     if (isOnline()) {
       const hoy = new Date()
-      const inicio = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())
-      const fin = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() + 1)
+      const { inicio, fin } = getDayFechaBounds(hoy)
       const { data: hoyData } = await supabase
         .from('gastos')
         .select('descripcion, monto')
         .eq('user_id', user.id)
-        .gte('fecha', inicio.toISOString())
-        .lt('fecha', fin.toISOString())
+        .gte('fecha', inicio)
+        .lt('fecha', fin)
 
       for (const row of hoyData ?? []) {
         gastosHoy.push({

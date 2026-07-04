@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useAuthContext } from '../contexts'
+import { formatAuthError } from '../utils/authErrors'
 import { showError, showInfo } from '../utils/toast'
 import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, textLinkClassName } from './formStyles'
 
@@ -22,7 +23,7 @@ export default function LoginForm() {
     setEnviando(false)
 
     if (error) {
-      showError(`Error: ${error.message}`)
+      showError(formatAuthError(error, modo))
       return
     }
 

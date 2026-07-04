@@ -1,4 +1,5 @@
 import type { GastoRecurrente, GastoRecurrenteInput } from '../types/gasto'
+import { toGastoFecha } from '../utils/date'
 import { shouldRegisterRecurringToday } from '../utils/recurrentesPolicy'
 import {
   applyGastoToCuenta,
@@ -94,7 +95,7 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
   if (error || !data?.length) return 0
 
   const now = new Date()
-  const fecha = now.toISOString()
+  const fecha = toGastoFecha(now)
   let registered = 0
   const { data: cuentas } = await listCuentas(userId)
 

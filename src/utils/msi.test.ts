@@ -28,6 +28,7 @@ describe('buildMsiGastos', () => {
     expect(rows.every((r) => r.es_msi)).toBe(true)
     expect(rows[0].descripcion).toContain('MSI 1/3')
     expect(new Date(rows[1].fecha).getMonth()).toBe(1)
+    expect(rows[0].fecha).toMatch(/T12:00:00-06:00$/)
   })
 })
 

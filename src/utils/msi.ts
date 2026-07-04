@@ -1,4 +1,4 @@
-import { addMonths } from './date'
+import { addMonthsInTimezone, toGastoFecha } from './date'
 import type { MsiInstallmentUpdate } from '../types/gasto'
 
 export interface GastoInsertPayload {
@@ -45,7 +45,7 @@ export function buildMsiGastos(params: {
     monto,
     categoria,
     descripcion: `${trimmedDesc} (MSI ${index + 1}/${months})`,
-    fecha: addMonths(startDate, index).toISOString(),
+    fecha: addMonthsInTimezone(startDate, index),
     cuenta_id: cuentaId,
     es_msi: true,
     grupo_msi_id: grupoMsiId,
@@ -63,7 +63,7 @@ export function buildSingleGasto(params: {
     monto: params.monto,
     categoria: params.categoria,
     descripcion: params.descripcion.trim(),
-    fecha: params.fecha ?? new Date().toISOString(),
+    fecha: params.fecha ?? toGastoFecha(),
     cuenta_id: params.cuentaId,
     es_msi: false,
     grupo_msi_id: null,

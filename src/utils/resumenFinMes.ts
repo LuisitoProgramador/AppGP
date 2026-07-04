@@ -1,4 +1,4 @@
-import { formatMonthLabel, getMonthRange, isCurrentMonth, shiftMonth } from './date'
+import { formatMonthLabel, getMonthBucketBounds, isCurrentMonth, shiftMonth } from './date'
 import type { MetaAhorro } from '../types/metaAhorro'
 
 export interface ResumenFinMes {
@@ -48,6 +48,5 @@ export function buildResumenFinMes(params: {
 }
 
 export function getMonthRangeIso(mes: Date) {
-  const { inicio, fin } = getMonthRange(mes)
-  return { inicio: inicio.toISOString(), fin: fin.toISOString() }
+  return getMonthBucketBounds(mes)
 }

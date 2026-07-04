@@ -4,7 +4,7 @@ import { useStableArray } from '../hooks/useStableArray'
 import { listGastosRecurrentes } from '../services/gastosRecurrentes'
 import { supabase } from '../services/supabase'
 import type { GastoRecurrente } from '../types/gasto'
-import { getMonthRange } from '../utils/date'
+import { getMonthFechaBounds } from '../utils/date'
 import { buildSalidasTimeline } from '../utils/salidasTimeline'
 import SalidasTimeline from './SalidasTimeline'
 
@@ -21,14 +21,14 @@ function SalidasTimelineSection() {
       const { data: recurrentesData } = await listGastosRecurrentes(user.id)
       setRecurrentes(recurrentesData)
 
-      const { inicio, fin } = getMonthRange(new Date())
+      const { inicio, fin } = getMonthFechaBounds(new Date())
       const { data: msiData } = await supabase
         .from('gastos')
         .select('monto, fecha')
         .eq('user_id', user.id)
         .eq('es_msi', true)
-        .gte('fecha', inicio.toISOString())
-        .lt('fecha', fin.toISOString())
+        .gte('fecha', inicio)
+        .lt('fecha', fin)
 
       setGastosMsi(
         (msiData ?? []).map((item) => ({
