@@ -1,6 +1,6 @@
 import { memo, useMemo, useState } from 'react'
 import { calcMeAlcanza } from '../../utils/meAlcanza'
-import { inputClassName } from '../formStyles'
+import { inputClassName, dashboardCardClassName } from '../formStyles'
 
 interface MeAlcanzaWidgetProps {
   disponible: number
@@ -26,7 +26,7 @@ export default memo(function MeAlcanzaWidget({
   }, [disponible, diasRestantesEfectivos, monto, presupuestoDiario])
 
   return (
-    <div className="rounded-xl border border-slate-700/60 bg-slate-900/40">
+    <div className={dashboardCardClassName}>
       <button
         type="button"
         onClick={() => setMostrar((current) => !current)}

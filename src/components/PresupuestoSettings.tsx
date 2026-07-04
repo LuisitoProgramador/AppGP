@@ -168,14 +168,14 @@ export default function PresupuestoSettings() {
 
   if (cargando) {
     return (
-      <div className="space-y-4 border-t border-slate-700/60 pt-5">
+      <div className="space-y-4">
         <p className="text-center text-sm text-slate-400">Cargando configuración...</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4 border-t border-slate-700/60 pt-5">
+    <div className="space-y-5">
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-slate-300">Tu situación financiera</h3>
         <p className="text-xs text-slate-500">
@@ -183,7 +183,7 @@ export default function PresupuestoSettings() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className={`space-y-4 ${formWithKeyboardClassName}`}>
+      <form onSubmit={handleSubmit} className={`space-y-5 ${formWithKeyboardClassName}`}>
         <div className="space-y-2">
           <label htmlFor="cfg-sueldo" className="block text-sm font-medium text-slate-300">
             Sueldo mensual

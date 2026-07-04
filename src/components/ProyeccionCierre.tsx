@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { formatCurrency } from '../utils/formatCurrency'
+import { dashboardCardClassName } from './formStyles'
 import type { ProyeccionCierreResult } from '../utils/proyeccionCierre'
 
 interface ProyeccionCierreProps {
@@ -15,10 +16,10 @@ export default memo(function ProyeccionCierre({
 
   return (
     <div
-      className={`rounded-xl border px-4 py-3 text-center ${
+      className={`${dashboardCardClassName} text-center ${
         proyeccion.enNegativo
           ? 'border-amber-500/25 bg-amber-500/10'
-          : 'border-slate-600/40 bg-slate-900/50'
+          : ''
       }`}
     >
       {proyeccion.enNegativo ? (

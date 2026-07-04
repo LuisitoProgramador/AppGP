@@ -33,7 +33,7 @@ export default memo(function MetasAhorroSection({
   handleSumarAhorro,
 }: MetasAhorroSectionProps) {
   return (
-    <div className="space-y-4 border-t border-slate-700/60 pt-5 transition-all duration-300">
+    <div className="space-y-5">
       <div className="space-y-1">
         <h3 className="text-sm font-semibold text-slate-300">Metas de ahorro</h3>
         <p className="text-xs text-slate-500">

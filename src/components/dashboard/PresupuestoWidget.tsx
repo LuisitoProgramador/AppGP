@@ -4,6 +4,7 @@ import {
   formWithKeyboardClassName,
   inputClassName,
   buttonSecondaryClassName,
+  dashboardCardClassName,
 } from '../formStyles'
 
 interface PresupuestoWidgetProps {
@@ -53,7 +54,7 @@ function PresupuestoSummary({
 
   return (
     <div
-      className={`rounded-2xl border px-5 py-6 text-center ${
+      className={`${dashboardCardClassName} px-5 py-6 text-center ${
         dentroDeLimite
           ? 'border-emerald-500/30 bg-emerald-500/10'
           : 'border-amber-500/30 bg-amber-500/10'

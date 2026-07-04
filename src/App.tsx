@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { AuthProvider, GastosProviders, QuietModeProvider, FocusModeProvider, useAuthContext } from './contexts'
 import {
+  Ajustes,
   Dashboard,
   ErrorBoundary,
   GastoForm,
@@ -12,16 +13,23 @@ import {
   OnboardingFlow,
   SalidasTimelineSection,
 } from './components'
-import { navTabClassName, signOutButtonClassName } from './components/formStyles'
+import { navTabClassName, signOutButtonClassName, tabPanelClassName } from './components/formStyles'
 import { checkNeedsOnboarding } from './services/onboarding'
 import { readSessionStorage, writeSessionStorage } from './utils/storage'
 import { showError } from './utils/toast'
 
-type AppTab = 'registro' | 'resumen' | 'historial'
+type AppTab = 'registro' | 'resumen' | 'historial' | 'ajustes'
 
 const TAB_STORAGE_KEY = 'app-tab'
 
-const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial']
+const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial', 'ajustes']
+
+const TABS: { id: AppTab; label: string }[] = [
+  { id: 'registro', label: 'Registro' },
+  { id: 'resumen', label: 'Resumen' },
+  { id: 'historial', label: 'Historial' },
+  { id: 'ajustes', label: 'Ajustes' },
+]
 
 function getInitialTab(): AppTab {
   const params = new URLSearchParams(window.location.search)
@@ -38,6 +46,32 @@ function getInitialTab(): AppTab {
 }
 
 type OnboardingState = 'loading' | 'needed' | 'done'
+
+interface TabPanelProps {
+  id: AppTab
+  activeTab: AppTab
+  children: ReactNode
+}
+
+function TabPanel({ id, activeTab, children }: TabPanelProps) {
+  const active = activeTab === id
+
+  return (
+    <div
+      role="tabpanel"
+      id={`panel-${id}`}
+      aria-labelledby={`tab-${id}`}
+      aria-hidden={!active}
+      className={`${tabPanelClassName} ${
+        active
+          ? 'relative z-10 opacity-100'
+          : 'pointer-events-none absolute inset-x-0 top-0 opacity-0'
+      }`}
+    >
+      {children}
+    </div>
+  )
+}
 
 function AppContent() {
   const { user, loading, signOut } = useAuthContext()
@@ -120,92 +154,74 @@ function AppContent() {
       <QuietModeProvider>
         <Layout>
           <section className="space-y-6">
-          <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-bold">Pulso</h1>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className={signOutButtonClassName}
-            >
-              Salir
-            </button>
-          </div>
-
-          <div
-            className="flex rounded-xl border border-slate-700/80 bg-slate-800/60 p-1"
-            role="tablist"
-            aria-label="Navegación principal"
-          >
-            {(
-              [
-                { id: 'registro', label: 'Registro' },
-                { id: 'resumen', label: 'Resumen' },
-                { id: 'historial', label: 'Historial' },
-              ] as const
-            ).map(({ id, label }) => (
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-3xl font-bold">Pulso</h1>
               <button
-                key={id}
                 type="button"
-                role="tab"
-                id={`tab-${id}`}
-                aria-selected={tab === id}
-                aria-controls={`panel-${id}`}
-                onClick={() => handleTabChange(id)}
-                className={navTabClassName(tab === id)}
+                onClick={handleSignOut}
+                className={signOutButtonClassName}
               >
-                {label}
+                Salir
               </button>
-            ))}
-          </div>
-
-          <div className="space-y-6">
-            <div
-              role="tabpanel"
-              id="panel-registro"
-              aria-labelledby="tab-registro"
-              hidden={tab !== 'registro'}
-              className={tab === 'registro' ? 'space-y-6' : undefined}
-            >
-              <ErrorBoundary title="Error en el formulario">
-                <GastoForm />
-              </ErrorBoundary>
             </div>
 
             <div
-              role="tabpanel"
-              id="panel-resumen"
-              aria-labelledby="tab-resumen"
-              hidden={tab !== 'resumen'}
-              className={tab === 'resumen' ? 'space-y-6' : undefined}
+              className="grid grid-cols-4 gap-1 rounded-xl border border-white/10 bg-slate-800/50 p-1 backdrop-blur-sm"
+              role="tablist"
+              aria-label="Navegación principal"
             >
-              <FocusModeProvider>
-                <ErrorBoundary title="Error en cuentas">
-                  <ListaCuentas />
-                </ErrorBoundary>
-                <ErrorBoundary title="Error en el Dashboard">
-                  <Dashboard />
-                </ErrorBoundary>
-                <ErrorBoundary title="Error en salidas del mes">
-                  <SalidasTimelineSection />
-                </ErrorBoundary>
-                <ErrorBoundary title="Error en gastos recurrentes">
-                  <GastosRecurrentes />
-                </ErrorBoundary>
-              </FocusModeProvider>
+              {TABS.map(({ id, label }) => (
+                <button
+                  key={id}
+                  type="button"
+                  role="tab"
+                  id={`tab-${id}`}
+                  aria-selected={tab === id}
+                  aria-controls={`panel-${id}`}
+                  onClick={() => handleTabChange(id)}
+                  className={navTabClassName(tab === id)}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
 
-            <div
-              role="tabpanel"
-              id="panel-historial"
-              aria-labelledby="tab-historial"
-              hidden={tab !== 'historial'}
-              className={tab === 'historial' ? 'space-y-6' : undefined}
-            >
-              <ErrorBoundary title="Error en el historial">
-                <Historial />
-              </ErrorBoundary>
+            <div className="relative">
+              <TabPanel id="registro" activeTab={tab}>
+                <ErrorBoundary title="Error en el formulario">
+                  <GastoForm />
+                </ErrorBoundary>
+              </TabPanel>
+
+              <TabPanel id="resumen" activeTab={tab}>
+                <FocusModeProvider>
+                  <ErrorBoundary title="Error en cuentas">
+                    <ListaCuentas />
+                  </ErrorBoundary>
+                  <ErrorBoundary title="Error en el Dashboard">
+                    <Dashboard />
+                  </ErrorBoundary>
+                  <ErrorBoundary title="Error en salidas del mes">
+                    <SalidasTimelineSection />
+                  </ErrorBoundary>
+                  <ErrorBoundary title="Error en gastos recurrentes">
+                    <GastosRecurrentes />
+                  </ErrorBoundary>
+                </FocusModeProvider>
+              </TabPanel>
+
+              <TabPanel id="historial" activeTab={tab}>
+                <ErrorBoundary title="Error en el historial">
+                  <Historial />
+                </ErrorBoundary>
+              </TabPanel>
+
+              <TabPanel id="ajustes" activeTab={tab}>
+                <ErrorBoundary title="Error en ajustes">
+                  <Ajustes />
+                </ErrorBoundary>
+              </TabPanel>
             </div>
-          </div>
           </section>
         </Layout>
       </QuietModeProvider>
