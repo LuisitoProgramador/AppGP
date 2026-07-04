@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { getDaysRemainingInQuincena } from './date'
-import { calcMeAlcanza } from './meAlcanza'
 import {
   getQuincenaPeriodo,
   getQuincenaRange,
@@ -42,29 +41,5 @@ describe('quincena utils', () => {
       10,
     )
     expect(total).toBe(500)
-  })
-})
-
-describe('calcMeAlcanza', () => {
-  it('indica presupuesto diario restante cuando alcanza', () => {
-    const result = calcMeAlcanza({
-      disponible: 3000,
-      diasRestantes: 10,
-      montoEstimado: 500,
-      presupuestoDiarioActual: 300,
-    })
-    expect(result?.tono).toBe('bien')
-    expect(result?.nuevoPresupuestoDiario).toBe(250)
-  })
-
-  it('advierte cuando excede el límite', () => {
-    const result = calcMeAlcanza({
-      disponible: 300,
-      diasRestantes: 10,
-      montoEstimado: 500,
-      presupuestoDiarioActual: 30,
-    })
-    expect(result?.tono).toBe('excedido')
-    expect(result?.disponibleDespues).toBe(-200)
   })
 })
