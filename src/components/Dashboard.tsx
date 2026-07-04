@@ -12,7 +12,6 @@ import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import DashboardStatus from './dashboard/DashboardStatus'
 import GastosAnalisisSection from './dashboard/GastosAnalisisSection'
 import PatrimonioCards from './dashboard/PatrimonioCards'
-import PresupuestoWidget from './dashboard/PresupuestoWidget'
 import SaludAhorroWidget from './dashboard/SaludAhorroWidget'
 import ResumenFinMesBanner from './dashboard/ResumenFinMesBanner'
 import RecurrenteSugeridoBanner from './dashboard/RecurrenteSugeridoBanner'
@@ -42,8 +41,6 @@ export default memo(function Dashboard() {
     diasRestantesEfectivos,
     recibosEfectivos,
     msiPendientes,
-    quincenaPeriodo,
-    vistaQuincenal,
     modoViaje,
     focusView,
     burnRateAlerta,
@@ -55,13 +52,8 @@ export default memo(function Dashboard() {
     evolucionMensual,
     tieneDatosAnalisis,
     recurrenteSugerido,
-    limiteInput,
-    guardandoLimite,
     marcandoRecurrente,
-    setLimiteInput,
-    handleGuardarLimite,
     handleToggleModoViaje,
-    handleToggleVistaQuincenal,
     handleMarcarRecurrente,
     handleDescartarRecurrente,
   } = useDashboardData(selectedMonth, metas, { lite: isFocusMode })
@@ -123,32 +115,9 @@ export default memo(function Dashboard() {
                 diasRestantesEfectivos={diasRestantesEfectivos}
                 recibosEfectivos={recibosEfectivos}
                 msiPendientes={msiPendientes}
-                quincenaPeriodo={quincenaPeriodo}
-                vistaQuincenal={vistaQuincenal}
                 modoTranquilo={modoTranquilo}
                 diaAgotamiento={diaAgotamiento}
               />
-
-              {esMesActual && (
-                <PresupuestoWidget
-                  mode="settings"
-                  disponible={disponible}
-                  presupuestoDiario={presupuestoDiario}
-                  limiteMensual={limiteMensual}
-                  diasRestantesEfectivos={diasRestantesEfectivos}
-                  recibosEfectivos={recibosEfectivos}
-                  msiPendientes={msiPendientes}
-                  quincenaPeriodo={quincenaPeriodo}
-                  vistaQuincenal={vistaQuincenal}
-                  modoTranquilo={modoTranquilo}
-                  diaAgotamiento={diaAgotamiento}
-                  limiteInput={limiteInput}
-                  guardandoLimite={guardandoLimite}
-                  onLimiteInputChange={setLimiteInput}
-                  onGuardarLimite={handleGuardarLimite}
-                  onToggleVistaQuincenal={handleToggleVistaQuincenal}
-                />
-              )}
 
               {esMesActual && !cargando && <SaludAhorroWidget saludAhorro={saludAhorro} />}
 

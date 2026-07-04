@@ -66,11 +66,11 @@ export interface CategoriaResumen {
 }
 
 export const COLORES_CATEGORIA: Record<string, string> = {
-  Comida: 'bg-amber-500',
-  Transporte: 'bg-blue-500',
-  Casa: 'bg-emerald-500',
-  Suscripciones: 'bg-violet-500',
-  Otros: 'bg-slate-400',
+  Comida: 'bg-blue-400',
+  Transporte: 'bg-pulso-accent',
+  Casa: 'bg-pulso-accent-dim',
+  Suscripciones: 'bg-pulso-accent-muted',
+  Otros: 'bg-slate-500',
 }
 
 export const LIMITE_MENSUAL_DEFAULT = 10000
@@ -96,9 +96,9 @@ export type GastoRecurrenteInput = Pick<
 >
 
 export const CHART_COLORS_HEX: Record<string, string> = {
-  Comida: '#f59e0b',
-  Transporte: '#3b82f6',
-  Casa: '#10b981',
-  Suscripciones: '#8b5cf6',
-  Otros: '#94a3b8',
+  Comida: '#93b4ff',
+  Transporte: '#4f8cff',
+  Casa: '#3b72e0',
+  Suscripciones: '#6ba1ff',
+  Otros: '#64748b',
 }

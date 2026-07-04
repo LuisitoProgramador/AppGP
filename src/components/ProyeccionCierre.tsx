@@ -18,18 +18,18 @@ export default memo(function ProyeccionCierre({
     <div
       className={`${dashboardCardClassName} text-center ${
         proyeccion.enNegativo
-          ? 'border-amber-500/25 bg-amber-500/10'
+          ? 'border-pulso-warning/25 bg-pulso-warning/10'
           : ''
       }`}
     >
       {proyeccion.enNegativo ? (
-        <p className="text-sm text-amber-200">
+        <p className="text-sm text-pulso-warning/90">
           Al ritmo actual, podrías cerrar el mes en negativo. Intenta reducir gastos.
         </p>
       ) : (
         <p className="text-sm text-slate-200">
           Al ritmo actual, cerrarías el mes con{' '}
-          <span className="font-semibold text-emerald-400">
+          <span className="font-semibold text-pulso-accent-muted">
             {formatCurrency(proyeccion.saldoProyectado)}
           </span>{' '}
           disponibles.

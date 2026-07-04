@@ -1,19 +1,36 @@
 @import 'tailwindcss';
 
 @theme {
-  --color-primary: #0f172a;
-  --color-accent: #3b82f6;
+  --color-pulso-bg: #0a0f1a;
+  --color-pulso-surface: #121a2e;
+  --color-pulso-surface-raised: #1a2438;
+  --color-pulso-surface-muted: #0f1524;
+  --color-pulso-border: #2a3548;
+  --color-pulso-accent: #4f8cff;
+  --color-pulso-accent-hover: #6ba1ff;
+  --color-pulso-accent-active: #3b72e0;
+  --color-pulso-accent-muted: #93b4ff;
+  --color-pulso-accent-dim: #3b72e0;
+  --color-pulso-warning: #f59e0b;
+  --color-pulso-danger: #ef4444;
+  --color-primary: #0a0f1a;
+  --color-accent: #4f8cff;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
   margin: 0;
   min-height: 100svh;
   font-family: system-ui, -apple-system, sans-serif;
+  background-color: var(--color-pulso-bg);
+  color: #f8fafc;
 }
 
 /* Evita zoom automático en iOS al enfocar inputs (< 16px dispara el zoom) */
 input,
-select,
 textarea {
   font-size: 16px;
 }
@@ -34,7 +51,6 @@ input[type='number']::-webkit-inner-spin-button {
 /* Ayuda a mantener campos visibles cuando el teclado virtual está abierto */
 @media (max-width: 640px) {
   input:focus,
-  select:focus,
   textarea:focus {
     scroll-margin-bottom: 8rem;
   }

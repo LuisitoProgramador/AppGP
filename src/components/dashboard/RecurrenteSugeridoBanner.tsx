@@ -17,8 +17,8 @@ export default memo(function RecurrenteSugeridoBanner({
   onDescartar,
 }: RecurrenteSugeridoBannerProps) {
   return (
-    <div className="rounded-xl border border-sky-500/25 bg-sky-500/10 px-4 py-3">
-      <p className="text-sm text-sky-100">
+    <div className="rounded-xl border border-pulso-accent/25 bg-pulso-accent/10 px-4 py-3">
+      <p className="text-sm text-slate-200">
         Llevas 3 meses pagando {sugerido.descripcion} ~ {formatCurrency(sugerido.monto)}. ¿Lo
         marco como recurrente?
       </p>

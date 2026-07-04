@@ -16,7 +16,7 @@ export default memo(function FocusModeToggle({ isFocusMode, onToggle }: FocusMod
         title={isFocusMode ? 'Salir de vista concentrada' : 'Vista concentrada'}
         className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border p-2.5 text-sm touch-manipulation transition-all duration-300 active:scale-[0.98] ${
           isFocusMode
-            ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300 active:bg-indigo-500/25'
+            ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted active:bg-pulso-accent/25'
             : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
         }`}
       >

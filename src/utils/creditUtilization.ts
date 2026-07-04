@@ -7,7 +7,7 @@ export function getCreditUtilization(cuenta: Cuenta): number | null {
 }
 
 export function utilizationColor(pct: number): string {
-  if (pct >= 80) return 'text-red-400'
-  if (pct >= 50) return 'text-amber-400'
+  if (pct >= 80) return 'text-pulso-warning'
+  if (pct >= 50) return 'text-pulso-accent-muted'
   return 'text-slate-400'
 }

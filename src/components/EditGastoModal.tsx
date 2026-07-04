@@ -18,6 +18,7 @@ import {
   validateNombre,
 } from '../utils/validation'
 import ModalPortal from './ModalPortal'
+import Select from './Select'
 import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName } from './formStyles'
 
 interface GrupoMsiRow {
@@ -496,13 +497,13 @@ export default function EditGastoModal({
         </div>
 
         {esMsi && (
-          <div className="space-y-3 rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-3 text-sm text-violet-100">
+          <div className="space-y-3 rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3 text-sm text-slate-200">
             <p>
               Compra a meses sin intereses
               {msiInfo ? ` · Cuota ${msiInfo.index}/${msiInfo.total}` : ''}
               {cargandoGrupo ? '' : ` · Total compra ${formatCurrency(totalGrupo)}`}
             </p>
-            <p className="text-xs text-violet-200/80">
+            <p className="text-xs text-pulso-accent-muted/80">
               El saldo de tu tarjeta refleja el total de la compra. Editar una cuota solo cambia
               el presupuesto de ese mes.
             </p>
@@ -511,12 +512,12 @@ export default function EditGastoModal({
                 type="checkbox"
                 checked={corregirTotal}
                 onChange={(e) => setCorregirTotal(e.target.checked)}
-                className="rounded border-violet-400/50"
+                className="rounded border-pulso-accent/50"
               />
               Editar compra MSI completa (total, meses y saldo de crédito)
             </label>
             {edicionBloqueada && esMsi && (
-              <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              <p className="rounded-lg border border-pulso-warning/30 bg-pulso-warning/10 px-3 py-2 text-xs text-pulso-warning/90">
                 No puedes editar cuotas pasadas, el gasto ya ocurrió. Si quieres ajustar el total,
                 debes editar el grupo MSI completo.
               </p>
@@ -525,7 +526,7 @@ export default function EditGastoModal({
         )}
 
         {!esMsi && gastoPasado && (
-          <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-xs text-amber-200">
+          <p className="rounded-lg border border-pulso-warning/30 bg-pulso-warning/10 px-4 py-3 text-xs text-pulso-warning/90">
             No puedes editar gastos con fecha pasada, el movimiento ya ocurrió.
           </p>
         )}
@@ -593,7 +594,7 @@ export default function EditGastoModal({
                 {previewCuotas.length} cuotas de ~{' '}
                 {formatCurrency(previewCuotas[0]?.monto ?? 0)} cada una
                 {Number(mesesMsi) !== grupoRows.length && (
-                  <span className="text-violet-300">
+                  <span className="text-pulso-accent-muted">
                     {' '}
                     (antes {grupoRows.length} cuotas)
                   </span>
@@ -625,22 +626,14 @@ export default function EditGastoModal({
           <label htmlFor="edit-categoria" className="block text-sm font-medium text-slate-300">
             Categoría
           </label>
-          <select
+          <Select
             id="edit-categoria"
             value={categoria}
-            onChange={(e) =>
-              setCategoria(e.target.value as (typeof CATEGORIAS)[number])
-            }
-            className={inputClassName}
+            onChange={(value) => setCategoria(value as (typeof CATEGORIAS)[number])}
+            options={CATEGORIAS.map((item) => ({ value: item, label: item }))}
             required
             disabled={edicionBloqueada}
-          >
-            {CATEGORIAS.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <div className="space-y-2">
@@ -648,29 +641,29 @@ export default function EditGastoModal({
             Cuenta de pago
           </label>
           {!isOnline() && (
-            <p className="text-xs text-amber-200">{OFFLINE_CUENTA_MSG}</p>
+            <p className="text-xs text-pulso-warning/90">{OFFLINE_CUENTA_MSG}</p>
           )}
-          <select
+          <Select
             id="edit-cuenta"
             value={cuentaId}
-            onChange={(e) => setCuentaId(e.target.value)}
-            className={inputClassName}
+            onChange={setCuentaId}
+            options={[
+              ...(cuentasLoading
+                ? [{ value: '', label: 'Cargando cuentas...', disabled: true }]
+                : []),
+              ...(!cuentasLoading && cuentas.length === 0
+                ? [{ value: '', label: 'No hay cuentas configuradas', disabled: true }]
+                : []),
+              ...cuentas.map((cuenta) => ({
+                value: String(cuenta.id),
+                label: `${cuenta.nombre}${cuenta.tipo === 'credito' ? ' (Crédito)' : ''}`,
+              })),
+            ]}
             required
             disabled={!isOnline() || cuentasLoading || cuentas.length === 0}
-          >
-            {cuentasLoading && <option value="">Cargando cuentas...</option>}
-            {!cuentasLoading && cuentas.length === 0 && (
-              <option value="">No hay cuentas configuradas</option>
-            )}
-            {cuentas.map((cuenta) => (
-              <option key={cuenta.id} value={cuenta.id}>
-                {cuenta.nombre}
-                {cuenta.tipo === 'credito' ? ' (Crédito)' : ''}
-              </option>
-            ))}
-          </select>
+          />
           {esMsi && cuentaCambio && (
-            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <p className="rounded-lg border border-pulso-warning/30 bg-pulso-warning/10 px-3 py-2 text-xs text-pulso-warning/90">
               Al cambiar la cuenta se moverá toda la compra MSI ({formatCurrency(totalGrupo)}{' '}
               en {grupoRows.length || '…'} cuotas) a la nueva tarjeta o cuenta.
             </p>

@@ -21,6 +21,7 @@ import { showError, showInfo, showSuccessWithUndo } from '../utils/toast'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
 import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
+import Select from './Select'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import { cardClassName, iconButtonDangerClassName, iconButtonMsiClassName, inputClassName, buttonSecondaryClassName } from './formStyles'
 
@@ -125,7 +126,7 @@ const HistorialItemRow = memo(function HistorialItemRow({
             </span>
           )}
           {item.pendiente && (
-            <span className="shrink-0 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
+            <span className="shrink-0 rounded-full bg-pulso-warning/20 px-2 py-0.5 text-xs text-pulso-warning">
               Pendiente
             </span>
           )}
@@ -462,19 +463,15 @@ export default memo(function Historial() {
       <MonthSelector value={selectedMonth} onChange={setSelectedMonth} />
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <select
+        <Select
           value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
-          className={inputClassName}
+          onChange={setCategoriaFiltro}
           aria-label="Filtrar por categoría"
-        >
-          <option value="Todas">Todas las categorías</option>
-          {CATEGORIAS.map((categoria) => (
-            <option key={categoria} value={categoria}>
-              {categoria}
-            </option>
-          ))}
-        </select>
+          options={[
+            { value: 'Todas', label: 'Todas las categorías' },
+            ...CATEGORIAS.map((categoria) => ({ value: categoria, label: categoria })),
+          ]}
+        />
         <input
           type="search"
           inputMode="search"

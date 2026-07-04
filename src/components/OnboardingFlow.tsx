@@ -23,6 +23,7 @@ import {
   formWithKeyboardClassName,
   inputClassName,
 } from './formStyles'
+import Select from './Select'
 
 import { DIAS_PAGO } from '../constants/diasPago'
 import {
@@ -438,7 +439,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
 
             {sueldoNum > 0 && (
-              <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+              <p className="rounded-xl border border-pulso-accent/30 bg-pulso-accent/10 px-4 py-3 text-sm text-pulso-accent-muted">
                 Ingreso base mensual:{' '}
                 <strong className="text-white">{formatCurrency(sueldoNum)}</strong>
               </p>
@@ -448,18 +449,16 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               <label htmlFor="onb-dia-pago" className="block text-sm font-medium text-slate-300">
                 Día de pago
               </label>
-              <select
+              <Select
                 id="onb-dia-pago"
-                value={diaPago}
-                onChange={(e) => setDiaPago(Number(e.target.value))}
-                className={inputClassName}
-              >
-                {DIAS_PAGO.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                value={String(diaPago)}
+                onChange={(value) => setDiaPago(Number(value))}
+                aria-label="Día de pago"
+                options={DIAS_PAGO.map(({ value, label }) => ({
+                  value: String(value),
+                  label,
+                }))}
+              />
               <p className="text-xs text-slate-500">
                 El día de la semana en que recibes tu sueldo semanal
               </p>
@@ -497,7 +496,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       <div>
                         <p className="text-sm font-semibold text-white">{cuenta.nombre}</p>
-                        <p className="text-xs text-emerald-400">
+                        <p className="text-xs text-pulso-accent-muted">
                           Saldo: {formatCurrency(Number(cuenta.saldo_actual) || 0)}
                         </p>
                       </div>
@@ -518,7 +517,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 <button
                   type="button"
                   onClick={() => setShowCuentaLiquidaForm(true)}
-                  className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-emerald-500/50 hover:text-white"
+                  className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-pulso-accent/50 hover:text-white"
                 >
                   + Añadir cuenta de débito o ahorro
                 </button>
@@ -746,7 +745,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             </div>
 
             {totalCuentas === 0 && (
-              <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+              <p className="rounded-xl border border-pulso-warning/30 bg-pulso-warning/10 px-4 py-3 text-sm text-pulso-warning/90">
                 Necesitas al menos una cuenta para continuar y asignar gastos fijos.
               </p>
             )}
@@ -780,7 +779,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   <p className="text-sm text-slate-400">
                     Los gastos fijos deben vincularse a una cuenta de débito o crédito.
                   </p>
-                  <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                  <p className="rounded-xl border border-pulso-warning/30 bg-pulso-warning/10 px-4 py-3 text-sm text-pulso-warning/90">
                     No hay cuentas disponibles. Vuelve al paso anterior y crea al menos una.
                   </p>
                 </div>
@@ -899,21 +898,18 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     >
                       Cuenta de pago
                     </label>
-                    <select
+                    <Select
                       id="onb-gasto-cuenta"
                       value={gastoForm.cuenta_id}
-                      onChange={(e) =>
-                        setGastoForm((prev) => ({ ...prev, cuenta_id: e.target.value }))
+                      onChange={(cuenta_id) =>
+                        setGastoForm((prev) => ({ ...prev, cuenta_id }))
                       }
-                      className={inputClassName}
+                      options={cuentaOptions.map((option) => ({
+                        value: option.id,
+                        label: option.label,
+                      }))}
                       required
-                    >
-                      {cuentaOptions.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <button type="submit" className={`w-full ${buttonGhostSmClassName}`}>
@@ -953,7 +949,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-3xl font-bold text-emerald-400">{porcentajeAhorro}%</span>
+                <span className="text-3xl font-bold text-pulso-accent-muted">{porcentajeAhorro}%</span>
                 {ahorroPreview != null && ahorroPreview > 0 && (
                   <span className="text-sm text-slate-400">
                     ≈ {formatCurrency(ahorroPreview)}/semana
@@ -968,7 +964,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 step={PORCENTAJE_AHORRO_STEP}
                 value={porcentajeAhorro}
                 onChange={(e) => setPorcentajeAhorro(Number(e.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-500"
+                className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-pulso-accent"
                 aria-label="Porcentaje de ahorro semanal"
               />
 

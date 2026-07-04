@@ -42,7 +42,7 @@ export default memo(function MetasAhorroSection({
       </div>
 
       {metasFromCache && metas.length > 0 && (
-        <p className="text-xs text-amber-300">Mostrando metas guardadas localmente.</p>
+        <p className="text-xs text-pulso-warning">Mostrando metas guardadas localmente.</p>
       )}
 
       {metasError && (
@@ -132,7 +132,7 @@ export default memo(function MetasAhorroSection({
                 </div>
                 <div className="h-2.5 overflow-hidden rounded-full bg-slate-700/80">
                   <div
-                    className="h-full rounded-full bg-emerald-500 transition-all duration-500"
+                    className="h-full rounded-full bg-pulso-accent transition-all duration-500"
                     style={{ width: `${progress}%` }}
                   />
                 </div>

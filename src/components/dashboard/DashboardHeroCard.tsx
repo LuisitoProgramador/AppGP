@@ -12,8 +12,6 @@ interface DashboardHeroCardProps {
   diasRestantesEfectivos: number
   recibosEfectivos: number
   msiPendientes: number
-  quincenaPeriodo: string | null
-  vistaQuincenal: boolean
   modoTranquilo: boolean
   diaAgotamiento: number | null
 }
@@ -28,8 +26,6 @@ export default memo(function DashboardHeroCard({
   diasRestantesEfectivos,
   recibosEfectivos,
   msiPendientes,
-  quincenaPeriodo,
-  vistaQuincenal,
   modoTranquilo,
   diaAgotamiento,
 }: DashboardHeroCardProps) {
@@ -38,9 +34,9 @@ export default memo(function DashboardHeroCard({
 
   const cardTone = showBudget
     ? dentroDeLimite
-      ? 'border-emerald-500/30 bg-emerald-500/10'
-      : 'border-amber-500/30 bg-amber-500/10'
-    : 'border-white/10 bg-slate-900/35'
+      ? 'border-pulso-accent/30 bg-pulso-accent/10'
+      : 'border-pulso-warning/30 bg-pulso-warning/10'
+    : 'border-white/10 bg-pulso-surface-muted/50'
 
   return (
     <div className={`${dashboardCardClassName} px-5 py-6 text-center ${cardTone}`}>
@@ -54,7 +50,7 @@ export default memo(function DashboardHeroCard({
           ) : (
             <p
               className={`mt-2 text-4xl font-bold sm:text-5xl ${
-                dentroDeLimite ? 'text-white' : 'text-amber-300'
+                dentroDeLimite ? 'text-white' : 'text-pulso-warning'
               }`}
             >
               {formatCurrency(disponible)}
@@ -85,7 +81,7 @@ export default memo(function DashboardHeroCard({
               ) : (
                 <p
                   className={`mt-1 text-base font-medium ${
-                    dentroDeLimite ? 'text-emerald-400/90' : 'text-amber-400/90'
+                    dentroDeLimite ? 'text-pulso-accent-muted/90' : 'text-pulso-warning/90'
                   }`}
                 >
                   {dentroDeLimite
@@ -98,17 +94,8 @@ export default memo(function DashboardHeroCard({
 
           {!cargando && (
             <p className="mt-4 text-xs text-slate-500">
-              {vistaQuincenal ? (
-                <>
-                  Quincena {quincenaPeriodo} · Límite {formatCurrency(limiteMensual / 2)} ·{' '}
-                  {diasRestantesEfectivos} días restantes
-                </>
-              ) : (
-                <>
-                  Límite mensual {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días
-                  restantes
-                </>
-              )}
+              Límite mensual {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días
+              restantes
             </p>
           )}
           {!cargando && (recibosEfectivos > 0 || msiPendientes > 0) && (
@@ -119,7 +106,7 @@ export default memo(function DashboardHeroCard({
               {msiPendientes > 0 && ` ${formatCurrency(msiPendientes)} en MSI pendientes`}
             </p>
           )}
-          {!cargando && diaAgotamiento != null && !vistaQuincenal && (
+          {!cargando && diaAgotamiento != null && (
             <p className="mt-1 text-xs text-slate-500">
               Al ritmo actual, el presupuesto se agotaría alrededor del día {diaAgotamiento}
             </p>

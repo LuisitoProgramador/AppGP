@@ -10,6 +10,7 @@ import { showError, showSuccess } from '../utils/toast'
 import ModalPortal from './ModalPortal'
 import RegistrarIngresoModal from './RegistrarIngresoModal'
 import TransferenciaModal from './TransferenciaModal'
+import Select from './Select'
 import {
   cardClassName,
   dashboardCardClassName,
@@ -48,13 +49,13 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
       </div>
 
       {corteEstado === 'proximo' && cuenta.dia_corte != null && (
-        <p className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-300">
+        <p className="mt-2 rounded-lg border border-pulso-warning/30 bg-pulso-warning/10 px-2 py-1 text-xs text-pulso-warning">
           Corte próximo (Día {cuenta.dia_corte}). Considera posponer compras grandes
         </p>
       )}
 
       {corteEstado === 'mejor_momento' && (
-        <p className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300">
+        <p className="mt-2 rounded-lg border border-pulso-accent/30 bg-pulso-accent/10 px-2 py-1 text-xs text-pulso-accent-muted">
           Mejor momento para comprar (Máximo financiamiento)
         </p>
       )}
@@ -66,7 +67,7 @@ function CuentaCard({ cuenta }: { cuenta: Cuenta }) {
           </p>
           {limite > 0 && (
             <>
-              <p className="text-xs text-emerald-400">
+              <p className="text-xs text-pulso-accent-muted">
                 Disponible: {formatCurrency(Math.max(disponible ?? 0, 0))} /{' '}
                 {formatCurrency(limite)}
               </p>
@@ -305,24 +306,21 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
               <label htmlFor="cuenta-tipo" className="block text-sm font-medium text-slate-300">
                 Tipo
               </label>
-              <select
+              <Select
                 id="cuenta-tipo"
                 value={form.tipo}
-                onChange={(e) =>
+                onChange={(tipo) =>
                   setForm((prev) => ({
                     ...prev,
-                    tipo: e.target.value as CuentaTipo,
+                    tipo: tipo as CuentaTipo,
                   }))
                 }
-                className={inputClassName}
+                options={CUENTA_TIPOS.map((tipo) => ({
+                  value: tipo.value,
+                  label: tipo.label,
+                }))}
                 required
-              >
-                {CUENTA_TIPOS.map((tipo) => (
-                  <option key={tipo.value} value={tipo.value}>
-                    {tipo.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="space-y-2">

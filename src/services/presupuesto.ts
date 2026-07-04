@@ -233,23 +233,6 @@ export async function savePresupuesto(
   return { error: error?.message ?? null }
 }
 
-export async function saveLimiteMensual(
-  userId: string,
-  limite: number,
-): Promise<{ error: string | null }> {
-  const existing = await getPresupuesto(userId)
-
-  return savePresupuesto(userId, {
-    limite_mensual: limite,
-    limite_es_manual: true,
-    sueldo_mensual: existing?.sueldo_mensual ?? null,
-    ingresos_extras: existing?.ingresos_extras ?? 0,
-    sueldo_semanal: existing?.sueldo_semanal ?? null,
-    dia_pago: existing?.dia_pago ?? null,
-    porcentaje_ahorro: existing?.porcentaje_ahorro ?? null,
-  })
-}
-
 export interface PresupuestoFinancieroInput {
   sueldo_mensual: number
   ingresos_extras: number

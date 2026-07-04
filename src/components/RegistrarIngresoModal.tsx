@@ -6,6 +6,7 @@ import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import ModalPortal from './ModalPortal'
+import Select from './Select'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
@@ -149,23 +150,20 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
             Cuenta
           </label>
           {cuentasIngreso.length === 0 ? (
-            <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+            <p className="rounded-xl border border-pulso-warning/30 bg-pulso-warning/10 px-4 py-3 text-sm text-pulso-warning/90">
               No hay cuentas de efectivo o débito. Crea una cuenta primero.
             </p>
           ) : (
-            <select
+            <Select
               id="ingreso-cuenta"
               value={cuentaId}
-              onChange={(e) => setCuentaId(e.target.value)}
-              className={inputClassName}
+              onChange={setCuentaId}
+              options={cuentasIngreso.map((cuenta) => ({
+                value: String(cuenta.id),
+                label: `${cuenta.nombre} (${formatCurrency(cuenta.saldo_actual)})`,
+              }))}
               required
-            >
-              {cuentasIngreso.map((cuenta) => (
-                <option key={cuenta.id} value={cuenta.id}>
-                  {cuenta.nombre} ({formatCurrency(cuenta.saldo_actual)})
-                </option>
-              ))}
-            </select>
+            />
           )}
         </div>
 

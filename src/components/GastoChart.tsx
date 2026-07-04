@@ -38,15 +38,15 @@ export default function GastoChart({ data }: GastoChartProps) {
             {chartData.map((entry) => (
               <Cell
                 key={entry.name}
-                fill={CHART_COLORS_HEX[entry.name] ?? '#3b82f6'}
+                fill={CHART_COLORS_HEX[entry.name] ?? '#4f8cff'}
               />
             ))}
           </Pie>
           <Tooltip
             formatter={(value) => formatCurrency(Number(value))}
             contentStyle={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #334155',
+              backgroundColor: '#0a0f1a',
+              border: '1px solid #2a3548',
               borderRadius: '0.75rem',
               color: '#f8fafc',
             }}

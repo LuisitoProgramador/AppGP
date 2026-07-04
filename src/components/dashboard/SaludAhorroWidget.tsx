@@ -3,24 +3,24 @@ import type { SaludAhorro, SaludNivel } from '../../utils/saludAhorro'
 
 const SALUD_STYLES: Record<SaludNivel, { border: string; bg: string; text: string }> = {
   excelente: {
-    border: 'border-emerald-500/30',
-    bg: 'bg-emerald-500/10',
-    text: 'text-emerald-400',
+    border: 'border-pulso-accent/35',
+    bg: 'bg-pulso-accent/12',
+    text: 'text-pulso-accent-muted',
   },
   alto: {
-    border: 'border-blue-500/30',
-    bg: 'bg-blue-500/10',
-    text: 'text-blue-400',
+    border: 'border-pulso-accent/30',
+    bg: 'bg-pulso-accent/10',
+    text: 'text-pulso-accent',
   },
   medio: {
-    border: 'border-amber-500/30',
-    bg: 'bg-amber-500/10',
-    text: 'text-amber-400',
+    border: 'border-pulso-accent-dim/30',
+    bg: 'bg-pulso-accent-dim/10',
+    text: 'text-pulso-accent-dim',
   },
   bajo: {
-    border: 'border-red-500/30',
-    bg: 'bg-red-500/10',
-    text: 'text-red-400',
+    border: 'border-pulso-warning/30',
+    bg: 'bg-pulso-warning/10',
+    text: 'text-pulso-warning',
   },
 }
 

@@ -11,7 +11,7 @@ import {
 import { notifyTelegram } from '../services/notifyTelegram'
 import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
-import { CATEGORIAS, type Categoria } from '../types/gasto'
+import { CATEGORIAS } from '../types/gasto'
 import { parseGastoInput } from '../utils/parser'
 import { formatCurrency } from '../utils/formatCurrency'
 import { buildMsiGastos, buildSingleGasto } from '../utils/msi'
@@ -20,7 +20,8 @@ import { findDuplicadoHoy, isToday } from '../utils/duplicateGasto'
 import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccessWithUndo, showWarning } from '../utils/toast'
 import { validateCuentaId, validateDescripcion, validateMonto, validateMsiMeses } from '../utils/validation'
-import { cardClassName, chipButtonClassName, formSubmitStickyClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, registroFormClassName } from './formStyles'
+import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryClassName, registroFormClassName } from './formStyles'
+import Select from './Select'
 
 const initialForm = {
   monto: '',
@@ -33,13 +34,6 @@ const initialForm = {
 
 type FormState = typeof initialForm
 
-interface UltimoGastoChip {
-  descripcion: string
-  monto: number
-  categoria: Categoria
-  cuentaId: string
-}
-
 export default memo(function GastoForm() {
   const { user } = useAuthContext()
   const { refresh, refreshKey, addOptimisticGasto, removeOptimisticGastos, optimisticGastos } =
@@ -49,7 +43,6 @@ export default memo(function GastoForm() {
   const [guardando, setGuardando] = useState(false)
   const [merchantMemory, setMerchantMemory] = useState<MerchantMemoryEntry[]>([])
   const [montoSugerido, setMontoSugerido] = useState<number | null>(null)
-  const [ultimoGasto, setUltimoGasto] = useState<UltimoGastoChip | null>(null)
   const montoInputRef = useRef<HTMLInputElement>(null)
 
   const selectedCuenta = cuentas.find((c) => String(c.id) === form.cuentaId)
@@ -63,42 +56,6 @@ export default memo(function GastoForm() {
       refreshMerchantMemory(user.id).then(setMerchantMemory).catch(() => {})
     }
   }, [user, refreshKey])
-
-  useEffect(() => {
-    if (!user) return
-
-    if (optimisticGastos.length > 0) {
-      const gasto = optimisticGastos[0]
-      setUltimoGasto({
-        descripcion: gasto.descripcion,
-        monto: gasto.monto,
-        categoria: gasto.categoria as Categoria,
-        cuentaId: gasto.cuenta_id ?? '',
-      })
-      return
-    }
-
-    supabase
-      .from('gastos')
-      .select('descripcion, monto, categoria, cuenta_id')
-      .eq('user_id', user.id)
-      .order('fecha', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data) {
-          setUltimoGasto(null)
-          return
-        }
-        setUltimoGasto({
-          descripcion: data.descripcion ?? '',
-          monto: Number(data.monto),
-          categoria: data.categoria as Categoria,
-          cuentaId: data.cuenta_id ?? '',
-        })
-      })
-      .catch(() => {})
-  }, [user, refreshKey, optimisticGastos])
 
   const merchantMatch = useMemo(
     () => matchMerchantMemory(form.descripcion, merchantMemory),
@@ -203,19 +160,6 @@ export default memo(function GastoForm() {
 
     refresh()
     showInfo('Gasto deshecho.')
-  }
-
-  function handleRepetirUltimo() {
-    if (!ultimoGasto) return
-
-    setForm((prev) => ({
-      ...prev,
-      monto: String(ultimoGasto.monto),
-      categoria: ultimoGasto.categoria,
-      descripcion: ultimoGasto.descripcion,
-      cuentaId: ultimoGasto.cuentaId || prev.cuentaId,
-      esMsi: false,
-    }))
   }
 
   async function submitGasto(data: FormState) {
@@ -450,25 +394,25 @@ export default memo(function GastoForm() {
         <label htmlFor="cuenta" className="block text-sm font-medium text-slate-300">
           Cuenta de Pago
         </label>
-        <select
+        <Select
           id="cuenta"
           value={form.cuentaId}
-          onChange={(e) => setForm((prev) => ({ ...prev, cuentaId: e.target.value }))}
-          className={inputClassName}
-          required
+          onChange={(cuentaId) => setForm((prev) => ({ ...prev, cuentaId }))}
+          options={[
+            ...(cuentasLoading
+              ? [{ value: '', label: 'Cargando cuentas...', disabled: true }]
+              : []),
+            ...(!cuentasLoading && cuentas.length === 0
+              ? [{ value: '', label: 'No hay cuentas configuradas. Añade una para comenzar.', disabled: true }]
+              : []),
+            ...cuentas.map((cuenta) => ({
+              value: String(cuenta.id),
+              label: `${cuenta.nombre}${cuenta.tipo === 'credito' ? ' (Crédito)' : ''}`,
+            })),
+          ]}
           disabled={cuentasLoading || cuentas.length === 0}
-        >
-          {cuentasLoading && <option value="">Cargando cuentas...</option>}
-          {!cuentasLoading && cuentas.length === 0 && (
-            <option value="">No hay cuentas configuradas. Añade una para comenzar.</option>
-          )}
-          {cuentas.map((cuenta) => (
-            <option key={cuenta.id} value={cuenta.id}>
-              {cuenta.nombre}
-              {cuenta.tipo === 'credito' ? ' (Crédito)' : ''}
-            </option>
-          ))}
-        </select>
+          required
+        />
       </div>
 
       {isCredito && (
@@ -530,33 +474,18 @@ export default memo(function GastoForm() {
         <label htmlFor="categoria" className="block text-sm font-medium text-slate-300">
           Categoría
         </label>
-        <select
+        <Select
           id="categoria"
           value={form.categoria}
-          onChange={(e) =>
+          onChange={(categoria) =>
             setForm((prev) => ({
               ...prev,
-              categoria: e.target.value as (typeof CATEGORIAS)[number],
+              categoria: categoria as (typeof CATEGORIAS)[number],
             }))
           }
-          className={inputClassName}
+          options={CATEGORIAS.map((item) => ({ value: item, label: item }))}
           required
-        >
-          {CATEGORIAS.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
-        {ultimoGasto && (
-          <button
-            type="button"
-            onClick={handleRepetirUltimo}
-            className={chipButtonClassName}
-          >
-            Repetir {ultimoGasto.descripcion} · {formatCurrency(ultimoGasto.monto)}
-          </button>
-        )}
+        />
       </div>
 
       <div className="space-y-2">

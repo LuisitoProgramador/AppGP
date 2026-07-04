@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 import type { GastoRecurrente, OptimisticGasto, PendingGasto } from '../types/gasto'
-import { getDaysRemainingInMonth, getDaysRemainingInQuincena } from '../utils/date'
+import { getDaysRemainingInMonth } from '../utils/date'
 import { expandPendingToLineItems, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
-import { getQuincenaRange, sumRecibosPendientesQuincena } from '../utils/quincena'
 import {
   calcSafeToSpend,
   sumMsiPendientesRestoMes,
-  sumMsiPendientesRestoPeriodo,
   sumRecibosPendientes,
 } from '../utils/safeToSpend'
 
@@ -18,24 +16,20 @@ interface MsiRow {
 export function usePresupuestoDiario(params: {
   limiteMensual: number
   gastoTotal: number
-  gastoQuincena: number
   recurrentes: GastoRecurrente[]
   gastosMsi: MsiRow[]
   optimisticGastos: OptimisticGasto[]
   pendingGastos: PendingGasto[]
-  vistaQuincenal: boolean
   esMesActual: boolean
   diaActual?: number
 }) {
   const {
     limiteMensual,
     gastoTotal,
-    gastoQuincena,
     recurrentes,
     gastosMsi,
     optimisticGastos,
     pendingGastos,
-    vistaQuincenal,
     esMesActual,
     diaActual = new Date().getDate(),
   } = params
@@ -53,11 +47,7 @@ export function usePresupuestoDiario(params: {
     }
 
     const diasRestantes = getDaysRemainingInMonth()
-    const diasRestantesQuincena = getDaysRemainingInQuincena()
-    const usarVistaQuincenal = vistaQuincenal
-
     const recibosPendientes = sumRecibosPendientes(recurrentes, diaActual)
-    const recibosPendientesQuincena = sumRecibosPendientesQuincena(recurrentes, diaActual)
 
     const pendingMsi = filterPendingNotInOptimistic(pendingGastos, optimisticGastos)
       .filter((item) => item.msiInstallments?.length)
@@ -71,40 +61,31 @@ export function usePresupuestoDiario(params: {
       ...pendingMsi,
     ]
 
-    const msiPendientesMes = sumMsiPendientesRestoMes(allMsiRows, diaActual)
-    const { inicio, fin } = getQuincenaRange()
-    const msiPendientesQuincena = sumMsiPendientesRestoPeriodo(
-      allMsiRows,
-      diaActual,
-      inicio,
-      fin,
-    )
+    const msiPendientes = sumMsiPendientesRestoMes(allMsiRows, diaActual)
 
     const safeToSpend = calcSafeToSpend({
-      limiteMensual: usarVistaQuincenal ? limiteMensual / 2 : limiteMensual,
-      gastoTotal: usarVistaQuincenal ? gastoQuincena : gastoTotal,
-      recibosPendientes: usarVistaQuincenal ? recibosPendientesQuincena : recibosPendientes,
-      msiPendientes: usarVistaQuincenal ? msiPendientesQuincena : msiPendientesMes,
-      diasRestantes: usarVistaQuincenal ? diasRestantesQuincena : diasRestantes,
+      limiteMensual,
+      gastoTotal,
+      recibosPendientes,
+      msiPendientes,
+      diasRestantes,
     })
 
     return {
       disponible: safeToSpend.disponible,
       presupuestoDiario: safeToSpend.presupuestoDiario,
-      diasRestantesEfectivos: usarVistaQuincenal ? diasRestantesQuincena : diasRestantes,
-      recibosEfectivos: usarVistaQuincenal ? recibosPendientesQuincena : recibosPendientes,
+      diasRestantesEfectivos: diasRestantes,
+      recibosEfectivos: recibosPendientes,
       msiPendientes: safeToSpend.msiPendientes,
       disponibleBruto: safeToSpend.disponibleBruto,
     }
   }, [
     limiteMensual,
     gastoTotal,
-    gastoQuincena,
     recurrentes,
     gastosMsi,
     optimisticGastos,
     pendingGastos,
-    vistaQuincenal,
     esMesActual,
     diaActual,
   ])

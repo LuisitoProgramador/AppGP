@@ -13,7 +13,7 @@ interface DashboardHeaderProps {
   onToggleModoTranquilo: () => void
 }
 
-function SettingsIcon() {
+function ModosIcon() {
   return (
     <svg
       className="h-5 w-5"
@@ -26,8 +26,15 @@ function SettingsIcon() {
       strokeLinejoin="round"
       aria-hidden="true"
     >
-      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09c-.66 0-1.25.4-1.51 1Z" />
+      <line x1="21" x2="14" y1="4" y2="4" />
+      <line x1="10" x2="3" y1="4" y2="4" />
+      <line x1="21" x2="12" y1="12" y2="12" />
+      <line x1="10" x2="3" y1="12" y2="12" />
+      <line x1="21" x2="16" y1="20" y2="20" />
+      <line x1="12" x2="3" y1="20" y2="20" />
+      <line x1="14" x2="14" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="10" y2="14" />
+      <line x1="16" x2="16" y1="18" y2="22" />
     </svg>
   )
 }
@@ -86,7 +93,7 @@ export default memo(function DashboardHeader({
           aria-pressed={isFocusMode}
           aria-label="Salir de vista concentrada"
           title="Salir de vista concentrada"
-          className={`${iconButtonClassName} border border-indigo-500/50 bg-indigo-500/15 text-indigo-300 active:bg-indigo-500/25`}
+          className={`${iconButtonClassName} border border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted active:bg-pulso-accent/25`}
         >
           <FocusIcon />
         </button>
@@ -115,18 +122,23 @@ export default memo(function DashboardHeader({
         <button
           type="button"
           onClick={() => setMenuOpen((open) => !open)}
-          className={`${iconButtonClassName} border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700`}
-          aria-label="Opciones del dashboard"
+          className={`${iconButtonClassName} border ${
+            modoViaje || modoTranquilo || menuOpen
+              ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted'
+              : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
+          }`}
+          aria-label="Modos de visualización"
+          title="Modos de visualización"
           aria-expanded={menuOpen}
           aria-haspopup="menu"
         >
-          <SettingsIcon />
+          <ModosIcon />
         </button>
 
         {menuOpen && (
           <div
             role="menu"
-            className="absolute right-0 z-20 mt-2 w-52 space-y-2 rounded-xl border border-white/10 bg-slate-900/95 p-2 shadow-xl backdrop-blur-md"
+            className="absolute right-0 z-20 mt-2 w-52 space-y-2 rounded-xl border border-white/10 bg-pulso-surface/95 p-2 shadow-xl backdrop-blur-md"
           >
             <button
               type="button"
@@ -136,7 +148,7 @@ export default memo(function DashboardHeader({
               }}
               className={`w-full ${togglePillClassName} ${
                 modoViaje
-                  ? 'border-sky-500/50 bg-sky-500/15 text-sky-300'
+                  ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted'
                   : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
               }`}
               aria-pressed={modoViaje}
@@ -151,7 +163,7 @@ export default memo(function DashboardHeader({
               }}
               className={`w-full ${togglePillClassName} ${
                 modoTranquilo
-                  ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300'
+                  ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted'
                   : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
               }`}
               aria-pressed={modoTranquilo}

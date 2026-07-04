@@ -8,7 +8,7 @@ interface CompromisosMsiWidgetProps {
 
 export default memo(function CompromisosMsiWidget({ compromisos }: CompromisosMsiWidgetProps) {
   return (
-    <div className="space-y-3 rounded-xl border border-violet-500/20 bg-violet-500/5 px-4 py-3">
+    <div className="space-y-3 rounded-xl border border-pulso-accent/20 bg-pulso-accent/5 px-4 py-3">
       <div className="space-y-0.5">
         <h3 className="text-sm font-semibold text-slate-200">Compromisos MSI</h3>
         <p className="text-xs text-slate-500">
@@ -20,12 +20,12 @@ export default memo(function CompromisosMsiWidget({ compromisos }: CompromisosMs
           <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
             <span className="capitalize text-slate-300">{item.label}</span>
             <div className="text-right">
-              <p className="font-medium text-violet-300">
+              <p className="font-medium text-pulso-accent-muted">
                 {formatCurrency(item.comprometido)} comprometidos
               </p>
               <p
                 className={`text-xs ${
-                  item.disponibleReal >= 0 ? 'text-emerald-400' : 'text-red-400'
+                  item.disponibleReal >= 0 ? 'text-pulso-accent-muted' : 'text-pulso-warning'
                 }`}
               >
                 {item.disponibleReal >= 0

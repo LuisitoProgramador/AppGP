@@ -25,6 +25,7 @@ import {
   formWithKeyboardClassName,
   inputClassName,
 } from './formStyles'
+import Select from './Select'
 
 function validateIngresosExtrasOpcional(value: string): string | null {
   if (!value.trim()) return null
@@ -289,7 +290,7 @@ export default function PresupuestoSettings() {
             <label htmlFor="cfg-ahorro" className="text-sm font-medium text-slate-300">
               Porcentaje de ahorro
             </label>
-            <span className="text-lg font-bold text-emerald-400">{porcentajeAhorro}%</span>
+            <span className="text-lg font-bold text-pulso-accent-muted">{porcentajeAhorro}%</span>
           </div>
           <input
             id="cfg-ahorro"
@@ -299,7 +300,7 @@ export default function PresupuestoSettings() {
             step={PORCENTAJE_AHORRO_STEP}
             value={porcentajeAhorro}
             onChange={(e) => setPorcentajeAhorro(Number(e.target.value))}
-            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-500"
+            className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-pulso-accent"
             aria-label="Porcentaje de ahorro"
           />
           <div className="flex justify-between text-xs text-slate-500">
@@ -315,8 +316,8 @@ export default function PresupuestoSettings() {
             <p
               className={`rounded-lg px-3 py-2 text-xs ${
                 diferenciaAhorroMensual > 0
-                  ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                  : 'border border-amber-500/30 bg-amber-500/10 text-amber-300'
+                  ? 'border border-pulso-accent/30 bg-pulso-accent/10 text-pulso-accent-muted'
+                  : 'border border-pulso-warning/30 bg-pulso-warning/10 text-pulso-warning'
               }`}
             >
               {diferenciaAhorroMensual > 0
@@ -330,18 +331,16 @@ export default function PresupuestoSettings() {
           <label htmlFor="cfg-dia-pago" className="block text-sm font-medium text-slate-300">
             Día de pago semanal
           </label>
-          <select
+          <Select
             id="cfg-dia-pago"
-            value={diaPago}
-            onChange={(e) => setDiaPago(Number(e.target.value))}
-            className={inputClassName}
-          >
-            {DIAS_PAGO.map(({ value, label }) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
+            value={String(diaPago)}
+            onChange={(value) => setDiaPago(Number(value))}
+            aria-label="Día de pago semanal"
+            options={DIAS_PAGO.map(({ value, label }) => ({
+              value: String(value),
+              label,
+            }))}
+          />
           <p className="text-xs text-slate-500">
             El día de la semana en que recibes tu sueldo semanal
           </p>
@@ -358,11 +357,11 @@ export default function PresupuestoSettings() {
               </p>
             </div>
             {presupuestoDiarioPreview != null && (
-              <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2.5 text-center">
+              <div className="rounded-xl border border-pulso-accent/25 bg-pulso-accent/10 px-3 py-2.5 text-center">
                 <p className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
                   Presupuesto diario estimado
                 </p>
-                <p className="mt-0.5 text-lg font-bold text-emerald-300">
+                <p className="mt-0.5 text-lg font-bold text-pulso-accent-muted">
                   {formatCurrency(presupuestoDiarioPreview)}
                 </p>
                 <p className="mt-1 text-[10px] leading-snug text-slate-500">
@@ -374,8 +373,8 @@ export default function PresupuestoSettings() {
         )}
 
         {limiteEsManual && limiteManualActual != null && estrategiaPreview && (
-          <div className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
-            <p className="text-sm text-amber-100">
+          <div className="space-y-3 rounded-xl border border-pulso-warning/30 bg-pulso-warning/10 px-4 py-3">
+            <p className="text-sm text-pulso-warning/90">
               Tienes un límite manual de{' '}
               <span className="font-semibold">{formatCurrency(limiteManualActual)}</span> en el
               resumen. Guardar la estrategia no lo cambia; el calculado sería{' '}

@@ -13,10 +13,8 @@ import {
 import { calcPatrimonioLiquido } from '../utils/patrimonioLiquido'
 import {
   getMonthRange,
-  isCurrentMonth,
   shiftMonth,
 } from '../utils/date'
-import { getQuincenaRange } from '../utils/quincena'
 import { mesParaResumenFinMes } from '../utils/resumenFinMes'
 import type {
   DashboardQueryActions,
@@ -44,7 +42,6 @@ export function useDashboardQueries(
   const [gastosMsi, setGastosMsi] = useState<GastoMsiRow[]>([])
   const [evolucionRows, setEvolucionRows] = useState<EvolucionRow[]>([])
   const [recurrentes, setRecurrentes] = useState<GastoRecurrente[]>([])
-  const [gastoQuincenaBase, setGastoQuincenaBase] = useState(0)
   const [gastoTotalResumen, setGastoTotalResumen] = useState<number | null>(null)
   const [gastoTotalAntesResumen, setGastoTotalAntesResumen] = useState<number | null>(null)
   const [recurrenteSugerido, setRecurrenteSugerido] = useState<RecurrenteSugerido | null>(null)
@@ -117,24 +114,6 @@ export function useDashboardQueries(
           cantidad: Number(item.cantidad),
         })),
       )
-
-      if (isCurrentMonth(selectedMonth)) {
-        const { inicio: qInicio, fin: qFin } = getQuincenaRange()
-        const { data: quincenaData } = await supabase
-          .from('gastos')
-          .select('monto')
-          .eq('user_id', user.id)
-          .gte('fecha', qInicio.toISOString())
-          .lt('fecha', qFin.toISOString())
-
-        if (!isMounted) return
-
-        setGastoQuincenaBase(
-          (quincenaData ?? []).reduce((sum, row) => sum + Number(row.monto), 0),
-        )
-      } else if (isMounted) {
-        setGastoQuincenaBase(0)
-      }
 
       const ahora = new Date()
       const inicioMsi = new Date(ahora.getFullYear(), ahora.getMonth(), 1)
@@ -260,11 +239,9 @@ export function useDashboardQueries(
     recurrentes,
     gastosMsi,
     evolucionRows,
-    gastoQuincenaBase,
     gastoTotalResumen,
     gastoTotalAntesResumen,
     recurrenteSugerido,
-    setLimiteMensual,
     setRecurrenteSugerido,
   }
 }

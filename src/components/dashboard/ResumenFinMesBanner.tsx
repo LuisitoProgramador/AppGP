@@ -8,7 +8,7 @@ interface ResumenFinMesBannerProps {
 
 export default memo(function ResumenFinMesBanner({ resumen }: ResumenFinMesBannerProps) {
   return (
-    <div className="rounded-xl border border-slate-600/40 bg-slate-900/50 px-4 py-3">
+    <div className="rounded-xl border border-pulso-border/60 bg-pulso-surface-muted/50 px-4 py-3">
       <p className="text-sm text-slate-200">
         En <span className="capitalize">{resumen.mesLabel}</span> gastaste{' '}
         {formatCurrency(resumen.gastoTotal)}
@@ -22,7 +22,7 @@ export default memo(function ResumenFinMesBanner({ resumen }: ResumenFinMesBanne
         .
       </p>
       {resumen.metasTotal > 0 && (
-        <p className="mt-1 text-xs text-emerald-400">
+        <p className="mt-1 text-xs text-pulso-accent-muted">
           Cumpliste {resumen.metasCumplidas} de {resumen.metasTotal} metas.
         </p>
       )}

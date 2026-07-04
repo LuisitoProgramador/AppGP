@@ -18,8 +18,6 @@ export function useDashboardData(
   const queries = useDashboardQueries(selectedMonth, options)
 
   const mutations = useDashboardMutations({
-    limiteMensual: queries.limiteMensual,
-    setLimiteMensual: queries.setLimiteMensual,
     recurrenteSugerido: queries.recurrenteSugerido,
     setRecurrenteSugerido: queries.setRecurrenteSugerido,
   })
@@ -28,7 +26,6 @@ export function useDashboardData(
     selectedMonth,
     metas,
     modoViaje: mutations.modoViaje,
-    vistaQuincenal: mutations.vistaQuincenal,
     cargando: queries.cargando,
     resumenMensual: queries.resumenMensual,
     limiteMensual: queries.limiteMensual,
@@ -37,7 +34,6 @@ export function useDashboardData(
     recurrentes: queries.recurrentes,
     gastosMsi: queries.gastosMsi,
     evolucionRows: queries.evolucionRows,
-    gastoQuincenaBase: queries.gastoQuincenaBase,
     gastoTotalResumen: queries.gastoTotalResumen,
     gastoTotalAntesResumen: queries.gastoTotalAntesResumen,
     error: queries.error,

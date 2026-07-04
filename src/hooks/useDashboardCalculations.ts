@@ -8,15 +8,13 @@ import { formatCurrency } from '../utils/formatCurrency'
 import {
   formatMonthLabel,
   getDaysRemainingInMonth,
-  getQuincenaPeriodo,
   isCurrentMonth,
 } from '../utils/date'
 import { buildEvolucionMensual } from '../utils/evolucionMensual'
-import { mergeResumenWithOptimistic, expandPendingToLineItems, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
+import { mergeResumenWithOptimistic } from '../utils/optimisticGastos'
 import { calcularCompromisosMsi } from '../utils/msiCompromisos'
 import { calcularSaludAhorro } from '../utils/saludAhorro'
 import { shouldShowBurnRateAlert } from '../utils/burnRate'
-import { isDateInQuincena } from '../utils/quincena'
 import { proyectarDiaAgotamiento } from '../utils/limitProjection'
 import { calcProyeccionCierre } from '../utils/proyeccionCierre'
 import {
@@ -30,7 +28,6 @@ interface DashboardCalculationsInput extends DashboardQueryState {
   selectedMonth: Date
   metas: MetaAhorro[]
   modoViaje: boolean
-  vistaQuincenal: boolean
   cargando: boolean
 }
 
@@ -38,14 +35,12 @@ export function useDashboardCalculations({
   selectedMonth,
   metas,
   modoViaje,
-  vistaQuincenal,
   cargando,
   resumenMensual,
   limiteMensual,
   gastosMsi,
   evolucionRows,
   recurrentes,
-  gastoQuincenaBase,
   gastoTotalResumen,
   gastoTotalAntesResumen,
 }: DashboardCalculationsInput) {
@@ -79,24 +74,6 @@ export function useDashboardCalculations({
     [esMesActual, selectedMonth],
   )
 
-  const quincenaPeriodo = useMemo(
-    () => (esMesActual ? getQuincenaPeriodo() : null),
-    [esMesActual],
-  )
-
-  const gastoQuincena = useMemo(() => {
-    const optimistic = optimisticGastos
-      .filter((gasto) => isDateInQuincena(gasto.fecha))
-      .reduce((sum, gasto) => sum + gasto.monto, 0)
-
-    const pending = filterPendingNotInOptimistic(pendingGastos, optimisticGastos)
-      .flatMap(expandPendingToLineItems)
-      .filter((gasto) => isDateInQuincena(gasto.fecha))
-      .reduce((sum, gasto) => sum + gasto.monto, 0)
-
-    return gastoQuincenaBase + optimistic + pending
-  }, [gastoQuincenaBase, optimisticGastos, pendingGastos])
-
   const diaActual = useMemo(() => new Date().getDate(), [])
 
   const stableRecurrentes = useStableArray(recurrentes)
@@ -107,12 +84,10 @@ export function useDashboardCalculations({
   const presupuesto = usePresupuestoDiario({
     limiteMensual,
     gastoTotal,
-    gastoQuincena,
     recurrentes: stableRecurrentes,
     gastosMsi: stableGastosMsi,
     optimisticGastos: stableOptimisticGastos,
     pendingGastos: stablePendingGastos,
-    vistaQuincenal,
     esMesActual,
     diaActual,
   })
@@ -233,7 +208,6 @@ export function useDashboardCalculations({
     diasRestantesEfectivos,
     recibosEfectivos,
     msiPendientes,
-    quincenaPeriodo,
     focusView,
     burnRateAlerta,
     diaAgotamiento,

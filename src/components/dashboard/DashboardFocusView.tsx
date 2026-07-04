@@ -27,7 +27,7 @@ export default memo(function DashboardFocusView({
             </p>
             <p
               className={`text-5xl font-bold transition-all duration-300 ${
-                focusView.puedeGastar ? 'text-emerald-400' : 'text-amber-400'
+                focusView.puedeGastar ? 'text-pulso-accent-muted' : 'text-pulso-warning'
               }`}
             >
               {focusView.presupuestoDiario}
@@ -39,7 +39,7 @@ export default memo(function DashboardFocusView({
             </p>
             <p
               className={`text-5xl font-bold transition-all duration-300 ${
-                focusView.puedeGastar ? 'text-white' : 'text-amber-300'
+                focusView.puedeGastar ? 'text-white' : 'text-pulso-warning'
               }`}
             >
               {focusView.disponible}

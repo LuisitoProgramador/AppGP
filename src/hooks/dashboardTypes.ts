@@ -27,14 +27,12 @@ export interface DashboardQueryState {
   recurrentes: GastoRecurrente[]
   gastosMsi: GastoMsiRow[]
   evolucionRows: EvolucionRow[]
-  gastoQuincenaBase: number
   gastoTotalResumen: number | null
   gastoTotalAntesResumen: number | null
   recurrenteSugerido: RecurrenteSugerido | null
 }
 
 export interface DashboardQueryActions {
-  setLimiteMensual: (limite: number) => void
   setRecurrenteSugerido: (value: RecurrenteSugerido | null) => void
 }
 

@@ -27,7 +27,7 @@ export default function GastoBarChart({ data }: GastoBarChartProps) {
           <XAxis
             dataKey="label"
             tick={{ fill: '#94a3b8', fontSize: 12 }}
-            axisLine={{ stroke: '#334155' }}
+            axisLine={{ stroke: '#2a3548' }}
             tickLine={false}
           />
           <YAxis
@@ -42,13 +42,13 @@ export default function GastoBarChart({ data }: GastoBarChartProps) {
           <Tooltip
             formatter={(value) => formatCurrency(Number(value))}
             contentStyle={{
-              backgroundColor: '#0f172a',
-              border: '1px solid #334155',
+              backgroundColor: '#0a0f1a',
+              border: '1px solid #2a3548',
               borderRadius: '0.75rem',
               color: '#f8fafc',
             }}
           />
-          <Bar dataKey="total" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+          <Bar dataKey="total" fill="#4f8cff" radius={[6, 6, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>

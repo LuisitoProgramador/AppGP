@@ -7,6 +7,7 @@ import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateCuentaId, validateMonto } from '../utils/validation'
 import ModalPortal from './ModalPortal'
+import Select from './Select'
 import {
   buttonPrimaryClassName,
   buttonSecondaryFlexClassName,
@@ -193,7 +194,7 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
         </div>
 
         {cuentas.length < 2 ? (
-          <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          <p className="rounded-xl border border-pulso-warning/30 bg-pulso-warning/10 px-4 py-3 text-sm text-pulso-warning/90">
             Necesitas al menos dos cuentas para transferir o pagar una tarjeta.
           </p>
         ) : (
@@ -202,39 +203,33 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
               <label htmlFor="transferencia-origen" className="block text-sm font-medium text-slate-300">
                 Cuenta origen
               </label>
-              <select
+              <Select
                 id="transferencia-origen"
                 value={origenId}
-                onChange={(e) => setOrigenId(e.target.value)}
-                className={inputClassName}
+                onChange={setOrigenId}
+                options={cuentas.map((cuenta) => ({
+                  value: String(cuenta.id),
+                  label: cuentaOptionLabel(cuenta),
+                }))}
                 required
-              >
-                {cuentas.map((cuenta) => (
-                  <option key={cuenta.id} value={cuenta.id}>
-                    {cuentaOptionLabel(cuenta)}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="space-y-2">
               <label htmlFor="transferencia-destino" className="block text-sm font-medium text-slate-300">
                 Cuenta destino
               </label>
-              <select
+              <Select
                 id="transferencia-destino"
                 value={destinoId}
-                onChange={(e) => setDestinoId(e.target.value)}
-                className={inputClassName}
+                onChange={setDestinoId}
+                options={cuentasDestino.map((cuenta) => ({
+                  value: String(cuenta.id),
+                  label: cuentaOptionLabel(cuenta),
+                }))}
                 required
                 disabled={cuentasDestino.length === 0}
-              >
-                {cuentasDestino.map((cuenta) => (
-                  <option key={cuenta.id} value={cuenta.id}>
-                    {cuentaOptionLabel(cuenta)}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
 
             <div className="space-y-2">

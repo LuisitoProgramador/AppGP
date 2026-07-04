@@ -24,7 +24,7 @@ function SalidasTimeline({ items }: SalidasTimelineProps) {
           <li key={`${item.dia}-${item.etiqueta}-${index}`} className="relative pb-4 last:pb-0">
             <span
               className={`absolute top-1.5 -left-[1.3rem] h-2.5 w-2.5 rounded-full ${
-                item.tipo === 'msi' ? 'bg-violet-400' : 'bg-sky-400'
+                item.tipo === 'msi' ? 'bg-pulso-accent-dim' : 'bg-pulso-accent-muted'
               }`}
             />
             <div className="flex items-start justify-between gap-3">

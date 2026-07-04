@@ -12,6 +12,7 @@ import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import { validateDescripcion, validateDiaMes, validateMonto } from '../utils/validation'
 import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, iconButtonDangerClassName, inputClassName, buttonVioletClassName } from './formStyles'
+import Select from './Select'
 
 const initialForm = {
   descripcion: '',
@@ -291,49 +292,43 @@ export default function GastosRecurrentes() {
           <label htmlFor="rec-categoria" className="block text-sm font-medium text-slate-300">
             Categoría
           </label>
-          <select
+          <Select
             id="rec-categoria"
             value={form.categoria}
-            onChange={(e) =>
+            onChange={(categoria) =>
               setForm((prev) => ({
                 ...prev,
-                categoria: e.target.value as (typeof CATEGORIAS)[number],
+                categoria: categoria as (typeof CATEGORIAS)[number],
               }))
             }
-            className={inputClassName}
+            options={CATEGORIAS.map((item) => ({ value: item, label: item }))}
             required
-          >
-            {CATEGORIAS.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <div className="space-y-2">
           <label htmlFor="rec-cuenta" className="block text-sm font-medium text-slate-300">
             Cuenta de pago
           </label>
-          <select
+          <Select
             id="rec-cuenta"
             value={form.cuentaId}
-            onChange={(e) => setForm((prev) => ({ ...prev, cuentaId: e.target.value }))}
-            className={inputClassName}
-            required
+            onChange={(cuentaId) => setForm((prev) => ({ ...prev, cuentaId }))}
+            options={[
+              ...(cuentasLoading
+                ? [{ value: '', label: 'Cargando cuentas...', disabled: true }]
+                : []),
+              ...(!cuentasLoading && cuentasDisponibles.length === 0
+                ? [{ value: '', label: 'No hay cuentas configuradas', disabled: true }]
+                : []),
+              ...cuentasDisponibles.map((cuenta) => ({
+                value: String(cuenta.id),
+                label: `${cuenta.nombre}${cuenta.tipo === 'credito' ? ' (Crédito)' : ''}`,
+              })),
+            ]}
             disabled={cuentasLoading || cuentasDisponibles.length === 0}
-          >
-            {cuentasLoading && <option value="">Cargando cuentas...</option>}
-            {!cuentasLoading && cuentasDisponibles.length === 0 && (
-              <option value="">No hay cuentas configuradas</option>
-            )}
-            {cuentasDisponibles.map((cuenta) => (
-              <option key={cuenta.id} value={cuenta.id}>
-                {cuenta.nombre}
-                {cuenta.tipo === 'credito' ? ' (Crédito)' : ''}
-              </option>
-            ))}
-          </select>
+            required
+          />
           {!cuentasLoading && cuentasDisponibles.length === 0 && (
             <p className="text-xs text-slate-500">
               No hay cuentas configuradas. Añade una para comenzar.
