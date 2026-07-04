@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { CuentasProvider } from './CuentasContext'
 import { GastosDataProvider } from './GastosDataContext'
 import { OfflineSyncProvider } from './OfflineSyncContext'
+import { RecurrentesProvider } from './RecurrentesContext'
 
 interface GastosProvidersProps {
   children: ReactNode
@@ -10,12 +11,11 @@ interface GastosProvidersProps {
 export function GastosProviders({ children }: GastosProvidersProps) {
   return (
     <GastosDataProvider>
-      <OfflineSyncProvider>
-        <CuentasProvider>{children}</CuentasProvider>
-      </OfflineSyncProvider>
+      <RecurrentesProvider>
+        <OfflineSyncProvider>
+          <CuentasProvider>{children}</CuentasProvider>
+        </OfflineSyncProvider>
+      </RecurrentesProvider>
     </GastosDataProvider>
   )
 }
-
-/** @deprecated Usa GastosProviders */
-export const GastosRefreshProvider = GastosProviders

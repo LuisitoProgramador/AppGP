@@ -40,6 +40,7 @@ export function useDashboardData(
       patrimonioLiquido: queries.patrimonioLiquido,
       recurrenteSugerido: queries.recurrenteSugerido,
       recurrentes: queries.recurrentes,
+      gastosMsi: queries.gastosMsi,
       ...calculations,
       ...mutations,
     }),

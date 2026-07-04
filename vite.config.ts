@@ -87,7 +87,19 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,webmanifest,json}'],
+        globIgnores: ['**/vendor-recharts-*.js'],
         runtimeCaching: [
+          {
+            urlPattern: /\/assets\/vendor-recharts-[^/]+\.js$/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'recharts-chunks',
+              expiration: {
+                maxEntries: 2,
+                maxAgeSeconds: 60 * 60 * 24 * 30,
+              },
+            },
+          },
           {
             // Nunca cachear auth: rompe refresh de token y cierra sesión en Safari/PWA.
             urlPattern: ({ url }) => /\/auth\/v1\//.test(url.pathname),

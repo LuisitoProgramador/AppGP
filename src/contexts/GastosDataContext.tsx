@@ -89,8 +89,3 @@ export function useOptimisticGastosState() {
   }
   return context
 }
-
-/** Hook completo — preferir useGastosRefreshState o useOptimisticGastosState según necesidad. */
-export function useGastosData() {
-  return { ...useGastosRefreshState(), ...useOptimisticGastosState() }
-}

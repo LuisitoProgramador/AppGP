@@ -1,9 +1,8 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState, memo } from 'react'
-import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
+import { type FormEvent, useEffect, useMemo, useState, memo } from 'react'
+import { useAuthSession, useCuentas, useGastosRefreshState, useRecurrentes } from '../contexts'
 import {
   createGastoRecurrente,
   deleteGastoRecurrente,
-  listGastosRecurrentes,
 } from '../services/gastosRecurrentes'
 import { getDefaultCuentaId } from '../services/cuentas'
 import { CATEGORIA_SELECT_OPTIONS } from '../constants/formOptions'
@@ -40,34 +39,11 @@ function cuentaLabel(cuentas: { id: string; nombre: string }[], cuentaId: string
 export default memo(function GastosRecurrentes() {
   const { user } = useAuthSession()
   const { cuentas, cuentasLoading } = useCuentas()
-  const { refreshKey, refresh } = useGastosRefreshState()
-  const [items, setItems] = useState<GastoRecurrente[]>([])
+  const { refresh } = useGastosRefreshState()
+  const { recurrentes: items, cargando, error, reload } = useRecurrentes()
   const [form, setForm] = useState(initialForm)
-  const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<number | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  const cargarRecurrentes = useCallback(async () => {
-    if (!user) return
-
-    setCargando(true)
-    setError(null)
-
-    const { data, error: listError } = await listGastosRecurrentes(user.id)
-    setCargando(false)
-
-    if (listError) {
-      setError(listError)
-      return
-    }
-
-    setItems(data)
-  }, [user])
-
-  useEffect(() => {
-    cargarRecurrentes()
-  }, [cargarRecurrentes, refreshKey])
 
   useEffect(() => {
     if (form.cuentaId || cuentas.length === 0) return
@@ -140,7 +116,7 @@ export default memo(function GastosRecurrentes() {
     }))
     showSuccess('Gasto recurrente configurado.')
     refresh()
-    cargarRecurrentes()
+    await reload()
   }
 
   async function handleEliminar(item: GastoRecurrente) {
@@ -163,7 +139,7 @@ export default memo(function GastosRecurrentes() {
 
     showSuccess('Gasto recurrente eliminado.')
     refresh()
-    cargarRecurrentes()
+    await reload()
   }
 
   return (

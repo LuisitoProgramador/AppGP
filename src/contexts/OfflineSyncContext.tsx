@@ -8,12 +8,10 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { PendingCuenta } from '../types/cuenta'
 import type { PendingGasto } from '../types/gasto'
 import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
 import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import {
-  getPendingCuentas,
   getPendingGastos,
   getTotalPendingCount,
   remapPendingGastoCuentaIds,
@@ -29,7 +27,6 @@ interface OfflineSyncStatusValue {
   isSyncing: boolean
   pendingCount: number
   pendingGastos: PendingGasto[]
-  pendingCuentas: PendingCuenta[]
 }
 
 interface OfflineSyncActionsValue {
@@ -53,7 +50,6 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingGastos, setPendingGastos] = useState<PendingGasto[]>([])
-  const [pendingCuentas, setPendingCuentas] = useState<PendingCuenta[]>([])
 
   const refreshRef = useRef(refresh)
   refreshRef.current = refresh
@@ -62,13 +58,11 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   removeOptimisticRef.current = removeOptimisticGastos
 
   const updatePendingCount = useCallback(async () => {
-    const [gastos, cuentas, total] = await Promise.all([
+    const [gastos, total] = await Promise.all([
       getPendingGastos(),
-      getPendingCuentas(),
       getTotalPendingCount(),
     ])
     setPendingGastos(gastos)
-    setPendingCuentas(cuentas)
     setPendingCount(total)
   }, [])
 
@@ -188,8 +182,8 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   }, [user, refreshKey, updatePendingCount])
 
   const statusValue = useMemo(
-    () => ({ isSyncing, pendingCount, pendingGastos, pendingCuentas }),
-    [isSyncing, pendingCount, pendingGastos, pendingCuentas],
+    () => ({ isSyncing, pendingCount, pendingGastos }),
+    [isSyncing, pendingCount, pendingGastos],
   )
 
   const actionsValue = useMemo(() => ({ syncOffline }), [syncOffline])
@@ -217,9 +211,4 @@ export function useOfflineSyncActions() {
     throw new Error('useOfflineSyncActions debe usarse dentro de OfflineSyncProvider')
   }
   return context
-}
-
-/** Hook completo — preferir useOfflineSyncStatus o useOfflineSyncActions según necesidad. */
-export function useOfflineSync() {
-  return { ...useOfflineSyncStatus(), ...useOfflineSyncActions() }
 }

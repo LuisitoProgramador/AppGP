@@ -56,8 +56,3 @@ export function useAuthActions() {
   }
   return context
 }
-
-/** Hook completo — preferir useAuthSession o useAuthActions según necesidad. */
-export function useAuthContext() {
-  return { ...useAuthSession(), ...useAuthActions() }
-}

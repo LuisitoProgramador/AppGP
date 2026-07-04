@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAuthSession, useGastosRefreshState } from '../contexts'
+import { useAuthSession, useGastosRefreshState, useRecurrentes } from '../contexts'
 import { getLimiteMensual, getPresupuesto, getIngresoMensualTotal } from '../services/presupuesto'
 import { listCuentas } from '../services/cuentas'
-import { listGastosRecurrentes } from '../services/gastosRecurrentes'
 import { supabase } from '../services/supabase'
-import type { GastoRecurrente } from '../types/gasto'
 import {
   detectarRecurrentesSugeridos,
   isRecurrenteSugeridoDismissed,
@@ -33,6 +31,7 @@ export function useDashboardQueries(
   const lite = options.lite ?? false
   const { user } = useAuthSession()
   const { refreshKey } = useGastosRefreshState()
+  const { recurrentes } = useRecurrentes()
 
   const [resumenMensual, setResumenMensual] = useState<ResumenMensual[]>([])
   const [limiteMensual, setLimiteMensual] = useState(10000)
@@ -42,7 +41,6 @@ export function useDashboardQueries(
   const [error, setError] = useState<string | null>(null)
   const [gastosMsi, setGastosMsi] = useState<GastoMsiRow[]>([])
   const [evolucionRows, setEvolucionRows] = useState<EvolucionRow[]>([])
-  const [recurrentes, setRecurrentes] = useState<GastoRecurrente[]>([])
   const [gastoTotalResumen, setGastoTotalResumen] = useState<number | null>(null)
   const [gastoTotalAntesResumen, setGastoTotalAntesResumen] = useState<number | null>(null)
   const [recurrenteSugerido, setRecurrenteSugerido] = useState<RecurrenteSugerido | null>(null)
@@ -75,14 +73,12 @@ export function useDashboardQueries(
         limite,
         presupuestoData,
         cuentasResult,
-        recurrentesResult,
         resumenResult,
         msiResult,
       ] = await Promise.all([
         getLimiteMensual(userId),
         lite ? Promise.resolve(null) : getPresupuesto(userId),
         lite ? Promise.resolve({ data: [] as Awaited<ReturnType<typeof listCuentas>>['data'] }) : listCuentas(userId),
-        listGastosRecurrentes(userId),
         supabase
           .from('gastos_resumen_mensual')
           .select('categoria, total, cantidad')
@@ -100,8 +96,6 @@ export function useDashboardQueries(
 
       if (!isMounted) return
 
-      const recurrentesData = recurrentesResult.data
-
       setLimiteMensual(limite)
 
       if (lite) {
@@ -114,8 +108,6 @@ export function useDashboardQueries(
           cuentasData.length > 0 ? calcPatrimonioLiquido(cuentasData) : null,
         )
       }
-
-      setRecurrentes(recurrentesData)
 
       const { data, error: queryError } = resumenResult
 
@@ -216,7 +208,7 @@ export function useDashboardQueries(
           categoria: string
           fecha: string
         }[],
-        recurrentesData,
+        recurrentes,
       ).filter((item) => !isRecurrenteSugeridoDismissed(item.descripcion))
 
       setRecurrenteSugerido(sugeridos[0] ?? null)
@@ -227,7 +219,7 @@ export function useDashboardQueries(
     return () => {
       isMounted = false
     }
-  }, [user, refreshKey, selectedMonth, lite])
+  }, [user, refreshKey, selectedMonth, lite, recurrentes])
 
   return useMemo(
     () => ({
