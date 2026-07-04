@@ -1,4 +1,3 @@
-import { notifyTelegram } from './notifyTelegram'
 import {
   getCachedCuentas,
   persistCuentaSaldo,
@@ -162,15 +161,6 @@ export async function syncPendingGastos(): Promise<SyncResult> {
     if (gasto.optimisticTempIds?.length) {
       result.optimisticTempIdsRemoved.push(...gasto.optimisticTempIds)
     }
-
-    const notifyRow = rows[0]
-    await notifyTelegram({
-      monto: gasto.msiInstallments ? gasto.monto : notifyRow.monto,
-      categoria: notifyRow.categoria,
-      descripcion: gasto.msiInstallments
-        ? `${gasto.descripcion} (MSI x${rows.length})`
-        : notifyRow.descripcion,
-    })
   }
 
   return result

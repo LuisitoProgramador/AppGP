@@ -8,7 +8,6 @@ import {
   refreshMerchantMemory,
   type MerchantMemoryEntry,
 } from '../services/merchantMemory'
-import { notifyTelegram } from '../services/notifyTelegram'
 import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS } from '../types/gasto'
@@ -330,12 +329,6 @@ export default memo(function GastoForm() {
     removeOptimisticGastos(tempIds)
     const gastoIds = (inserted ?? []).map((row) => row.id as number)
 
-    await notifyTelegram({
-      monto,
-      categoria,
-      descripcion:
-        rows.length > 1 ? `${descripcion} (MSI x${rows.length})` : descripcion,
-    })
     recordMerchantMemory(user.id, descripcion, categoria, monto)
     setMerchantMemory(getMerchantMemory(user.id))
     refresh()

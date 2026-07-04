@@ -5,27 +5,41 @@ import { getPendingGastos } from './offlineQueue'
 import { supabase } from './supabase'
 
 const CUENTA_SELECT_BASE = 'id, nombre, tipo, limite_credito, saldo_actual' as const
-const CUENTA_SELECT = `${CUENTA_SELECT_BASE}, dia_corte` as const
+const CUENTA_SELECT_CORTE = `${CUENTA_SELECT_BASE}, dia_corte` as const
+const CUENTA_SELECT = `${CUENTA_SELECT_CORTE}, dia_pago` as const
 
 async function fetchCuentasRows(userId: string) {
-  const withCorte = await supabase
+  const full = await supabase
     .from('cuentas')
     .select(CUENTA_SELECT)
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
-  if (!withCorte.error) return withCorte
+  if (!full.error) return full
 
-  const withoutCorte = await supabase
+  const withCorte = await supabase
+    .from('cuentas')
+    .select(CUENTA_SELECT_CORTE)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+
+  if (!withCorte.error) {
+    return {
+      data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null })),
+      error: null,
+    }
+  }
+
+  const base = await supabase
     .from('cuentas')
     .select(CUENTA_SELECT_BASE)
     .eq('user_id', userId)
     .order('created_at', { ascending: true })
 
-  if (withoutCorte.error) return withoutCorte
+  if (base.error) return base
 
   return {
-    data: (withoutCorte.data ?? []).map((row) => ({ ...row, dia_corte: null })),
+    data: (base.data ?? []).map((row) => ({ ...row, dia_corte: null, dia_pago: null })),
     error: null,
   }
 }
@@ -73,6 +87,7 @@ function mapCuenta(row: Record<string, unknown>): Cuenta {
     limite_credito: row.limite_credito != null ? Number(row.limite_credito) : null,
     saldo_actual: Number(row.saldo_actual),
     dia_corte: row.dia_corte != null ? Number(row.dia_corte) : null,
+    dia_pago: row.dia_pago != null ? Number(row.dia_pago) : null,
   }
 }
 
@@ -139,6 +154,9 @@ export async function createCuenta(
     if (input.dia_corte != null) {
       row.dia_corte = input.dia_corte
     }
+    if (input.dia_pago != null) {
+      row.dia_pago = input.dia_pago
+    }
   }
 
   const { data, error } = await supabase
@@ -152,6 +170,7 @@ export async function createCuenta(
   const cuenta = mapCuenta({
     ...data,
     dia_corte: input.tipo === 'credito' ? (input.dia_corte ?? null) : null,
+    dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
   })
   writeCache(userId, [...readCache(userId), cuenta])
   return { data: cuenta, error: null }

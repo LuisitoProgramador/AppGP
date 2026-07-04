@@ -7,6 +7,7 @@ export interface Cuenta {
   limite_credito: number | null
   saldo_actual: number
   dia_corte: number | null
+  dia_pago: number | null
 }
 
 export interface CuentaInput {
@@ -15,6 +16,7 @@ export interface CuentaInput {
   limite_credito?: number | null
   saldo_actual?: number
   dia_corte?: number | null
+  dia_pago?: number | null
 }
 
 export const CUENTA_TIPOS: { value: CuentaTipo; label: string }[] = [

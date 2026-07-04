@@ -28,6 +28,7 @@ const initialForm = {
   limite_credito: '',
   saldo_actual: '0',
   dia_corte: '',
+  dia_pago: '',
 }
 
 function tipoLabel(tipo: CuentaTipo): string {
@@ -175,6 +176,15 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       }
     }
 
+    let dia_pago: number | null = null
+    if (form.tipo === 'credito' && form.dia_pago.trim()) {
+      dia_pago = Number(form.dia_pago)
+      if (!Number.isInteger(dia_pago) || dia_pago < 1 || dia_pago > 31) {
+        showError('El día de pago debe estar entre 1 y 31.')
+        return
+      }
+    }
+
     if (!isOnline()) {
       showError('Sin conexión. Conéctate para registrar una cuenta.')
       return
@@ -187,6 +197,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       saldo_actual: saldo,
       limite_credito,
       dia_corte,
+      dia_pago,
     })
     setGuardando(false)
 
@@ -382,6 +393,28 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
                     value={form.dia_corte}
                     onChange={(e) =>
                       setForm((prev) => ({ ...prev, dia_corte: e.target.value }))
+                    }
+                    className={inputClassName}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label
+                    htmlFor="cuenta-pago"
+                    className="block text-sm font-medium text-slate-300"
+                  >
+                    Día de pago
+                  </label>
+                  <input
+                    id="cuenta-pago"
+                    type="number"
+                    inputMode="numeric"
+                    min="1"
+                    max="31"
+                    step="1"
+                    placeholder="Opcional (ej. 5). Te avisaré antes"
+                    value={form.dia_pago}
+                    onChange={(e) =>
+                      setForm((prev) => ({ ...prev, dia_pago: e.target.value }))
                     }
                     className={inputClassName}
                   />
