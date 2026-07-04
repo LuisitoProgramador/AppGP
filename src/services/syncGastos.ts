@@ -73,8 +73,64 @@ type GastoInsertOutcome =
   | { kind: 'synced'; gasto: PendingGasto; rowCount: number }
   | { kind: 'validation'; gasto: PendingGasto; error: string }
   | { kind: 'insert_error'; gasto: PendingGasto; error: string }
+  | { kind: 'persist_error'; gasto: PendingGasto; error: string }
 
-async function tryInsertPendingGasto(gasto: PendingGasto): Promise<GastoInsertOutcome> {
+async function alreadySyncedOnServer(
+  gasto: PendingGasto,
+  userId: string,
+): Promise<boolean> {
+  const rows = rowsToInsert(gasto)
+
+  if (gasto.grupo_msi_id && rows.length > 1) {
+    const { count, error } = await supabase
+      .from('gastos')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('grupo_msi_id', gasto.grupo_msi_id)
+
+    if (error) return false
+    return (count ?? 0) >= rows.length
+  }
+
+  const row = rows[0]
+  const { count, error } = await supabase
+    .from('gastos')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('monto', row.monto)
+    .eq('categoria', row.categoria)
+    .eq('descripcion', row.descripcion)
+    .eq('fecha', row.fecha)
+    .eq('cuenta_id', row.cuenta_id ?? null)
+
+  if (error) return false
+  return (count ?? 0) > 0
+}
+
+async function revertPendingSaldo(
+  userId: string,
+  gasto: PendingGasto,
+  cachedCuentas: ReturnType<typeof getCachedCuentas>,
+): Promise<ReturnType<typeof getCachedCuentas>> {
+  if (!gasto.cuenta_id) return cachedCuentas
+
+  const montoRevert = montoSaldoAlEliminarPendiente(gasto)
+  const updated = revertGastoSaldoLocal(userId, cachedCuentas, gasto.cuenta_id, montoRevert)
+  const cuenta = updated.find((c) => c.id === gasto.cuenta_id)
+  if (cuenta) {
+    await persistCuentaSaldo(userId, gasto.cuenta_id, cuenta.saldo_actual)
+  }
+  return updated
+}
+
+async function tryInsertPendingGasto(
+  gasto: PendingGasto,
+  userId: string,
+): Promise<GastoInsertOutcome> {
+  if (await alreadySyncedOnServer(gasto, userId)) {
+    return { kind: 'synced', gasto, rowCount: rowsToInsert(gasto).length }
+  }
+
   const rows = rowsToInsert(gasto)
   const msiError = validateMsiGroup(rows)
   if (msiError) {
@@ -83,14 +139,17 @@ async function tryInsertPendingGasto(gasto: PendingGasto): Promise<GastoInsertOu
 
   const { error } = await supabase.from('gastos').insert(rows)
   if (error) {
+    if (await alreadySyncedOnServer(gasto, userId)) {
+      return { kind: 'synced', gasto, rowCount: rows.length }
+    }
     return { kind: 'insert_error', gasto, error: error.message }
   }
 
   return { kind: 'synced', gasto, rowCount: rows.length }
 }
 
-export async function syncPendingGastos(): Promise<SyncResult> {
-  const pending = await getPendingGastos()
+export async function syncPendingGastos(userId: string): Promise<SyncResult> {
+  const pending = await getPendingGastos(userId)
   const result: SyncResult = {
     synced: 0,
     failures: [],
@@ -100,36 +159,27 @@ export async function syncPendingGastos(): Promise<SyncResult> {
 
   if (pending.length === 0) return result
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  let cachedCuentas = user ? getCachedCuentas(user.id) : []
+  let cachedCuentas = getCachedCuentas(userId)
 
   const outcomes = await mapWithConcurrency(
     pending,
     SYNC_GASTOS_CONCURRENCY,
-    tryInsertPendingGasto,
+    (gasto) => tryInsertPendingGasto(gasto, userId),
   )
 
   for (const outcome of outcomes) {
     const gasto = outcome.gasto
 
-    if (outcome.kind === 'validation' || outcome.kind === 'insert_error') {
+    if (
+      outcome.kind === 'validation' ||
+      outcome.kind === 'insert_error' ||
+      outcome.kind === 'persist_error'
+    ) {
       const retryCount = (gasto.retryCount ?? 0) + 1
 
       if (shouldDiscardAfterRetry(retryCount)) {
-        if (user && gasto.cuenta_id && outcome.kind === 'insert_error') {
-          const montoRevert = montoSaldoAlEliminarPendiente(gasto)
-          cachedCuentas = revertGastoSaldoLocal(
-            user.id,
-            cachedCuentas,
-            gasto.cuenta_id,
-            montoRevert,
-          )
-          const cuenta = cachedCuentas.find((c) => c.id === gasto.cuenta_id)
-          if (cuenta) {
-            await persistCuentaSaldo(user.id, gasto.cuenta_id, cuenta.saldo_actual)
-          }
+        if (gasto.cuenta_id) {
+          cachedCuentas = await revertPendingSaldo(userId, gasto, cachedCuentas)
         }
 
         if (gasto.optimisticTempIds?.length) {
@@ -155,10 +205,38 @@ export async function syncPendingGastos(): Promise<SyncResult> {
       continue
     }
 
-    if (user && gasto.cuenta_id) {
+    if (gasto.cuenta_id) {
       const cuenta = cachedCuentas.find((c) => c.id === gasto.cuenta_id)
       if (cuenta) {
-        await persistCuentaSaldo(user.id, gasto.cuenta_id, cuenta.saldo_actual)
+        const { error: persistError } = await persistCuentaSaldo(
+          userId,
+          gasto.cuenta_id,
+          cuenta.saldo_actual,
+        )
+        if (persistError) {
+          const retryCount = (gasto.retryCount ?? 0) + 1
+          if (shouldDiscardAfterRetry(retryCount)) {
+            cachedCuentas = await revertPendingSaldo(userId, gasto, cachedCuentas)
+            if (gasto.optimisticTempIds?.length) {
+              result.optimisticTempIdsRemoved.push(...gasto.optimisticTempIds)
+            }
+            await removePendingGasto(gasto.id)
+            result.discarded += 1
+            result.failures.push({
+              id: gasto.id,
+              descripcion: gasto.descripcion,
+              error: persistError,
+            })
+          } else {
+            await updatePendingGasto({ ...gasto, retryCount })
+            result.failures.push({
+              id: gasto.id,
+              descripcion: gasto.descripcion,
+              error: persistError,
+            })
+          }
+          continue
+        }
       }
     }
 

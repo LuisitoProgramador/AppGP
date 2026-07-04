@@ -150,7 +150,7 @@ export function pendingCuentaToCuenta(item: PendingCuenta): Cuenta {
 }
 
 async function appendQueuedCuentas(userId: string, cuentas: Cuenta[]): Promise<Cuenta[]> {
-  const pending = (await getPendingCuentas()).filter((item) => item.userId === userId)
+  const pending = await getPendingCuentas(userId)
   if (pending.length === 0) return cuentas
 
   const existingIds = new Set(cuentas.map((cuenta) => cuenta.id))
@@ -168,7 +168,7 @@ export async function listCuentas(
     return { data: readCache(userId), error: null, fromCache: true }
   }
 
-  const pendingGastosCount = await getPendingGastosCount()
+  const pendingGastosCount = await getPendingGastosCount(userId)
   if (pendingGastosCount > 0) {
     const cached = readCache(userId)
     if (cached.length > 0) {

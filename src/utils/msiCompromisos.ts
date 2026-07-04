@@ -1,5 +1,5 @@
 import type { OptimisticGasto, PendingGasto } from '../types/gasto'
-import { formatMonthLabel, shiftMonth } from './date'
+import { formatMonthLabel, getYearMonthKey, monthDateToBucketKey, shiftMonth } from './date'
 import { expandPendingToLineItems, filterPendingNotInOptimistic } from './optimisticGastos'
 
 export interface MsiCompromisoMes {
@@ -18,16 +18,14 @@ interface GastoMsiRow {
 function bucketRowsByMonth(rows: GastoMsiRow[]): Map<string, number> {
   const buckets = new Map<string, number>()
   for (const row of rows) {
-    const fecha = new Date(row.fecha)
-    const key = `${fecha.getFullYear()}-${fecha.getMonth()}`
+    const key = getYearMonthKey(new Date(row.fecha))
     buckets.set(key, (buckets.get(key) ?? 0) + row.monto)
   }
   return buckets
 }
 
 function sumMsiInMonth(buckets: Map<string, number>, month: Date): number {
-  const key = `${month.getFullYear()}-${month.getMonth()}`
-  return buckets.get(key) ?? 0
+  return buckets.get(monthDateToBucketKey(month)) ?? 0
 }
 
 export function calcularCompromisosMsi(
@@ -35,7 +33,7 @@ export function calcularCompromisosMsi(
   optimisticGastos: OptimisticGasto[],
   limiteMensual: number,
   desde: Date = new Date(),
-  meses = 3,
+  meses = 4,
   pendingGastos: PendingGasto[] = [],
 ): MsiCompromisoMes[] {
   const pendingMsi = filterPendingNotInOptimistic(pendingGastos, optimisticGastos)

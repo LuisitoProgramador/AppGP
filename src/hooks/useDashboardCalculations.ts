@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 import { useOptimisticGastosState, useOfflineSyncStatus, useQuietMode } from '../contexts'
 import { usePresupuestoDiario } from './usePresupuestoDiario'
+import { useCalendarDay } from './useCalendarDay'
 import { useStableArray } from './useStableArray'
 import type { MetaAhorro } from '../types/metaAhorro'
 import { agruparPorCategoria } from '../utils/agruparPorCategoria'
@@ -69,12 +70,12 @@ export function useDashboardCalculations({
     [resumen],
   )
 
-  const diasRestantes = useMemo(
-    () => (esMesActual ? getDaysRemainingInMonth(selectedMonth) : 0),
-    [esMesActual, selectedMonth],
-  )
+  const diaActual = useCalendarDay()
 
-  const diaActual = useMemo(() => new Date().getDate(), [esMesActual, selectedMonth])
+  const diasRestantes = useMemo(
+    () => (esMesActual ? getDaysRemainingInMonth() : 0),
+    [esMesActual, diaActual],
+  )
 
   const stableRecurrentes = useStableArray(recurrentes)
   const stableGastosMsi = useStableArray(gastosMsi)
@@ -190,7 +191,7 @@ export function useDashboardCalculations({
         stableOptimisticForCompromisos,
         limiteMensual,
         undefined,
-        3,
+        4,
         stablePendingForCompromisos,
       ),
     [stableGastosMsiForCompromisos, stableOptimisticForCompromisos, limiteMensual, stablePendingForCompromisos],

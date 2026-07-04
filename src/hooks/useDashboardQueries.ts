@@ -131,6 +131,13 @@ export function useDashboardQueries(
         })),
       )
 
+      if (msiResult.error) {
+        setGastosMsi([])
+        setError(`No se pudieron cargar los compromisos MSI: ${msiResult.error.message}`)
+        if (isMounted) setCargando(false)
+        return
+      }
+
       setGastosMsi(
         (msiResult.data ?? []).map((item) => ({
           monto: Number(item.monto),

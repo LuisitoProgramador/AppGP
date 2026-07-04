@@ -1,5 +1,6 @@
 import type { GastoInsertFields } from '../types/gasto'
 import { montoParaSaldoCuenta } from './cuentaSaldo'
+import { parseMsiDescripcion, splitMsiAmount } from './msi'
 
 /** Monto que se aplicó al saldo de la cuenta al registrar el gasto. */
 export function montoSaldoAlRegistrar(monto: number, esMsi: boolean): number {
@@ -24,6 +25,7 @@ export function saldoRevertAlEliminar(
   gasto: {
     id: number
     monto: number
+    descripcion?: string | null
     cuenta_id?: string | null
     es_msi?: boolean
     grupo_msi_id?: string | null
@@ -32,12 +34,14 @@ export function saldoRevertAlEliminar(
 ): SaldoRevertAlEliminar | null {
   if (!gasto.cuenta_id) return null
 
-  if (gasto.es_msi && gasto.grupo_msi_id) {
+  if (gasto.es_msi) {
     const siblings = grupoRows.filter((row) => row.id !== gasto.id)
     if (siblings.length > 0) return null
 
-    const totalGrupo = grupoRows.reduce((sum, row) => sum + Number(row.monto), 0)
-    return { cuentaId: gasto.cuenta_id, monto: totalGrupo }
+    return {
+      cuentaId: gasto.cuenta_id,
+      monto: msiTotalParaRevertir(gasto, grupoRows),
+    }
   }
 
   return { cuentaId: gasto.cuenta_id, monto: Number(gasto.monto) }
@@ -45,6 +49,26 @@ export function saldoRevertAlEliminar(
 
 export function sumMsiGrupoMontos(rows: { monto: number }[]): number {
   return Math.round(rows.reduce((sum, row) => sum + Number(row.monto), 0) * 100) / 100
+}
+
+/** Total de compra MSI a revertir en crédito (cuando se elimina la última cuota). */
+function msiTotalParaRevertir(
+  gasto: { monto: number; descripcion?: string | null },
+  grupoRows: { monto: number }[],
+): number {
+  if (grupoRows.length > 1) {
+    return sumMsiGrupoMontos(grupoRows)
+  }
+
+  const parsed = gasto.descripcion ? parseMsiDescripcion(gasto.descripcion) : null
+  if (parsed && parsed.total > 1) {
+    const inferredTotal = Math.round(Number(gasto.monto) * parsed.total * 100) / 100
+    return sumMsiGrupoMontos(
+      splitMsiAmount(inferredTotal, parsed.total).map((monto) => ({ monto })),
+    )
+  }
+
+  return sumMsiGrupoMontos(grupoRows)
 }
 
 /** Delta de saldo de crédito al corregir el total de una compra MSI. */

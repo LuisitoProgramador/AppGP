@@ -46,6 +46,21 @@ describe('gastoSaldo', () => {
     expect(result).toEqual({ cuentaId: 'c1', monto: 1000 })
   })
 
+  it('revierte el total MSI legacy sin grupo_msi_id al borrar la última cuota', () => {
+    const result = saldoRevertAlEliminar(
+      {
+        id: 3,
+        monto: 1000,
+        descripcion: 'Laptop (MSI 3/3)',
+        cuenta_id: 'c1',
+        es_msi: true,
+        grupo_msi_id: null,
+      },
+      [{ id: 3, monto: 1000 }],
+    )
+    expect(result).toEqual({ cuentaId: 'c1', monto: 3000 })
+  })
+
   it('calcula delta de saldo al corregir total MSI', () => {
     expect(saldoDeltaAlCorregirMsiGrupo(3000, 3500)).toBe(500)
     expect(saldoDeltaAlCorregirMsiGrupo(3000, 2800)).toBe(-200)

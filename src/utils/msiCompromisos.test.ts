@@ -14,6 +14,7 @@ describe('calcularCompromisosMsi', () => {
       [],
       10000,
       desde,
+      3,
     )
 
     expect(result).toHaveLength(3)

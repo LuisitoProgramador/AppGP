@@ -1,3 +1,6 @@
+import { getCalendarDay } from './date'
+import { getEffectiveBillingDay } from './recurrentesPolicy'
+
 export const UMBRAL_SEGURIDAD = 2000
 
 export function isFinDeSemana(fecha: Date): boolean {
@@ -7,7 +10,8 @@ export function isFinDeSemana(fecha: Date): boolean {
 
 export function isDiaDePago(fecha: Date, diaPago: number | null | undefined): boolean {
   if (diaPago == null) return false
-  return fecha.getDate() === diaPago
+  const effectiveDay = getEffectiveBillingDay(diaPago, fecha.getFullYear(), fecha.getMonth())
+  return getCalendarDay(fecha) === effectiveDay
 }
 
 export function shouldAutoActivarModoTranquilo(params: {

@@ -1,4 +1,5 @@
 import type { GastoRecurrente } from '../types/gasto'
+import { getCalendarDay, getYearMonthKey } from './date'
 
 export interface RecurrenteSugerido {
   descripcion: string
@@ -19,8 +20,7 @@ function normalizeDescripcion(value: string): string {
 }
 
 function monthKey(fecha: string): string {
-  const date = new Date(fecha)
-  return `${date.getFullYear()}-${date.getMonth()}`
+  return getYearMonthKey(new Date(fecha))
 }
 
 function montosSimilares(a: number, b: number): boolean {
@@ -52,8 +52,7 @@ export function detectarRecurrentesSugeridos(
     if (!key || recurrentesKeys.has(key)) continue
 
     const monto = Math.round(Number(gasto.monto) * 100) / 100
-    const fechaDate = new Date(gasto.fecha)
-    const diaMes = fechaDate.getDate()
+    const diaMes = getCalendarDay(gasto.fecha)
     const mes = monthKey(gasto.fecha)
     const existing = groups.get(key)
 

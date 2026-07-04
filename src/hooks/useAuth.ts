@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AuthError, Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
+import { clearOfflineQueueForUser } from '../services/offlineQueue'
 import { handleAuthRedirect } from '../services/authRedirect'
+import { clearLocalCachesForUser } from '../utils/localUserCache'
 import { requestPersistentStorage } from '../utils/persistentStorage'
 import { showError, showInfo } from '../utils/toast'
 
@@ -76,6 +78,15 @@ export default function useAuth() {
   }, [])
 
   const signOut = useCallback(async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+
+    if (user) {
+      await clearOfflineQueueForUser(user.id)
+      clearLocalCachesForUser(user.id)
+    }
+
     const { error } = await supabase.auth.signOut()
     return { error: error as AuthError | null }
   }, [])

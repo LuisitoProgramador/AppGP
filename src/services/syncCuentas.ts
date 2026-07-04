@@ -42,7 +42,7 @@ function replaceTempCuentaInCache(
 }
 
 export async function syncPendingCuentas(userId: string): Promise<SyncCuentasResult> {
-  const pending = (await getPendingCuentas()).filter((item) => item.userId === userId)
+  const pending = await getPendingCuentas(userId)
   const result: SyncCuentasResult = {
     synced: 0,
     failures: [],

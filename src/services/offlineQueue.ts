@@ -49,6 +49,10 @@ function normalizePendingCuenta(cuenta: PendingCuenta): PendingCuenta {
   }
 }
 
+function belongsToUser<T extends { userId?: string }>(item: T, userId: string): boolean {
+  return item.userId === userId || item.userId == null
+}
+
 export async function addPendingGasto(
   gasto: Omit<PendingGasto, 'id' | 'createdAt' | 'retryCount'>,
 ): Promise<PendingGasto> {
@@ -63,20 +67,23 @@ export async function addPendingGasto(
   return pending
 }
 
-export async function getPendingGastosCount(): Promise<number> {
-  const db = await getDB()
-  return db.count(STORE_GASTOS)
+export async function getPendingGastosCount(userId: string): Promise<number> {
+  const items = await getPendingGastos(userId)
+  return items.length
 }
 
-export async function getPendingCuentasCount(): Promise<number> {
-  const db = await getDB()
-  return db.count(STORE_CUENTAS)
+export async function getPendingCuentasCount(userId: string): Promise<number> {
+  const items = await getPendingCuentas(userId)
+  return items.length
 }
 
-export async function getPendingGastos(): Promise<PendingGasto[]> {
+export async function getPendingGastos(userId: string): Promise<PendingGasto[]> {
   const db = await getDB()
   const items = await db.getAll(STORE_GASTOS)
-  return items.map(normalizePendingGasto).sort((a, b) => b.createdAt - a.createdAt)
+  return items
+    .filter((item) => belongsToUser(item, userId))
+    .map(normalizePendingGasto)
+    .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export async function updatePendingGasto(gasto: PendingGasto): Promise<void> {
@@ -103,10 +110,13 @@ export async function addPendingCuenta(
   return pending
 }
 
-export async function getPendingCuentas(): Promise<PendingCuenta[]> {
+export async function getPendingCuentas(userId: string): Promise<PendingCuenta[]> {
   const db = await getDB()
   const items = await db.getAll(STORE_CUENTAS)
-  return items.map(normalizePendingCuenta).sort((a, b) => b.createdAt - a.createdAt)
+  return items
+    .filter((item) => belongsToUser(item, userId))
+    .map(normalizePendingCuenta)
+    .sort((a, b) => b.createdAt - a.createdAt)
 }
 
 export async function updatePendingCuenta(cuenta: PendingCuenta): Promise<void> {
@@ -119,13 +129,16 @@ export async function removePendingCuenta(id: string): Promise<void> {
   await db.delete(STORE_CUENTAS, id)
 }
 
-export async function remapPendingGastoCuentaIds(idMap: Record<string, string>): Promise<void> {
+export async function remapPendingGastoCuentaIds(
+  userId: string,
+  idMap: Record<string, string>,
+): Promise<void> {
   const entries = Object.entries(idMap)
   if (entries.length === 0) return
 
   const db = await getDB()
-  const pending = await db.getAll(STORE_GASTOS)
   const tx = db.transaction(STORE_GASTOS, 'readwrite')
+  const pending = (await tx.store.getAll()).filter((item) => belongsToUser(item, userId))
 
   await Promise.all(
     pending.map(async (gasto) => {
@@ -138,10 +151,30 @@ export async function remapPendingGastoCuentaIds(idMap: Record<string, string>):
   await tx.done
 }
 
-export async function getTotalPendingCount(): Promise<number> {
+export async function getTotalPendingCount(userId: string): Promise<number> {
   const [gastosCount, cuentasCount] = await Promise.all([
-    getPendingGastosCount(),
-    getPendingCuentasCount(),
+    getPendingGastosCount(userId),
+    getPendingCuentasCount(userId),
   ])
   return gastosCount + cuentasCount
+}
+
+/** Elimina cola offline del usuario y entradas legacy sin userId. */
+export async function clearOfflineQueueForUser(userId: string): Promise<void> {
+  const db = await getDB()
+  const [gastos, cuentas] = await Promise.all([
+    db.getAll(STORE_GASTOS),
+    db.getAll(STORE_CUENTAS),
+  ])
+  const tx = db.transaction([STORE_GASTOS, STORE_CUENTAS], 'readwrite')
+
+  await Promise.all([
+    ...gastos
+      .filter((item) => belongsToUser(item, userId))
+      .map((item) => tx.objectStore(STORE_GASTOS).delete(item.id)),
+    ...cuentas
+      .filter((item) => belongsToUser(item, userId))
+      .map((item) => tx.objectStore(STORE_CUENTAS).delete(item.id)),
+  ])
+  await tx.done
 }

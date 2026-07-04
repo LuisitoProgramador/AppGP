@@ -8,9 +8,13 @@ describe('safeToSpend', () => {
     { id: 3, descripcion: 'Spotify', monto: 100, categoria: 'Suscripciones', dia_mes: 10, ultimo_registro: null, cuenta_id: null },
   ]
 
-  it('suma solo recibos con dia_mes mayor al día actual', () => {
-    expect(sumRecibosPendientes(recurrentes, 12)).toBe(500)
-    expect(sumRecibosPendientes(recurrentes, 25)).toBe(0)
+  it('suma recurrentes no registrados en el mes', () => {
+    expect(sumRecibosPendientes(recurrentes, new Date(2026, 6, 12))).toBe(800)
+    const allRegistered = recurrentes.map((r) => ({
+      ...r,
+      ultimo_registro: '2026-07-15T12:00:00-06:00',
+    }))
+    expect(sumRecibosPendientes(allRegistered, new Date(2026, 6, 12))).toBe(0)
   })
 
   it('resta recibos pendientes del disponible', () => {
@@ -27,7 +31,7 @@ describe('safeToSpend', () => {
     expect(result.msiPendientes).toBe(0)
   })
 
-  it('resta MSI pendientes del disponible', () => {
+  it('expone MSI pendientes sin restarlos del disponible (ya están en gastoTotal)', () => {
     const result = calcSafeToSpend({
       limiteMensual: 10000,
       gastoTotal: 3000,
@@ -36,7 +40,8 @@ describe('safeToSpend', () => {
       diasRestantes: 10,
     })
 
-    expect(result.disponible).toBe(5700)
-    expect(result.presupuestoDiario).toBe(570)
+    expect(result.disponible).toBe(6500)
+    expect(result.msiPendientes).toBe(800)
+    expect(result.presupuestoDiario).toBe(650)
   })
 })

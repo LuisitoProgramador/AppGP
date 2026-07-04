@@ -13,6 +13,7 @@ import {
 } from '../utils/historialUndo'
 import { showError, showInfo, showSuccessWithUndo } from '../utils/toast'
 import { montoSaldoAlEliminarPendiente, saldoRevertAlEliminar } from '../utils/gastoSaldo'
+import { parseMsiDescripcion } from '../utils/msi'
 import EditGastoModal, { type EditGastoModo } from './EditGastoModal'
 import MonthSelector from './MonthSelector'
 import Select from './Select'
@@ -116,6 +117,8 @@ export default memo(function Historial() {
 
   const restaurarGastoPendiente = useCallback(
     async (pending: PendingGasto) => {
+      if (!user) return
+
       const rows =
         pending.msiInstallments ??
         [
@@ -143,6 +146,7 @@ export default memo(function Historial() {
       )
 
       await addPendingGasto({
+        userId: user.id,
         monto: pending.monto,
         categoria: pending.categoria,
         descripcion: pending.descripcion,
@@ -165,7 +169,7 @@ export default memo(function Historial() {
       refresh()
       showInfo('Gasto restaurado.')
     },
-    [addOptimisticGasto, applyGastoSaldo, refresh],
+    [addOptimisticGasto, applyGastoSaldo, refresh, user],
   )
 
   const handleEliminar = useCallback(
@@ -207,13 +211,32 @@ export default memo(function Historial() {
       }
 
       let saldoRevert = saldoRevertAlEliminar(item, [{ id: item.id, monto: item.monto }])
-      if (item.es_msi && item.grupo_msi_id) {
-        const { data: grupoRows } = await supabase
-          .from('gastos')
-          .select('id, monto')
-          .eq('grupo_msi_id', item.grupo_msi_id)
-        if (grupoRows) {
-          saldoRevert = saldoRevertAlEliminar(item, grupoRows)
+      if (item.es_msi && user) {
+        if (item.grupo_msi_id) {
+          const { data: grupoRows } = await supabase
+            .from('gastos')
+            .select('id, monto')
+            .eq('grupo_msi_id', item.grupo_msi_id)
+          if (grupoRows) {
+            saldoRevert = saldoRevertAlEliminar(item, grupoRows)
+          }
+        } else if (item.cuenta_id) {
+          const parsed = item.descripcion ? parseMsiDescripcion(item.descripcion) : null
+          let legacyQuery = supabase
+            .from('gastos')
+            .select('id, monto')
+            .eq('user_id', user.id)
+            .eq('es_msi', true)
+            .eq('cuenta_id', item.cuenta_id)
+
+          legacyQuery = parsed
+            ? legacyQuery.ilike('descripcion', `${parsed.base} (MSI %`)
+            : legacyQuery.eq('descripcion', item.descripcion ?? '')
+
+          const { data: legacyRows } = await legacyQuery
+          if (legacyRows?.length) {
+            saldoRevert = saldoRevertAlEliminar(item, legacyRows)
+          }
         }
       }
 
@@ -246,7 +269,7 @@ export default memo(function Historial() {
         () => restaurarGastoEliminado(snapshot),
       )
     },
-    [refresh, removeOptimisticGastos, restaurarGastoEliminado, restaurarGastoPendiente, revertGastoSaldo],
+    [refresh, removeOptimisticGastos, restaurarGastoEliminado, restaurarGastoPendiente, revertGastoSaldo, user],
   )
 
   useEffect(() => {

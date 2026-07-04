@@ -39,16 +39,20 @@ export function calcularSaludAhorro(params: {
   limiteMensual: number
   disponible: number
 }): SaludAhorro {
-  const { metas, limiteMensual, disponible } = params
+  const { metas, limiteMensual, disponible, gastoTotal } = params
 
   let porcentaje: number
+  const gastoScore =
+    limiteMensual > 0
+      ? Math.max(0, Math.min(100, (1 - gastoTotal / limiteMensual) * 100))
+      : 0
 
   if (metas.length > 0) {
     const progresoMetas =
       metas.reduce((sum, meta) => sum + getMetaProgress(meta), 0) / metas.length
     const presupuestoScore =
       limiteMensual > 0 ? Math.max(0, (disponible / limiteMensual) * 100) : 0
-    porcentaje = Math.round((progresoMetas + presupuestoScore) / 2)
+    porcentaje = Math.round((progresoMetas + presupuestoScore + gastoScore) / 3)
   } else {
     porcentaje =
       limiteMensual > 0

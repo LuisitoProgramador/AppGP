@@ -303,7 +303,11 @@ export default memo(function GastoForm() {
 
     if (!isOnline()) {
       setGuardando(true)
-      const pending = await addPendingGasto({ ...offlinePayload, optimisticTempIds: tempIds })
+      const pending = await addPendingGasto({
+        ...offlinePayload,
+        userId: user.id,
+        optimisticTempIds: tempIds,
+      })
       setGuardando(false)
       setForm({ ...initialForm, cuentaId: data.cuentaId })
       recordMerchantMemory(user.id, descripcion, categoria, monto)

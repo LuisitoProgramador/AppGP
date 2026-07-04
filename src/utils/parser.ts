@@ -1,4 +1,5 @@
 import { CATEGORIAS, type Categoria } from '../types/gasto'
+import { parseMontoValue } from './montoInput'
 
 export type { Categoria }
 
@@ -93,11 +94,11 @@ function normalizeText(value: string): string {
 }
 
 function parseMontoToken(token: string): number | null {
-  const normalized = token.replace(/^\$/, '').replace(/,/g, '.')
-  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null
+  const stripped = token.replace(/^\$/, '').trim()
+  if (!/^\d[\d,]*(?:\.\d{1,2})?$/.test(stripped)) return null
 
-  const monto = Number(normalized)
-  if (Number.isNaN(monto) || monto <= 0) return null
+  const monto = parseMontoValue(stripped)
+  if (!Number.isFinite(monto) || monto <= 0) return null
   return monto
 }
 

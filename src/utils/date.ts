@@ -73,6 +73,17 @@ export function getYearMonthKey(date: Date, timeZone = APP_TIMEZONE): string {
   return getCalendarDateInTimezone(date, timeZone).slice(0, 7)
 }
 
+/** Día del mes (1–31) en el calendario de la zona indicada. */
+export function getCalendarDay(date: Date | string, timeZone = APP_TIMEZONE): number {
+  const cal = getCalendarDateInTimezone(new Date(date), timeZone)
+  return Number(cal.split('-')[2])
+}
+
+/** Clave YYYY-MM para agrupar filas por mes calendario (America/Mexico_City). */
+export function monthDateToBucketKey(month: Date): string {
+  return `${month.getFullYear()}-${String(month.getMonth() + 1).padStart(2, '0')}`
+}
+
 export function isFechaInMonth(fecha: string | Date, month: Date, timeZone = APP_TIMEZONE): boolean {
   const target = `${month.getFullYear()}-${pad2(month.getMonth() + 1)}`
   return getYearMonthKey(new Date(fecha), timeZone) === target

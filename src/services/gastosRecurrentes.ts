@@ -97,7 +97,8 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
   const now = new Date()
   const fecha = toGastoFecha(now)
   let registered = 0
-  const { data: cuentas } = await listCuentas(userId)
+  const listResult = await listCuentas(userId)
+  let cuentas = listResult.data ?? []
 
   for (const recurrente of data.map((row) => mapGastoRecurrente(row))) {
     if (!shouldRegisterRecurringToday(recurrente.dia_mes, recurrente.ultimo_registro, now)) {
@@ -123,15 +124,19 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
 
     const cuentaId = recurrente.cuenta_id ?? getDefaultCuentaId(cuentas)
 
-    const { error: insertError } = await supabase.from('gastos').insert({
-      monto: recurrente.monto,
-      categoria: recurrente.categoria,
-      descripcion: recurrente.descripcion,
-      fecha,
-      cuenta_id: cuentaId,
-    })
+    const { data: inserted, error: insertError } = await supabase
+      .from('gastos')
+      .insert({
+        monto: recurrente.monto,
+        categoria: recurrente.categoria,
+        descripcion: recurrente.descripcion,
+        fecha,
+        cuenta_id: cuentaId,
+      })
+      .select('id')
+      .single()
 
-    if (insertError) {
+    if (insertError || !inserted) {
       const rollbackQuery = supabase
         .from('gastos_recurrentes')
         .update({ ultimo_registro: previousUltimoRegistro })
@@ -148,7 +153,29 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
     }
 
     if (cuentaId) {
-      await applyGastoToCuenta(userId, cuentas, cuentaId, Number(recurrente.monto))
+      const { cuentas: updated, error: saldoError } = await applyGastoToCuenta(
+        userId,
+        cuentas,
+        cuentaId,
+        Number(recurrente.monto),
+      )
+      if (saldoError) {
+        await supabase.from('gastos').delete().eq('id', inserted.id)
+        const rollbackQuery = supabase
+          .from('gastos_recurrentes')
+          .update({ ultimo_registro: previousUltimoRegistro })
+          .eq('id', recurrente.id)
+          .eq('user_id', userId)
+
+        if (previousUltimoRegistro) {
+          await rollbackQuery.eq('ultimo_registro', fecha)
+        } else {
+          await rollbackQuery.is('ultimo_registro', fecha)
+        }
+
+        continue
+      }
+      cuentas = updated
     }
 
     registered += 1

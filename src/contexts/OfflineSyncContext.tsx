@@ -50,6 +50,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingGastos, setPendingGastos] = useState<PendingGasto[]>([])
+  const syncInProgressRef = useRef(false)
 
   const refreshRef = useRef(refresh)
   refreshRef.current = refresh
@@ -57,10 +58,10 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const removeOptimisticRef = useRef(removeOptimisticGastos)
   removeOptimisticRef.current = removeOptimisticGastos
 
-  const updatePendingCount = useCallback(async () => {
+  const updatePendingCount = useCallback(async (userId: string) => {
     const [gastos, total] = await Promise.all([
-      getPendingGastos(),
-      getTotalPendingCount(),
+      getPendingGastos(userId),
+      getTotalPendingCount(userId),
     ])
     setPendingGastos(gastos)
     setPendingCount(total)
@@ -79,9 +80,10 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
 
   const syncOffline = useCallback(async () => {
     const currentUser = userRef.current
-    if (!currentUser || !isOnline()) return
+    if (!currentUser || !isOnline() || syncInProgressRef.current) return
 
-    const totalBefore = await getTotalPendingCount()
+    syncInProgressRef.current = true
+    const totalBefore = await getTotalPendingCount(currentUser.id)
     const hadPending = totalBefore > 0
 
     setIsSyncing(true)
@@ -92,7 +94,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
     try {
       const cuentasResult = await syncPendingCuentas(currentUser.id)
       if (Object.keys(cuentasResult.idMap).length > 0) {
-        await remapPendingGastoCuentaIds(cuentasResult.idMap)
+        await remapPendingGastoCuentaIds(currentUser.id, cuentasResult.idMap)
       }
 
       if (cuentasResult.synced > 0) {
@@ -108,8 +110,8 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
         showWarning('Algunas cuentas offline fallaron y se reintentarán.')
       }
 
-      const result = await syncPendingGastos()
-      await updatePendingCount()
+      const result = await syncPendingGastos(currentUser.id)
+      await updatePendingCount(currentUser.id)
 
       if (result.optimisticTempIdsRemoved.length > 0) {
         removeOptimisticRef.current(result.optimisticTempIdsRemoved)
@@ -135,9 +137,10 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       const message =
         err instanceof Error ? err.message : 'Error inesperado al sincronizar datos offline.'
       showError(message)
-      await updatePendingCount()
+      await updatePendingCount(currentUser.id)
     } finally {
       setIsSyncing(false)
+      syncInProgressRef.current = false
     }
   }, [updatePendingCount, syncRecurring])
 
@@ -145,18 +148,19 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   syncOfflineRef.current = syncOffline
 
   useEffect(() => {
-    if (!user) return
+    if (!user) {
+      setPendingGastos([])
+      setPendingCount(0)
+      return
+    }
 
+    const userId = user.id
     let cancelled = false
 
     async function initializeSync() {
-      await updatePendingCount()
+      await updatePendingCount(userId)
+      if (cancelled) return
       await syncOfflineRef.current()
-      if (cancelled || !userRef.current || !isOnline()) return
-
-      const metaSynced = await syncPendingMetaAhorro(userRef.current.id)
-      if (metaSynced > 0) refreshRef.current()
-      await syncRecurring(userRef.current.id)
     }
 
     initializeSync()
@@ -164,25 +168,19 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
     return () => {
       cancelled = true
     }
-  }, [user, updatePendingCount, syncRecurring])
+  }, [user, updatePendingCount])
 
   useEffect(() => {
     const onOnline = () => {
-      void syncOfflineRef.current().then(async () => {
-        const currentUser = userRef.current
-        if (!currentUser) return
-        const metaSynced = await syncPendingMetaAhorro(currentUser.id)
-        if (metaSynced > 0) refreshRef.current()
-        await syncRecurring(currentUser.id)
-      })
+      void syncOfflineRef.current()
     }
 
     window.addEventListener('online', onOnline)
     return () => window.removeEventListener('online', onOnline)
-  }, [syncRecurring])
+  }, [])
 
   useEffect(() => {
-    if (user) updatePendingCount()
+    if (user) updatePendingCount(user.id)
   }, [user, refreshKey, updatePendingCount])
 
   const statusValue = useMemo(

@@ -1,5 +1,5 @@
 import type { OptimisticGasto } from '../types/gasto'
-import { formatMonthShortLabel, shiftMonth } from './date'
+import { formatMonthShortLabel, getYearMonthKey, monthDateToBucketKey, shiftMonth } from './date'
 
 export interface MesTotal {
   mes: Date
@@ -15,8 +15,7 @@ interface ResumenRow {
 function bucketOptimisticByMonth(optimisticGastos: OptimisticGasto[]): Map<string, number> {
   const buckets = new Map<string, number>()
   for (const gasto of optimisticGastos) {
-    const fecha = new Date(gasto.fecha)
-    const key = `${fecha.getFullYear()}-${fecha.getMonth()}`
+    const key = getYearMonthKey(new Date(gasto.fecha))
     buckets.set(key, (buckets.get(key) ?? 0) + gasto.monto)
   }
   return buckets
@@ -25,16 +24,14 @@ function bucketOptimisticByMonth(optimisticGastos: OptimisticGasto[]): Map<strin
 function bucketResumenByMonth(resumenRows: ResumenRow[]): Map<string, number> {
   const buckets = new Map<string, number>()
   for (const row of resumenRows) {
-    const rowMes = new Date(row.mes)
-    const key = `${rowMes.getFullYear()}-${rowMes.getMonth()}`
+    const key = getYearMonthKey(new Date(row.mes))
     buckets.set(key, (buckets.get(key) ?? 0) + row.total)
   }
   return buckets
 }
 
 function sumInMonth(buckets: Map<string, number>, month: Date): number {
-  const key = `${month.getFullYear()}-${month.getMonth()}`
-  return buckets.get(key) ?? 0
+  return buckets.get(monthDateToBucketKey(month)) ?? 0
 }
 
 export function buildEvolucionMensual(

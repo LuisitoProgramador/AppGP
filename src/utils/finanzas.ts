@@ -80,7 +80,12 @@ export function calcMetaObjetivoAnual(
   porcentajeAhorro: number,
   ingresosExtras = 0,
 ): number {
-  return round2(calcPrimerAhorro(sueldoMensual, porcentajeAhorro, ingresosExtras) * 52)
+  const { ahorroMensual } = calcEstrategiaFinanciera({
+    sueldoMensual,
+    ingresosExtras,
+    porcentajeAhorro,
+  })
+  return round2(ahorroMensual * 12)
 }
 
 export function calcDiferenciaAhorroMensual(

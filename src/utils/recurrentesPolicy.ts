@@ -1,3 +1,5 @@
+import { getYearMonthKey } from './date'
+
 export function getEffectiveBillingDay(diaMes: number, year: number, month: number): number {
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   return Math.min(diaMes, daysInMonth)
@@ -20,8 +22,5 @@ export function alreadyRegisteredThisMonth(
 ): boolean {
   if (!ultimoRegistro) return false
 
-  const last = new Date(ultimoRegistro)
-  return (
-    last.getFullYear() === now.getFullYear() && last.getMonth() === now.getMonth()
-  )
+  return getYearMonthKey(new Date(ultimoRegistro)) === getYearMonthKey(now)
 }

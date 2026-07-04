@@ -55,6 +55,7 @@ describe('optimisticGastos utils', () => {
     const pending: PendingGasto[] = [
       {
         id: 'pending-1',
+        userId: 'user-test',
         monto: 50,
         categoria: 'Comida',
         descripcion: 'Supermercado',
@@ -64,6 +65,7 @@ describe('optimisticGastos utils', () => {
       },
       {
         id: 'pending-2',
+        userId: 'user-test',
         monto: 80,
         categoria: 'Transporte',
         descripcion: 'Uber',
@@ -92,6 +94,7 @@ describe('optimisticGastos utils', () => {
     const pending: PendingGasto[] = [
       {
         id: 'pending-1',
+        userId: 'user-test',
         monto: 100,
         categoria: 'Comida',
         descripcion: 'Cafe',

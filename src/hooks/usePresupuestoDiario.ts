@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import type { GastoRecurrente, OptimisticGasto, PendingGasto } from '../types/gasto'
-import { getDaysRemainingInMonth } from '../utils/date'
+import { getCalendarDay, getDaysRemainingInMonth } from '../utils/date'
 import { expandPendingToLineItems, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import {
   calcSafeToSpend,
@@ -31,7 +31,7 @@ export function usePresupuestoDiario(params: {
     optimisticGastos,
     pendingGastos,
     esMesActual,
-    diaActual = new Date().getDate(),
+    diaActual = getCalendarDay(new Date()),
   } = params
 
   return useMemo(() => {
@@ -46,8 +46,9 @@ export function usePresupuestoDiario(params: {
       }
     }
 
+    const now = new Date()
     const diasRestantes = getDaysRemainingInMonth()
-    const recibosPendientes = sumRecibosPendientes(recurrentes, diaActual)
+    const recibosPendientes = sumRecibosPendientes(recurrentes, now)
 
     const pendingMsi = filterPendingNotInOptimistic(pendingGastos, optimisticGastos)
       .filter((item) => item.msiInstallments?.length)

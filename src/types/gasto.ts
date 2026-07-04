@@ -32,6 +32,7 @@ export interface OptimisticGasto {
 
 export interface PendingGasto {
   id: string
+  userId: string
   monto: number
   categoria: string
   descripcion: string
