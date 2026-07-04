@@ -165,16 +165,16 @@ export default function EditGastoModal({
     cuentaDestinoId: string,
     montoTransferencia: number,
   ): Promise<string | null> {
-    const revertError = await revertGastoSaldo(cuentaOrigenId, montoTransferencia)
-    if (revertError) return revertError
+    const revertResult = await revertGastoSaldo(cuentaOrigenId, montoTransferencia)
+    if (revertResult.error) return revertResult.error
 
-    const applyError = await applyGastoSaldo(cuentaDestinoId, montoTransferencia)
-    if (applyError) {
-      const rollbackError = await applyGastoSaldo(cuentaOrigenId, montoTransferencia)
-      if (rollbackError) {
-        return `${applyError} (y no se pudo revertir: ${rollbackError})`
+    const applyResult = await applyGastoSaldo(cuentaDestinoId, montoTransferencia)
+    if (applyResult.error) {
+      const rollbackResult = await applyGastoSaldo(cuentaOrigenId, montoTransferencia)
+      if (rollbackResult.error) {
+        return `${applyResult.error} (y no se pudo revertir: ${rollbackResult.error})`
       }
-      return applyError
+      return applyResult.error
     }
 
     return null
@@ -192,16 +192,16 @@ export default function EditGastoModal({
     if (!cambioCuenta && !cambioMonto) return null
 
     if (cambioCuenta && cuentaAnteriorId && cuentaNuevaId) {
-      const revertError = await revertGastoSaldo(cuentaAnteriorId, montoAnterior)
-      if (revertError) return revertError
+      const revertResult = await revertGastoSaldo(cuentaAnteriorId, montoAnterior)
+      if (revertResult.error) return revertResult.error
 
-      const applyError = await applyGastoSaldo(cuentaNuevaId, montoNuevo)
-      if (applyError) {
-        const rollbackError = await applyGastoSaldo(cuentaAnteriorId, montoAnterior)
-        if (rollbackError) {
-          return `${applyError} (y no se pudo revertir: ${rollbackError})`
+      const applyResult = await applyGastoSaldo(cuentaNuevaId, montoNuevo)
+      if (applyResult.error) {
+        const rollbackResult = await applyGastoSaldo(cuentaAnteriorId, montoAnterior)
+        if (rollbackResult.error) {
+          return `${applyResult.error} (y no se pudo revertir: ${rollbackResult.error})`
         }
-        return applyError
+        return applyResult.error
       }
       return null
     }
@@ -321,16 +321,16 @@ export default function EditGastoModal({
     const installments = toMsiInstallmentUpdates(previewCuotas)
 
     if (cambioCuentaMsi) {
-      const revertError = await revertGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
-      if (revertError) {
-        showError(`No se pudo revertir el saldo de la cuenta original: ${revertError}`)
+      const revertResult = await revertGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
+      if (revertResult.error) {
+        showError(`No se pudo revertir el saldo de la cuenta original: ${revertResult.error}`)
         return false
       }
 
-      const applyError = await applyGastoSaldo(newCuentaId, newTotal)
-      if (applyError) {
+      const applyResult = await applyGastoSaldo(newCuentaId, newTotal)
+      if (applyResult.error) {
         await applyGastoSaldo(cuentaAnteriorId!, snapshot.totalCompra)
-        showError(`No se pudo aplicar el saldo a la nueva cuenta: ${applyError}`)
+        showError(`No se pudo aplicar el saldo a la nueva cuenta: ${applyResult.error}`)
         return false
       }
     } else if (deltaSaldo !== 0) {
