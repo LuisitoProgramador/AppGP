@@ -238,3 +238,41 @@ export function revertGastoSaldoLocal(
   writeCache(userId, updated)
   return updated
 }
+
+export async function registrarIngreso(
+  userId: string,
+  cuentaId: string,
+  monto: number,
+): Promise<{ error: string | null }> {
+  if (!isOnline()) {
+    return offlineServiceError('Sin conexión. Conéctate para registrar un ingreso.')
+  }
+
+  if (monto <= 0) {
+    return { error: 'El monto debe ser mayor a 0.' }
+  }
+
+  const { data: cuentas, error: listError } = await listCuentas(userId)
+  if (listError && cuentas.length === 0) {
+    return { error: listError }
+  }
+
+  const cuenta = cuentas.find((c) => c.id === cuentaId)
+  if (!cuenta) return { error: 'Cuenta no encontrada' }
+
+  if (cuenta.tipo === 'credito') {
+    return { error: 'Los ingresos solo se registran en cuentas de efectivo o débito.' }
+  }
+
+  const nuevoSaldo = revertSaldoAfterGasto(cuenta.tipo, cuenta.saldo_actual, monto)
+
+  const { error: persistError } = await persistCuentaSaldo(userId, cuentaId, nuevoSaldo)
+  if (persistError) return { error: persistError }
+
+  const updated = cuentas.map((c) =>
+    c.id === cuentaId ? { ...c, saldo_actual: nuevoSaldo } : c,
+  )
+  writeCache(userId, updated)
+
+  return { error: null }
+}

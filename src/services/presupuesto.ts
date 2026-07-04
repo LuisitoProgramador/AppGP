@@ -228,16 +228,17 @@ export async function savePresupuestoFinanciero(
   userId: string,
   input: PresupuestoFinancieroInput,
 ): Promise<{ error: string | null; presupuesto: Presupuesto | null }> {
+  const ingresosExtras = input.ingresos_extras ?? 0
   const estrategia = calcEstrategiaFinanciera({
     sueldoMensual: input.sueldo_mensual,
-    ingresosExtras: input.ingresos_extras,
+    ingresosExtras,
     porcentajeAhorro: input.porcentaje_ahorro,
   })
 
   const { error } = await savePresupuesto(userId, {
     limite_mensual: estrategia.disponibleParaGasto,
     sueldo_mensual: input.sueldo_mensual,
-    ingresos_extras: input.ingresos_extras,
+    ingresos_extras: ingresosExtras,
     sueldo_semanal: estrategia.sueldoSemanal,
     dia_pago: input.dia_pago,
     porcentaje_ahorro: input.porcentaje_ahorro,
@@ -248,7 +249,7 @@ export async function savePresupuestoFinanciero(
   const presupuesto: Presupuesto = {
     limite_mensual: estrategia.disponibleParaGasto,
     sueldo_mensual: input.sueldo_mensual,
-    ingresos_extras: input.ingresos_extras,
+    ingresos_extras: ingresosExtras,
     sueldo_semanal: estrategia.sueldoSemanal,
     dia_pago: input.dia_pago,
     porcentaje_ahorro: input.porcentaje_ahorro,

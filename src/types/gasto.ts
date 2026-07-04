@@ -87,11 +87,12 @@ export interface GastoRecurrente {
   categoria: string
   dia_mes: number
   ultimo_registro: string | null
+  cuenta_id: string | null
 }
 
 export type GastoRecurrenteInput = Pick<
   GastoRecurrente,
-  'descripcion' | 'monto' | 'categoria' | 'dia_mes'
+  'descripcion' | 'monto' | 'categoria' | 'dia_mes' | 'cuenta_id'
 >
 
 export const CHART_COLORS_HEX: Record<string, string> = {

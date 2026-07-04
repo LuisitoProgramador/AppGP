@@ -19,6 +19,7 @@ import BurnRateAlert from './dashboard/BurnRateAlert'
 import OfflineSyncStatus from './dashboard/OfflineSyncStatus'
 import DashboardStatus from './dashboard/DashboardStatus'
 import GastosAnalisisSection from './dashboard/GastosAnalisisSection'
+import CollapsibleSection from './dashboard/CollapsibleSection'
 import { cardClassName, formWithKeyboardClassName } from './formStyles'
 
 export default memo(function Dashboard() {
@@ -92,28 +93,8 @@ export default memo(function Dashboard() {
             modoTranquilo={modoTranquilo}
             onToggleModoViaje={handleToggleModoViaje}
             onToggleModoTranquilo={toggleModoTranquilo}
+            compact
           />
-
-          {recurrenteSugerido && (
-            <RecurrenteSugeridoBanner
-              sugerido={recurrenteSugerido}
-              marcando={marcandoRecurrente}
-              onMarcar={handleMarcarRecurrente}
-              onDescartar={handleDescartarRecurrente}
-            />
-          )}
-
-          {resumenFinMes && !cargando && <ResumenFinMesBanner resumen={resumenFinMes} />}
-
-          {esMesActual &&
-            !cargando &&
-            (ingresoMensualTotal != null || patrimonioLiquido != null) && (
-              <PatrimonioCards
-                ingresoMensualTotal={ingresoMensualTotal}
-                patrimonioLiquido={patrimonioLiquido}
-                limiteMensual={limiteMensual}
-              />
-            )}
 
           {esMesActual && !cargando && (
             <PresupuestoWidget
@@ -135,23 +116,75 @@ export default memo(function Dashboard() {
             />
           )}
 
-          {proyeccionCierre && !cargando && (
-            <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
-          )}
-
-          {esMesActual && !cargando && (
-            <MeAlcanzaWidget
-              disponible={disponible}
-              diasRestantesEfectivos={diasRestantesEfectivos}
-              presupuestoDiario={presupuestoDiario}
-            />
-          )}
-
           {burnRateAlerta && <BurnRateAlert />}
 
-          {esMesActual && !cargando && <SaludAhorroWidget saludAhorro={saludAhorro} />}
+          <CollapsibleSection title="Ver más detalles">
+            {recurrenteSugerido && (
+              <RecurrenteSugeridoBanner
+                sugerido={recurrenteSugerido}
+                marcando={marcandoRecurrente}
+                onMarcar={handleMarcarRecurrente}
+                onDescartar={handleDescartarRecurrente}
+              />
+            )}
 
-          {!cargando && <CompromisosMsiWidget compromisos={compromisosMsi} />}
+            {resumenFinMes && !cargando && <ResumenFinMesBanner resumen={resumenFinMes} />}
+
+            {esMesActual &&
+              !cargando &&
+              (ingresoMensualTotal != null || patrimonioLiquido != null) && (
+                <PatrimonioCards
+                  ingresoMensualTotal={ingresoMensualTotal}
+                  patrimonioLiquido={patrimonioLiquido}
+                  limiteMensual={limiteMensual}
+                />
+              )}
+
+            {esMesActual && !cargando && (
+              <PresupuestoWidget
+                disponible={disponible}
+                presupuestoDiario={presupuestoDiario}
+                limiteMensual={limiteMensual}
+                diasRestantesEfectivos={diasRestantesEfectivos}
+                recibosEfectivos={recibosEfectivos}
+                msiPendientes={msiPendientes}
+                quincenaPeriodo={quincenaPeriodo}
+                vistaQuincenal={vistaQuincenal}
+                modoTranquilo={modoTranquilo}
+                diaAgotamiento={diaAgotamiento}
+                limiteInput={limiteInput}
+                guardandoLimite={guardandoLimite}
+                onLimiteInputChange={setLimiteInput}
+                onGuardarLimite={handleGuardarLimite}
+                onToggleVistaQuincenal={handleToggleVistaQuincenal}
+                mode="settings"
+              />
+            )}
+
+            {proyeccionCierre && !cargando && (
+              <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
+            )}
+
+            {esMesActual && !cargando && (
+              <MeAlcanzaWidget
+                disponible={disponible}
+                diasRestantesEfectivos={diasRestantesEfectivos}
+                presupuestoDiario={presupuestoDiario}
+              />
+            )}
+
+            {esMesActual && !cargando && <SaludAhorroWidget saludAhorro={saludAhorro} />}
+
+            {!cargando && <CompromisosMsiWidget compromisos={compromisosMsi} />}
+
+            {!cargando && tieneDatosAnalisis && (
+              <GastosAnalisisSection resumen={resumen} evolucionMensual={evolucionMensual} />
+            )}
+
+            <MetasAhorroSection {...metasAhorro} />
+
+            <PresupuestoSettings />
+          </CollapsibleSection>
 
           <OfflineSyncStatus isSyncing={isSyncing} pendingCount={pendingCount} />
 
@@ -160,14 +193,6 @@ export default memo(function Dashboard() {
             cargando={cargando}
             sinGastos={resumen.length === 0}
           />
-
-          {!cargando && tieneDatosAnalisis && (
-            <GastosAnalisisSection resumen={resumen} evolucionMensual={evolucionMensual} />
-          )}
-
-          <MetasAhorroSection {...metasAhorro} />
-
-          <PresupuestoSettings />
         </>
       )}
     </section>

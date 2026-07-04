@@ -22,9 +22,10 @@ interface PresupuestoWidgetProps {
   onLimiteInputChange: (value: string) => void
   onGuardarLimite: (event: FormEvent<HTMLFormElement>) => void
   onToggleVistaQuincenal: () => void
+  mode?: 'summary' | 'settings'
 }
 
-export default memo(function PresupuestoWidget({
+function PresupuestoSummary({
   disponible,
   presupuestoDiario,
   limiteMensual,
@@ -35,25 +36,94 @@ export default memo(function PresupuestoWidget({
   vistaQuincenal,
   modoTranquilo,
   diaAgotamiento,
-  limiteInput,
-  guardandoLimite,
-  onLimiteInputChange,
-  onGuardarLimite,
-  onToggleVistaQuincenal,
-}: PresupuestoWidgetProps) {
+}: Pick<
+  PresupuestoWidgetProps,
+  | 'disponible'
+  | 'presupuestoDiario'
+  | 'limiteMensual'
+  | 'diasRestantesEfectivos'
+  | 'recibosEfectivos'
+  | 'msiPendientes'
+  | 'quincenaPeriodo'
+  | 'vistaQuincenal'
+  | 'modoTranquilo'
+  | 'diaAgotamiento'
+>) {
+  const dentroDeLimite = disponible >= 0 || modoTranquilo
+
   return (
-    <>
-      <div
-        className={`rounded-xl border px-4 py-3 text-center ${
-          disponible >= 0
-            ? 'border-emerald-500/30 bg-emerald-500/10'
-            : 'border-amber-500/30 bg-amber-500/10'
+    <div
+      className={`rounded-2xl border px-5 py-6 text-center ${
+        dentroDeLimite
+          ? 'border-emerald-500/30 bg-emerald-500/10'
+          : 'border-amber-500/30 bg-amber-500/10'
+      }`}
+    >
+      <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
+        Disponible este mes
+      </p>
+      <p
+        className={`mt-2 text-4xl font-bold sm:text-5xl ${
+          dentroDeLimite ? 'text-white' : 'text-amber-300'
         }`}
       >
-        <div className="flex items-center justify-center gap-2">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-            Presupuesto diario
-          </p>
+        {formatCurrency(disponible)}
+      </p>
+      <p
+        className={`mt-3 text-lg font-semibold ${
+          dentroDeLimite ? 'text-emerald-400' : 'text-amber-400'
+        }`}
+      >
+        {dentroDeLimite
+          ? `${formatCurrency(presupuestoDiario)} por día`
+          : `Excedido en ${formatCurrency(Math.abs(disponible))}`}
+      </p>
+      <p className="mt-2 text-xs text-slate-500">
+        {vistaQuincenal ? (
+          <>
+            Quincena {quincenaPeriodo} · Límite {formatCurrency(limiteMensual / 2)} ·{' '}
+            {diasRestantesEfectivos} días restantes
+          </>
+        ) : (
+          <>
+            Límite mensual {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días
+            restantes
+          </>
+        )}
+      </p>
+      {(recibosEfectivos > 0 || msiPendientes > 0) && (
+        <p className="mt-2 text-xs text-slate-400">
+          Sin contar
+          {recibosEfectivos > 0 && ` ${formatCurrency(recibosEfectivos)} en pagos próximos`}
+          {recibosEfectivos > 0 && msiPendientes > 0 && ' ni'}
+          {msiPendientes > 0 && ` ${formatCurrency(msiPendientes)} en MSI pendientes`}
+        </p>
+      )}
+      {diaAgotamiento != null && !vistaQuincenal && (
+        <p className="mt-1 text-xs text-slate-400">
+          Al ritmo actual, el presupuesto se agotaría alrededor del día {diaAgotamiento}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export default memo(function PresupuestoWidget(props: PresupuestoWidgetProps) {
+  const {
+    vistaQuincenal,
+    limiteInput,
+    guardandoLimite,
+    onLimiteInputChange,
+    onGuardarLimite,
+    onToggleVistaQuincenal,
+    mode = 'summary',
+  } = props
+
+  if (mode === 'settings') {
+    return (
+      <div className="space-y-4">
+        <p className="text-sm font-medium text-slate-300">Ajustes de presupuesto</p>
+        <div className="flex items-center justify-center">
           <div className="inline-flex rounded-full border border-slate-600/80 bg-slate-900/60 p-0.5 text-[10px]">
             <button
               type="button"
@@ -64,7 +134,7 @@ export default memo(function PresupuestoWidget({
                   : 'text-slate-400 hover:text-slate-200 active:bg-slate-700'
               }`}
             >
-              Mensual
+              Vista mensual
             </button>
             <button
               type="button"
@@ -75,71 +145,39 @@ export default memo(function PresupuestoWidget({
                   : 'text-slate-400 hover:text-slate-200 active:bg-slate-700'
               }`}
             >
-              Quincenal
+              Vista quincenal
             </button>
           </div>
         </div>
-        <p
-          className={`mt-1 text-2xl font-bold ${
-            disponible >= 0 || modoTranquilo ? 'text-emerald-400' : 'text-amber-400'
-          }`}
-        >
-          {disponible >= 0 || modoTranquilo
-            ? `Puedes gastar ${formatCurrency(presupuestoDiario)} hoy`
-            : `Apretado: ${formatCurrency(Math.abs(disponible))} sobre tu límite`}
-        </p>
-        <p className="mt-1 text-xs text-slate-500">
-          {vistaQuincenal ? (
-            <>
-              Quincena {quincenaPeriodo} · Límite {formatCurrency(limiteMensual / 2)} ·{' '}
-              {diasRestantesEfectivos} días restantes
-            </>
-          ) : (
-            <>
-              Límite {formatCurrency(limiteMensual)} · {diasRestantesEfectivos} días restantes
-            </>
-          )}
-        </p>
-        {(recibosEfectivos > 0 || msiPendientes > 0) && (
-          <p className="mt-1 text-xs text-slate-400">
-            Excluyendo
-            {recibosEfectivos > 0 && ` ${formatCurrency(recibosEfectivos)} en recibos próximos`}
-            {recibosEfectivos > 0 && msiPendientes > 0 && ' y'}
-            {msiPendientes > 0 && ` ${formatCurrency(msiPendientes)} en MSI pendientes`}
-          </p>
-        )}
-        {diaAgotamiento != null && !vistaQuincenal && (
-          <p className="mt-1 text-xs text-slate-400">
-            Al ritmo actual, tu límite se acaba ~el día {diaAgotamiento}
-          </p>
-        )}
-      </div>
 
-      <form onSubmit={onGuardarLimite} className={`flex gap-2 ${formWithKeyboardClassName}`}>
-        <div className="min-w-0 flex-1">
-          <label htmlFor="limite" className="sr-only">
-            Límite mensual
-          </label>
-          <input
-            id="limite"
-            type="number"
-            inputMode="decimal"
-            min="1"
-            step="100"
-            value={limiteInput}
-            onChange={(e) => onLimiteInputChange(e.target.value)}
-            className={inputClassName}
-            placeholder="Límite mensual"
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={guardandoLimite}
-          className={`shrink-0 ${buttonSecondaryClassName}`}
-        >
-          {guardandoLimite ? '...' : 'Guardar'}
-        </button>
-      </form>
-    </>
-  )
+        <form onSubmit={onGuardarLimite} className={`flex gap-2 ${formWithKeyboardClassName}`}>
+          <div className="min-w-0 flex-1">
+            <label htmlFor="limite" className="sr-only">
+              Límite mensual
+            </label>
+            <input
+              id="limite"
+              type="number"
+              inputMode="decimal"
+              min="1"
+              step="100"
+              value={limiteInput}
+              onChange={(e) => onLimiteInputChange(e.target.value)}
+              className={inputClassName}
+              placeholder="Límite mensual"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={guardandoLimite}
+            className={`shrink-0 ${buttonSecondaryClassName}`}
+          >
+            {guardandoLimite ? 'Guardando...' : 'Guardar'}
+          </button>
+        </form>
+      </div>
+    )
+  }
+
+  return <PresupuestoSummary {...props} />
 })

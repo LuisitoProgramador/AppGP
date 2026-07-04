@@ -1,10 +1,11 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import { useAuthContext, useGastosData } from '../contexts'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { useAuthContext, useCuentas, useGastosData } from '../contexts'
 import {
   createGastoRecurrente,
   deleteGastoRecurrente,
   listGastosRecurrentes,
 } from '../services/gastosRecurrentes'
+import { getDefaultCuentaId } from '../services/cuentas'
 import { CATEGORIAS, type GastoRecurrente } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { isOnline } from '../utils/network'
@@ -17,6 +18,7 @@ const initialForm = {
   monto: '',
   categoria: CATEGORIAS[0],
   dia_mes: '1',
+  cuentaId: '',
 }
 
 function TrashIcon() {
@@ -41,8 +43,14 @@ function TrashIcon() {
   )
 }
 
+function cuentaLabel(cuentas: { id: string; nombre: string }[], cuentaId: string | null): string {
+  if (!cuentaId) return 'Cuenta predeterminada'
+  return cuentas.find((c) => c.id === cuentaId)?.nombre ?? 'Cuenta asignada'
+}
+
 export default function GastosRecurrentes() {
   const { user } = useAuthContext()
+  const { cuentas, cuentasLoading } = useCuentas()
   const { refreshKey, refresh } = useGastosData()
   const [items, setItems] = useState<GastoRecurrente[]>([])
   const [form, setForm] = useState(initialForm)
@@ -72,6 +80,16 @@ export default function GastosRecurrentes() {
     cargarRecurrentes()
   }, [cargarRecurrentes, refreshKey])
 
+  useEffect(() => {
+    if (form.cuentaId || cuentas.length === 0) return
+    const defaultId = getDefaultCuentaId(cuentas)
+    if (defaultId) {
+      setForm((prev) => ({ ...prev, cuentaId: defaultId }))
+    }
+  }, [cuentas, form.cuentaId])
+
+  const cuentasDisponibles = useMemo(() => cuentas, [cuentas])
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -90,6 +108,11 @@ export default function GastosRecurrentes() {
     const diaError = validateDiaMes(form.dia_mes)
     if (diaError) {
       showError(diaError)
+      return
+    }
+
+    if (!form.cuentaId) {
+      showError('Selecciona la cuenta desde la que se cobrará este pago.')
       return
     }
 
@@ -112,6 +135,7 @@ export default function GastosRecurrentes() {
       monto: Number(form.monto),
       categoria: form.categoria,
       dia_mes: diaMes,
+      cuenta_id: form.cuentaId,
     })
 
     setGuardando(false)
@@ -121,7 +145,10 @@ export default function GastosRecurrentes() {
       return
     }
 
-    setForm(initialForm)
+    setForm((prev) => ({
+      ...initialForm,
+      cuentaId: prev.cuentaId,
+    }))
     showSuccess('Gasto recurrente configurado.')
     refresh()
     cargarRecurrentes()
@@ -155,13 +182,13 @@ export default function GastosRecurrentes() {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Gastos recurrentes</h2>
         <p className="text-sm text-slate-400">
-          Suscripciones y pagos fijos que se registran solos cada mes
+          Pagos fijos que se registran automáticamente cada mes
         </p>
       </div>
 
       {error && (
         <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-          Error al cargar: {error}
+          No se pudieron cargar los gastos recurrentes: {error}
         </p>
       )}
 
@@ -177,7 +204,7 @@ export default function GastosRecurrentes() {
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-white">{item.descripcion}</p>
                 <p className="text-xs text-slate-400">
-                  {item.categoria} · día {item.dia_mes} de cada mes
+                  {item.categoria} · día {item.dia_mes} · {cuentaLabel(cuentas, item.cuenta_id)}
                 </p>
               </div>
               <p className="shrink-0 text-sm font-semibold text-slate-200">
@@ -199,12 +226,12 @@ export default function GastosRecurrentes() {
 
       {!cargando && items.length === 0 && !error && (
         <p className="text-center text-sm text-slate-400">
-          No tienes gastos recurrentes configurados.
+          No hay gastos recurrentes configurados.
         </p>
       )}
 
       <form onSubmit={handleSubmit} className={`space-y-4 border-t border-slate-700/60 pt-4 ${formWithKeyboardClassName}`}>
-        <h3 className="text-sm font-semibold text-slate-300">Añadir recurrente</h3>
+        <h3 className="text-sm font-semibold text-slate-300">Nuevo gasto recurrente</h3>
 
         <div className="space-y-2">
           <label htmlFor="rec-descripcion" className="block text-sm font-medium text-slate-300">
@@ -215,7 +242,7 @@ export default function GastosRecurrentes() {
             type="text"
             inputMode="text"
             maxLength={200}
-            placeholder="Ej. Netflix, Internet..."
+            placeholder="Ej. Suscripción, renta, seguro"
             value={form.descripcion}
             onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))}
             className={inputClassName}
@@ -284,13 +311,43 @@ export default function GastosRecurrentes() {
           </select>
         </div>
 
+        <div className="space-y-2">
+          <label htmlFor="rec-cuenta" className="block text-sm font-medium text-slate-300">
+            Cuenta de pago
+          </label>
+          <select
+            id="rec-cuenta"
+            value={form.cuentaId}
+            onChange={(e) => setForm((prev) => ({ ...prev, cuentaId: e.target.value }))}
+            className={inputClassName}
+            required
+            disabled={cuentasLoading || cuentasDisponibles.length === 0}
+          >
+            {cuentasLoading && <option value="">Cargando cuentas...</option>}
+            {!cuentasLoading && cuentasDisponibles.length === 0 && (
+              <option value="">No hay cuentas configuradas</option>
+            )}
+            {cuentasDisponibles.map((cuenta) => (
+              <option key={cuenta.id} value={cuenta.id}>
+                {cuenta.nombre}
+                {cuenta.tipo === 'credito' ? ' (Crédito)' : ''}
+              </option>
+            ))}
+          </select>
+          {!cuentasLoading && cuentasDisponibles.length === 0 && (
+            <p className="text-xs text-slate-500">
+              No hay cuentas configuradas. Añade una para comenzar.
+            </p>
+          )}
+        </div>
+
         <div className={formSubmitStickyClassName}>
           <button
             type="submit"
-            disabled={guardando}
+            disabled={guardando || cuentasDisponibles.length === 0}
             className={buttonVioletClassName}
           >
-            {guardando ? 'Guardando...' : 'Añadir recurrente'}
+            {guardando ? 'Guardando...' : 'Guardar gasto recurrente'}
           </button>
         </div>
       </form>

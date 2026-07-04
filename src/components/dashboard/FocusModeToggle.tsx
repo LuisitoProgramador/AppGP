@@ -12,8 +12,8 @@ export default memo(function FocusModeToggle({ isFocusMode, onToggle }: FocusMod
         type="button"
         onClick={onToggle}
         aria-pressed={isFocusMode}
-        aria-label={isFocusMode ? 'Salir de modo focus' : 'Activar modo focus'}
-        title={isFocusMode ? 'Salir de modo focus' : 'Modo focus'}
+        aria-label={isFocusMode ? 'Salir de vista concentrada' : 'Activar vista concentrada'}
+        title={isFocusMode ? 'Salir de vista concentrada' : 'Vista concentrada'}
         className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border p-2.5 text-sm touch-manipulation transition-all duration-300 active:scale-[0.98] ${
           isFocusMode
             ? 'border-indigo-500/50 bg-indigo-500/15 text-indigo-300 active:bg-indigo-500/25'

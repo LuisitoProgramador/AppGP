@@ -8,6 +8,7 @@ create table public.gastos_recurrentes (
   categoria text not null,
   dia_mes smallint not null check (dia_mes >= 1 and dia_mes <= 31),
   ultimo_registro timestamptz,
+  cuenta_id uuid references public.cuentas (id) on delete set null,
   created_at timestamptz default timezone('utc', now()) not null
 );
 
@@ -35,3 +36,4 @@ before insert on public.gastos_recurrentes
 for each row execute function public.set_gasto_user_id();
 
 create index gastos_recurrentes_user_id_idx on public.gastos_recurrentes (user_id);
+create index gastos_recurrentes_cuenta_id_idx on public.gastos_recurrentes (cuenta_id);

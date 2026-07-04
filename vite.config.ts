@@ -23,9 +23,9 @@ export default defineConfig({
         'apple-touch-icon.png',
       ],
       manifest: {
-        name: 'Gastos Personales',
-        short_name: 'Gastos',
-        description: 'App de gastos personales',
+        name: 'Pulso',
+        short_name: 'Pulso',
+        description: 'Control financiero personal con claridad y enfoque',
         theme_color: '#0f172a',
         background_color: '#0f172a',
         display: 'standalone',

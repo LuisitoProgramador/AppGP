@@ -42,7 +42,6 @@ export interface OnboardingCuentaLiquida {
 
 export interface OnboardingData {
   sueldoMensual: number
-  ingresosExtras: number
   diaPago: number
   porcentajeAhorro: number
   gastosFijos: OnboardingGastoFijo[]
@@ -78,16 +77,12 @@ export async function completeOnboarding(
   data: OnboardingData,
 ): Promise<{ error: string | null }> {
   const sueldoSemanal = calcSueldoSemanalDesdeMensual(data.sueldoMensual)
-  const limiteMensual = calcLimiteMensual(
-    data.sueldoMensual,
-    data.porcentajeAhorro,
-    data.ingresosExtras,
-  )
+  const limiteMensual = calcLimiteMensual(data.sueldoMensual, data.porcentajeAhorro)
 
   const { error: presupuestoError } = await savePresupuesto(userId, {
     limite_mensual: limiteMensual,
     sueldo_mensual: data.sueldoMensual,
-    ingresos_extras: data.ingresosExtras,
+    ingresos_extras: 0,
     sueldo_semanal: sueldoSemanal,
     dia_pago: data.diaPago,
     porcentaje_ahorro: data.porcentajeAhorro,
@@ -103,6 +98,7 @@ export async function completeOnboarding(
       monto: gasto.monto,
       categoria: gasto.categoria,
       dia_mes: gasto.dia_mes,
+      cuenta_id: null,
     })
     if (error) return { error }
   }

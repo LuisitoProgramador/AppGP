@@ -80,7 +80,7 @@ function AppContent() {
     return (
       <Layout>
         <section className="space-y-6">
-          <h1 className="text-center text-3xl font-bold">Mi Presupuesto</h1>
+          <h1 className="text-center text-3xl font-bold">Pulso</h1>
           <LoginForm />
         </section>
       </Layout>
@@ -121,7 +121,7 @@ function AppContent() {
         <Layout>
           <section className="space-y-6">
           <div className="flex items-start justify-between gap-4">
-            <h1 className="text-3xl font-bold">Mi Presupuesto</h1>
+            <h1 className="text-3xl font-bold">Pulso</h1>
             <button
               type="button"
               onClick={handleSignOut}
@@ -130,7 +130,6 @@ function AppContent() {
               Salir
             </button>
           </div>
-          <p className="text-sm text-slate-400">{user.email}</p>
 
           <div
             className="flex rounded-xl border border-slate-700/80 bg-slate-800/60 p-1"

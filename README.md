@@ -1,6 +1,8 @@
-# Gastos Personales (PWA)
+# Pulso
 
-App de gastos personales construida con React, Vite, Tailwind CSS y Supabase. Desplegable en Vercel.
+**Pulso** es una aplicación de finanzas personales diseñada para darte claridad sobre tu dinero: registra gastos, administra cuentas, define presupuestos y sigue tu ritmo financiero con una interfaz limpia y enfocada.
+
+Construida con React, Vite, Tailwind CSS y Supabase. Instalable como PWA y desplegable en Vercel.
 
 ## Stack
 
@@ -14,17 +16,15 @@ App de gastos personales construida con React, Vite, Tailwind CSS y Supabase. De
 
 ```
 src/
-├── components/     # Componentes reutilizables (Layout, etc.)
-├── contexts/       # Contextos de React (AuthContext)
-├── hooks/          # Custom hooks (useAuth)
-├── pages/          # Vistas/páginas de la app
+├── components/     # Componentes reutilizables (Layout, Dashboard, etc.)
+├── contexts/       # Contextos de React (Auth, Cuentas, Gastos)
+├── hooks/          # Custom hooks
 ├── services/       # Cliente Supabase y servicios API
-├── utils/          # Utilidades (formatCurrency, formatDate)
-├── assets/         # Imágenes y recursos estáticos
-├── App.jsx
-├── main.jsx
+├── utils/          # Utilidades (formatCurrency, finanzas)
+├── App.tsx
+├── main.tsx
 └── index.css
-public/             # Iconos PWA y favicon
+public/             # Iconos PWA, manifest y favicon
 ```
 
 ## Configuración local
@@ -56,16 +56,17 @@ npm run dev
 
 ## Scripts
 
-| Comando         | Descripción                    |
-|-----------------|--------------------------------|
-| `npm run dev`   | Servidor de desarrollo         |
-| `npm run build` | Build de producción            |
-| `npm run preview` | Vista previa del build       |
-| `npm run lint`  | Linter (Oxlint)                |
+| Comando           | Descripción              |
+|-------------------|--------------------------|
+| `npm run dev`     | Servidor de desarrollo   |
+| `npm run build`   | Build de producción      |
+| `npm run preview` | Vista previa del build   |
+| `npm run lint`    | Linter (Oxlint)          |
+| `npm test`        | Tests (Vitest)           |
 
 ## PWA
 
-La app está configurada como PWA instalable en `vite.config.js`:
+Pulso está configurada como PWA instalable en `vite.config.ts`:
 
 - **Manifest:** nombre, iconos, tema y modo standalone
 - **Service Worker:** precache de assets y caché NetworkFirst para la API de Supabase
@@ -81,9 +82,9 @@ Para probar la instalación, ejecuta `npm run build && npm run preview` y usa "I
 
 ## Supabase
 
-Importa el cliente desde `src/services/supabase.js`:
+Importa el cliente desde `src/services/supabase.ts`:
 
-```js
+```ts
 import { supabase } from './services/supabase'
 ```
 

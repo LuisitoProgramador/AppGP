@@ -1,7 +1,6 @@
 import { type FormEvent, useState } from 'react'
 import { useAuthContext } from '../contexts'
 import {
-  calcIngresoMensualTotal,
   calcLimiteMensual,
   calcPrimerAhorro,
   completeOnboarding,
@@ -32,7 +31,7 @@ import { DIAS_PAGO } from '../constants/diasPago'
 
 const TOTAL_STEPS = 4
 
-const SUGERENCIAS = ['Renta', 'Internet', 'Netflix']
+const SUGERENCIAS = ['Renta', 'Internet', 'Suscripción']
 
 interface GastoFijoDraft {
   id: string
@@ -85,7 +84,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   const [guardando, setGuardando] = useState(false)
 
   const [sueldoMensual, setSueldoMensual] = useState('')
-  const [ingresosExtras, setIngresosExtras] = useState('')
   const [diaPago, setDiaPago] = useState<number>(5)
   const [porcentajeAhorro, setPorcentajeAhorro] = useState(15)
 
@@ -115,24 +113,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
     }, 150)
   }
 
-  function validateIngresosExtrasOpcional(value: string): string | null {
-    if (!value.trim()) return null
-    const monto = Number(value)
-    if (Number.isNaN(monto) || monto < 0) {
-      return 'Los ingresos extras deben ser un número válido mayor o igual a 0.'
-    }
-    return null
-  }
-
   function handleStep1Next() {
     const montoError = validateMonto(sueldoMensual)
     if (montoError) {
       showError(montoError)
-      return
-    }
-    const extrasError = validateIngresosExtrasOpcional(ingresosExtras)
-    if (extrasError) {
-      showError(extrasError)
       return
     }
     goToStep(2)
@@ -271,13 +255,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
       return
     }
 
-    const extrasError = validateIngresosExtrasOpcional(ingresosExtras)
-    if (extrasError) {
-      showError(extrasError)
-      goToStep(1)
-      return
-    }
-
     setGuardando(true)
 
     const tarjetasData: OnboardingTarjeta[] = tarjetas.map((t) => ({
@@ -294,7 +271,6 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
     const { error } = await completeOnboarding(user.id, {
       sueldoMensual: Number(sueldoMensual),
-      ingresosExtras: ingresosExtras.trim() ? Number(ingresosExtras) : 0,
       diaPago,
       porcentajeAhorro,
       gastosFijos: gastosFijos.map((g) => ({
@@ -324,11 +300,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
   }
 
   const sueldoNum = Number(sueldoMensual) || 0
-  const extrasNum = ingresosExtras.trim() ? Number(ingresosExtras) || 0 : 0
-  const ingresoMensualTotal =
-    sueldoNum > 0 ? calcIngresoMensualTotal(sueldoNum, extrasNum) : null
   const limitePreview =
-    sueldoNum > 0 ? calcLimiteMensual(sueldoNum, porcentajeAhorro, extrasNum) : null
+    sueldoNum > 0 ? calcLimiteMensual(sueldoNum, porcentajeAhorro) : null
   const ahorroPreview = sueldoNum > 0 ? calcPrimerAhorro(sueldoNum, porcentajeAhorro) : null
 
   const stepTitles = ['Tus ingresos', 'Gastos fijos', 'Tu ahorro', 'Tus cuentas']
@@ -376,31 +349,10 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="onb-extras" className="block text-sm font-medium text-slate-300">
-                Ingresos extras mensuales estimados
-                <span className="ml-1 font-normal text-slate-500">(opcional)</span>
-              </label>
-              <input
-                id="onb-extras"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="Bonos, ventas, intereses de NU..."
-                value={ingresosExtras}
-                onChange={(e) => setIngresosExtras(e.target.value)}
-                className={inputClassName}
-              />
-              <p className="text-xs text-slate-500">
-                Bonos, ventas, intereses de NU u otros ingresos recurrentes del mes
-              </p>
-            </div>
-
-            {ingresoMensualTotal != null && ingresoMensualTotal > 0 && (
+            {sueldoNum > 0 && (
               <p className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
-                Total mensual disponible para presupuesto:{' '}
-                <strong className="text-white">{formatCurrency(ingresoMensualTotal)}</strong>
+                Ingreso base mensual:{' '}
+                <strong className="text-white">{formatCurrency(sueldoNum)}</strong>
               </p>
             )}
 
@@ -569,15 +521,13 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               </div>
             </div>
 
-            {limitePreview != null && ingresoMensualTotal != null && (
+            {limitePreview != null && sueldoNum > 0 && (
               <p className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-sm text-blue-300">
                 Con {porcentajeAhorro}% de ahorro, tu presupuesto mensual para gastar será de{' '}
                 <strong className="text-white">{formatCurrency(limitePreview)}</strong>
-                {extrasNum > 0 && (
-                  <span className="block mt-1 text-xs text-blue-200/80">
-                    Basado en {formatCurrency(ingresoMensualTotal)} de ingreso mensual total
-                  </span>
-                )}
+                <span className="mt-1 block text-xs text-blue-200/80">
+                  Basado en {formatCurrency(sueldoNum)} de sueldo mensual
+                </span>
               </p>
             )}
 
@@ -605,7 +555,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
             <div className="space-y-1">
               <h2 className="text-lg font-semibold text-white">Tus cuentas</h2>
               <p className="text-sm text-slate-400">
-                Opcional — registra débito/ahorro y tarjetas para un control más real
+                Opcional: registra cuentas de débito, ahorro y crédito para un control más preciso
               </p>
             </div>
 
@@ -649,7 +599,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                   onClick={() => setShowCuentaLiquidaForm(true)}
                   className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-emerald-500/50 hover:text-white"
                 >
-                  + Añadir cuenta (NU, débito...)
+                  + Añadir cuenta de débito o ahorro
                 </button>
               ) : (
                 <form
@@ -667,7 +617,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                       id="onb-cuenta-nombre"
                       type="text"
                       maxLength={60}
-                      placeholder="Ej. NU, BBVA débito..."
+                      placeholder="Ej. Cuenta 1, Ahorro"
                       value={cuentaLiquidaForm.nombre}
                       onChange={(e) =>
                         setCuentaLiquidaForm((prev) => ({ ...prev, nombre: e.target.value }))
@@ -769,7 +719,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                     id="onb-tarjeta-nombre"
                     type="text"
                     maxLength={60}
-                    placeholder="Ej. Banamex, BBVA..."
+                    placeholder="Ej. Tarjeta A, Crédito"
                     value={tarjetaForm.nombre}
                     onChange={(e) =>
                       setTarjetaForm((prev) => ({ ...prev, nombre: e.target.value }))

@@ -13,6 +13,7 @@ interface DashboardHeaderProps {
   modoTranquilo: boolean
   onToggleModoViaje: () => void
   onToggleModoTranquilo: () => void
+  compact?: boolean
 }
 
 export default memo(function DashboardHeader({
@@ -25,22 +26,30 @@ export default memo(function DashboardHeader({
   modoTranquilo,
   onToggleModoViaje,
   onToggleModoTranquilo,
+  compact = false,
 }: DashboardHeaderProps) {
   return (
     <div className="flex items-start justify-between gap-3 transition-all duration-300">
       <div className="min-w-0 flex-1 space-y-3">
         <MonthSelector value={selectedMonth} onChange={onMonthChange} />
-        <div className="space-y-1 text-center">
-          <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
-            Gasto del mes
+        {!compact && (
+          <div className="space-y-1 text-center">
+            <p className="text-sm font-medium uppercase tracking-wide text-slate-400">
+              Gasto del mes
+            </p>
+            <p className="text-sm capitalize text-slate-500">{mesLabel}</p>
+            {cargando ? (
+              <p className="pt-2 text-4xl font-bold text-slate-500">...</p>
+            ) : (
+              <p className="pt-2 text-4xl font-bold text-white">{formatCurrency(gastoTotal)}</p>
+            )}
+          </div>
+        )}
+        {compact && (
+          <p className="text-center text-sm text-slate-500">
+            {cargando ? 'Cargando...' : `${mesLabel} · Gastado ${formatCurrency(gastoTotal)}`}
           </p>
-          <p className="text-sm capitalize text-slate-500">{mesLabel}</p>
-          {cargando ? (
-            <p className="pt-2 text-4xl font-bold text-slate-500">...</p>
-          ) : (
-            <p className="pt-2 text-4xl font-bold text-white">{formatCurrency(gastoTotal)}</p>
-          )}
-        </div>
+        )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-2">
         <button

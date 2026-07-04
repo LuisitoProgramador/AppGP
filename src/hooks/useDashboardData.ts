@@ -3,7 +3,7 @@ import { useAuthContext, useGastosData, useOfflineSync, useQuietMode } from '../
 import { usePresupuestoDiario } from './usePresupuestoDiario'
 import { useStableArray } from './useStableArray'
 import { getLimiteMensual, getPresupuesto, getIngresoMensualTotal, saveLimiteMensual } from '../services/presupuesto'
-import { listCuentas } from '../services/cuentas'
+import { getDefaultCuentaId, listCuentas } from '../services/cuentas'
 import { listGastosRecurrentes, createGastoRecurrente } from '../services/gastosRecurrentes'
 import { supabase } from '../services/supabase'
 import type { GastoRecurrente } from '../types/gasto'
@@ -460,11 +460,16 @@ export function useDashboardData(
     if (!recurrenteSugerido || !user) return
 
     setMarcandoRecurrente(true)
+
+    const { data: cuentasData } = await listCuentas(user.id)
+    const cuentaId = getDefaultCuentaId(cuentasData)
+
     const { error: createError } = await createGastoRecurrente({
       descripcion: recurrenteSugerido.descripcion,
       monto: recurrenteSugerido.monto,
       categoria: recurrenteSugerido.categoria,
       dia_mes: recurrenteSugerido.dia_mes,
+      cuenta_id: cuentaId,
     })
     setMarcandoRecurrente(false)
 

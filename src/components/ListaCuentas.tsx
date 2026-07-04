@@ -8,7 +8,8 @@ import { getCreditUtilization, utilizationColor } from '../utils/creditUtilizati
 import { isOnline } from '../utils/network'
 import { showError, showSuccess } from '../utils/toast'
 import ModalPortal from './ModalPortal'
-import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryCompactClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName, buttonGhostFlexClassName, modalFormClassName } from './formStyles'
+import RegistrarIngresoModal from './RegistrarIngresoModal'
+import { cardClassName, formWithKeyboardClassName, inputClassName, buttonPrimaryCompactClassName, buttonPrimaryClassName, buttonSecondaryFlexClassName, buttonGhostFlexClassName, buttonGhostSmClassName, modalFormClassName } from './formStyles'
 
 const initialForm = {
   nombre: '',
@@ -81,6 +82,7 @@ export default function ListaCuentas() {
   const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
   const { refresh } = useGastosData()
   const [modalOpen, setModalOpen] = useState(false)
+  const [ingresoModalOpen, setIngresoModalOpen] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
 
@@ -176,13 +178,22 @@ export default function ListaCuentas() {
             Efectivo, débito y tarjetas de crédito
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openModal}
-          className={buttonPrimaryCompactClassName}
-        >
-          + Nueva
-        </button>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => setIngresoModalOpen(true)}
+            className={buttonGhostSmClassName}
+          >
+            + Ingreso
+          </button>
+          <button
+            type="button"
+            onClick={openModal}
+            className={buttonPrimaryCompactClassName}
+          >
+            + Nueva cuenta
+          </button>
+        </div>
       </div>
 
       {cuentasLoading && (
@@ -191,7 +202,7 @@ export default function ListaCuentas() {
 
       {!cuentasLoading && cuentas.length === 0 && (
         <p className="text-center text-sm text-slate-400">
-          No tienes cuentas registradas. Añade una para asociar tus gastos.
+          No hay cuentas configuradas. Añade una para comenzar.
         </p>
       )}
 
@@ -201,6 +212,16 @@ export default function ListaCuentas() {
             <CuentaCard key={cuenta.id} cuenta={cuenta} />
           ))}
         </div>
+      )}
+
+      {ingresoModalOpen && (
+        <RegistrarIngresoModal
+          onClose={() => {
+            setIngresoModalOpen(false)
+            refresh()
+            void cargarCuentas()
+          }}
+        />
       )}
 
       {modalOpen && (
@@ -227,7 +248,7 @@ export default function ListaCuentas() {
                 type="text"
                 inputMode="text"
                 maxLength={60}
-                placeholder="Ej. Banamex, Efectivo..."
+                placeholder="Ej. Cuenta 1, Débito"
                 value={form.nombre}
                 onChange={(e) => setForm((prev) => ({ ...prev, nombre: e.target.value }))}
                 className={inputClassName}

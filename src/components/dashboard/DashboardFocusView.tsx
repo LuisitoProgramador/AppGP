@@ -48,7 +48,7 @@ export default memo(function DashboardFocusView({
         </>
       ) : (
         <p className="text-sm text-slate-400">
-          {cargando ? 'Cargando...' : 'Modo focus disponible solo para el mes actual.'}
+          {cargando ? 'Cargando...' : 'La vista concentrada está disponible solo para el mes actual.'}
         </p>
       )}
     </div>

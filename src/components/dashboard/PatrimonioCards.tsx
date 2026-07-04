@@ -23,7 +23,7 @@ export default memo(function PatrimonioCards({
             {formatCurrency(ingresoMensualTotal)}
           </p>
           <p className="mt-1 text-xs text-slate-500">
-            Sueldo + extras · límite gasto {formatCurrency(limiteMensual)}
+            Ingreso mensual · límite de gasto {formatCurrency(limiteMensual)}
           </p>
         </div>
       )}

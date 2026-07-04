@@ -15,7 +15,7 @@ function SalidasTimeline({ items }: SalidasTimelineProps) {
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Salidas del mes</h2>
         <p className="text-sm text-slate-400">
-          Recurrentes y cuotas MSI programadas — solo lectura
+          Pagos recurrentes y cuotas MSI programadas para este mes
         </p>
       </div>
 

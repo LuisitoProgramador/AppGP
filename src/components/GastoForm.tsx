@@ -460,7 +460,7 @@ export default memo(function GastoForm() {
     <form onSubmit={handleSubmit} className={`${cardClassName} ${formWithKeyboardClassName}`}>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
-        <p className="text-sm text-slate-400">Registra un movimiento rápido</p>
+        <p className="text-sm text-slate-400">Registra un movimiento</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -516,7 +516,7 @@ export default memo(function GastoForm() {
         >
           {cuentasLoading && <option value="">Cargando cuentas...</option>}
           {!cuentasLoading && cuentas.length === 0 && (
-            <option value="">Sin cuentas — añade una en Resumen</option>
+            <option value="">No hay cuentas configuradas. Añade una para comenzar.</option>
           )}
           {cuentas.map((cuenta) => (
             <option key={cuenta.id} value={cuenta.id}>
@@ -610,7 +610,7 @@ export default memo(function GastoForm() {
             onClick={handleRepetirUltimo}
             className={chipButtonClassName}
           >
-            Repetir: {ultimoGasto.descripcion} — {formatCurrency(ultimoGasto.monto)}
+            Repetir {ultimoGasto.descripcion} · {formatCurrency(ultimoGasto.monto)}
           </button>
         )}
       </div>
@@ -624,7 +624,7 @@ export default memo(function GastoForm() {
           type="text"
           inputMode="text"
           maxLength={200}
-          placeholder="Ej. Supermercado, Uber, Netflix..."
+          placeholder="Ej. Supermercado, transporte, suscripción"
           value={form.descripcion}
           onChange={(e) =>
             setForm((prev) => ({ ...prev, descripcion: e.target.value }))

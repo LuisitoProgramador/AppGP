@@ -33,7 +33,7 @@ export default memo(function MeAlcanzaWidget({
         className="flex w-full min-h-11 items-center justify-between px-4 py-3 text-left text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:bg-slate-700/50 hover:text-white"
         aria-expanded={mostrar}
       >
-        <span>¿Me alcanza para...?</span>
+        <span>Simular una compra</span>
         <span className="text-xs text-slate-500">{mostrar ? '▲' : '▼'}</span>
       </button>
       {mostrar && (
