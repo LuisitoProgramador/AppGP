@@ -23,9 +23,6 @@ export async function listMetasAhorro(
     return { data: readCache(userId), error: null, fromCache: true }
   }
 
-  const { ensureMetaAhorroAnioCalendario } = await import('./sync')
-  await ensureMetaAhorroAnioCalendario(userId)
-
   const { data, error } = await supabase
     .from('metas_ahorro')
     .select(META_SELECT)

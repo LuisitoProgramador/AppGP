@@ -28,12 +28,12 @@ vi.mock('./supabase.js', () => ({
   },
 }))
 
-vi.mock('./metasAhorro', () => ({
+vi.mock('./metasAhorro/sync', () => ({
   syncMetasAnualesConPresupuesto: vi.fn().mockResolvedValue(false),
 }))
 
 import { savePresupuestoFinanciero } from './presupuesto'
-import { syncMetasAnualesConPresupuesto } from './metasAhorro'
+import { syncMetasAnualesConPresupuesto } from './metasAhorro/sync'
 
 const userId = '00000000-0000-4000-8000-000000000001'
 

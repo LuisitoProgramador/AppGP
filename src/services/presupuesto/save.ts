@@ -2,6 +2,7 @@ import { validatePorcentajeAhorro } from '../../constants/porcentajeAhorro'
 import { calcEstrategiaFinanciera } from '../../utils/finanzas'
 import { limiteTrasActualizarEstrategia } from '../../utils/finanzas/resolveLimiteMensual'
 import { aplicarLimitesRegla503020 } from '../presupuestoCategorias'
+import { syncMetasAnualesConPresupuesto } from '../metasAhorro/sync'
 import { supabase } from '../supabase'
 import { cachePresupuesto } from './cache'
 import { getIngresoMensualTotal, getPresupuesto } from './fetch'
@@ -117,7 +118,6 @@ export async function savePresupuestoFinanciero(
     porcentaje_ahorro: input.porcentaje_ahorro,
   }
 
-  const { syncMetasAnualesConPresupuesto } = await import('../metasAhorro')
   await syncMetasAnualesConPresupuesto(userId, presupuesto)
 
   return { error: null, presupuesto, limiteManualPreservado: limite_es_manual }

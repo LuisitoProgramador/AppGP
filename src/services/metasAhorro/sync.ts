@@ -9,7 +9,7 @@ import {
 } from '../../utils/finanzas/metaCalendario'
 import { isOnline } from '../../utils/core/network'
 import { shouldDiscardAfterRetry } from '../sync/syncPolicy'
-import { getPresupuesto } from '../presupuesto'
+import { getPresupuesto } from '../presupuesto/fetch'
 import { supabase } from '../supabase'
 import { readCache, readPending, revertPendingMetaInCache, writeCache, writePending } from './cache'
 import { createMetaAhorro, listMetasAhorro, mapMeta, META_SELECT } from './crud'
