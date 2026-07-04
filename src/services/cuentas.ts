@@ -416,6 +416,7 @@ export async function registrarIngreso(
   userId: string,
   cuentaId: string,
   monto: number,
+  descripcion: string,
 ): Promise<{ error: string | null }> {
   if (!isOnline()) {
     return offlineServiceError('Sin conexión. Conéctate para registrar un ingreso.')
@@ -423,6 +424,11 @@ export async function registrarIngreso(
 
   if (monto <= 0) {
     return { error: 'El monto debe ser mayor a 0.' }
+  }
+
+  const descripcionLimpia = descripcion.trim()
+  if (!descripcionLimpia) {
+    return { error: 'La descripción es obligatoria.' }
   }
 
   const { data: cuentas, error: listError } = await listCuentas(userId)
@@ -438,9 +444,21 @@ export async function registrarIngreso(
   }
 
   const nuevoSaldo = revertSaldoAfterGasto(cuenta.tipo, cuenta.saldo_actual, monto)
+  const saldoAnterior = cuenta.saldo_actual
 
   const { error: persistError } = await persistCuentaSaldo(userId, cuentaId, nuevoSaldo)
   if (persistError) return { error: persistError }
+
+  const { error: ingresoError } = await supabase.from('ingresos_cuenta').insert({
+    cuenta_id: cuentaId,
+    monto,
+    descripcion: descripcionLimpia,
+  })
+
+  if (ingresoError) {
+    await persistCuentaSaldo(userId, cuentaId, saldoAnterior)
+    return { error: ingresoError.message }
+  }
 
   const updated = cuentas.map((c) =>
     c.id === cuentaId ? { ...c, saldo_actual: nuevoSaldo } : c,

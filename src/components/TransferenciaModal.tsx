@@ -19,6 +19,7 @@ import {
 
 interface TransferenciaModalProps {
   onClose: () => void
+  onSuccess?: () => void
 }
 
 function cuentaOptionLabel(cuenta: Cuenta): string {
@@ -56,7 +57,7 @@ function pagoExcedeDeuda(destino: Cuenta | undefined, monto: number): string | n
   return null
 }
 
-export default function TransferenciaModal({ onClose }: TransferenciaModalProps) {
+export default function TransferenciaModal({ onClose, onSuccess }: TransferenciaModalProps) {
   const { user } = useAuthSession()
   const { cuentas, refreshCuentas } = useCuentas()
   const { refresh } = useGastosRefreshState()
@@ -159,6 +160,7 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
     showSuccess(`${accion} de ${formatCurrency(montoNum)} realizada.`)
     await refreshCuentas()
     refresh()
+    onSuccess?.()
     onClose()
   }
 

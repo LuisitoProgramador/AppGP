@@ -43,6 +43,29 @@ export function filterPendingNotInOptimistic(
   )
 }
 
+function pendingMatchesMonth(gasto: PendingGasto, month: Date): boolean {
+  if (gasto.msiInstallments?.length) {
+    return gasto.msiInstallments.some((row) => isFechaInMonth(row.fecha, month))
+  }
+  return isFechaInMonth(gasto.fecha, month)
+}
+
+export function filterPendingGastos(
+  pending: PendingGasto[],
+  month: Date,
+  categoria: string,
+  busqueda: string,
+): PendingGasto[] {
+  const termino = busqueda.trim().toLowerCase()
+
+  return pending.filter((gasto) => {
+    if (!pendingMatchesMonth(gasto, month)) return false
+    if (categoria !== 'Todas' && gasto.categoria !== categoria) return false
+    if (termino && !gasto.descripcion.toLowerCase().includes(termino)) return false
+    return true
+  })
+}
+
 function filterLineItemsByMonth(items: ResumenLineItem[], month: Date): ResumenLineItem[] {
   return items.filter((item) => isFechaInMonth(item.fecha, month))
 }

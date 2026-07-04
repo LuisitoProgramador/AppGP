@@ -273,8 +273,8 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
 
       {transferenciaModalOpen && (
         <TransferenciaModal
-          onClose={() => {
-            setTransferenciaModalOpen(false)
+          onClose={() => setTransferenciaModalOpen(false)}
+          onSuccess={() => {
             refresh()
             void cargarCuentas()
           }}
@@ -283,8 +283,8 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
 
       {ingresoModalOpen && (
         <RegistrarIngresoModal
-          onClose={() => {
-            setIngresoModalOpen(false)
+          onClose={() => setIngresoModalOpen(false)}
+          onSuccess={() => {
             refresh()
             void cargarCuentas()
           }}

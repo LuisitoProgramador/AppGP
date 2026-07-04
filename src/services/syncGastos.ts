@@ -7,7 +7,9 @@ import { getPendingGastos, removePendingGasto, updatePendingGasto } from './offl
 import { shouldDiscardAfterRetry } from './syncPolicy'
 import { supabase } from './supabase'
 import type { GastoInsertFields } from '../types/gasto'
+import type { PendingGasto } from '../types/gasto'
 import { montoSaldoAlEliminarPendiente } from '../utils/gastoSaldo'
+import { mapWithConcurrency } from '../utils/concurrency'
 
 export interface SyncFailure {
   id: string
@@ -21,6 +23,8 @@ export interface SyncResult {
   discarded: number
   optimisticTempIdsRemoved: string[]
 }
+
+const SYNC_GASTOS_CONCURRENCY = 3
 
 function rowsToInsert(gasto: {
   monto: number
@@ -65,6 +69,26 @@ function validateMsiGroup(rows: GastoInsertFields[]): string | null {
   return null
 }
 
+type GastoInsertOutcome =
+  | { kind: 'synced'; gasto: PendingGasto; rowCount: number }
+  | { kind: 'validation'; gasto: PendingGasto; error: string }
+  | { kind: 'insert_error'; gasto: PendingGasto; error: string }
+
+async function tryInsertPendingGasto(gasto: PendingGasto): Promise<GastoInsertOutcome> {
+  const rows = rowsToInsert(gasto)
+  const msiError = validateMsiGroup(rows)
+  if (msiError) {
+    return { kind: 'validation', gasto, error: msiError }
+  }
+
+  const { error } = await supabase.from('gastos').insert(rows)
+  if (error) {
+    return { kind: 'insert_error', gasto, error: error.message }
+  }
+
+  return { kind: 'synced', gasto, rowCount: rows.length }
+}
+
 export async function syncPendingGastos(): Promise<SyncResult> {
   const pending = await getPendingGastos()
   const result: SyncResult = {
@@ -74,43 +98,27 @@ export async function syncPendingGastos(): Promise<SyncResult> {
     optimisticTempIdsRemoved: [],
   }
 
+  if (pending.length === 0) return result
+
   const {
     data: { user },
   } = await supabase.auth.getUser()
   let cachedCuentas = user ? getCachedCuentas(user.id) : []
 
-  for (const gasto of pending) {
-    const rows = rowsToInsert(gasto)
-    const msiError = validateMsiGroup(rows)
+  const outcomes = await mapWithConcurrency(
+    pending,
+    SYNC_GASTOS_CONCURRENCY,
+    tryInsertPendingGasto,
+  )
 
-    if (msiError) {
-      const retryCount = (gasto.retryCount ?? 0) + 1
-      if (shouldDiscardAfterRetry(retryCount)) {
-        await removePendingGasto(gasto.id)
-        result.discarded += 1
-        result.failures.push({
-          id: gasto.id,
-          descripcion: gasto.descripcion,
-          error: msiError,
-        })
-      } else {
-        await updatePendingGasto({ ...gasto, retryCount })
-        result.failures.push({
-          id: gasto.id,
-          descripcion: gasto.descripcion,
-          error: msiError,
-        })
-      }
-      continue
-    }
+  for (const outcome of outcomes) {
+    const gasto = outcome.gasto
 
-    const { error } = await supabase.from('gastos').insert(rows)
-
-    if (error) {
+    if (outcome.kind === 'validation' || outcome.kind === 'insert_error') {
       const retryCount = (gasto.retryCount ?? 0) + 1
 
       if (shouldDiscardAfterRetry(retryCount)) {
-        if (user && gasto.cuenta_id) {
+        if (user && gasto.cuenta_id && outcome.kind === 'insert_error') {
           const montoRevert = montoSaldoAlEliminarPendiente(gasto)
           cachedCuentas = revertGastoSaldoLocal(
             user.id,
@@ -133,14 +141,14 @@ export async function syncPendingGastos(): Promise<SyncResult> {
         result.failures.push({
           id: gasto.id,
           descripcion: gasto.descripcion,
-          error: error.message,
+          error: outcome.error,
         })
       } else {
         await updatePendingGasto({ ...gasto, retryCount })
         result.failures.push({
           id: gasto.id,
           descripcion: gasto.descripcion,
-          error: error.message,
+          error: outcome.error,
         })
       }
 
@@ -155,7 +163,7 @@ export async function syncPendingGastos(): Promise<SyncResult> {
     }
 
     await removePendingGasto(gasto.id)
-    result.synced += rows.length
+    result.synced += outcome.rowCount
     if (gasto.optimisticTempIds?.length) {
       result.optimisticTempIdsRemoved.push(...gasto.optimisticTempIds)
     }

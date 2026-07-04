@@ -19,9 +19,10 @@ import {
 
 interface RegistrarIngresoModalProps {
   onClose: () => void
+  onSuccess?: () => void
 }
 
-export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModalProps) {
+export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarIngresoModalProps) {
   const { user } = useAuthSession()
   const { cuentas, refreshCuentas } = useCuentas()
   const { refresh } = useGastosRefreshState()
@@ -73,7 +74,12 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
     }
 
     setGuardando(true)
-    const { error } = await registrarIngreso(user.id, cuentaId, parseMontoValue(monto))
+    const { error } = await registrarIngreso(
+      user.id,
+      cuentaId,
+      parseMontoValue(monto),
+      descripcion,
+    )
     setGuardando(false)
 
     if (error) {
@@ -84,6 +90,7 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
     showSuccess(`Ingreso de ${formatCurrency(parseMontoValue(monto))} registrado.`)
     await refreshCuentas()
     refresh()
+    onSuccess?.()
     onClose()
   }
 

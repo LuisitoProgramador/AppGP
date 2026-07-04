@@ -127,6 +127,10 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
       } else if (result.failures.length > 0) {
         showWarning('Algunos gastos offline fallaron y se reintentarán.')
       }
+
+      const metaSynced = await syncPendingMetaAhorro(currentUser.id)
+      if (metaSynced > 0) refreshRef.current()
+      await syncRecurring(currentUser.id)
     } catch (err) {
       const message =
         err instanceof Error ? err.message : 'Error inesperado al sincronizar datos offline.'
@@ -135,7 +139,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
     } finally {
       setIsSyncing(false)
     }
-  }, [updatePendingCount])
+  }, [updatePendingCount, syncRecurring])
 
   const syncOfflineRef = useRef(syncOffline)
   syncOfflineRef.current = syncOffline

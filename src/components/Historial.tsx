@@ -5,7 +5,7 @@ import { supabase } from '../services/supabase'
 import { HISTORIAL_PAGE_SIZE, type Gasto, type PendingGasto } from '../types/gasto'
 import { CATEGORIA_FILTER_OPTIONS } from '../constants/formOptions'
 import { getMonthFechaBounds } from '../utils/date'
-import { filterOptimisticGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
+import { filterOptimisticGastos, filterPendingGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import {
   buildGastoEliminadoSnapshot,
   montoSaldoAlRestaurar,
@@ -58,9 +58,11 @@ export default memo(function Historial() {
   }, [])
 
   const items = useMemo(() => {
-    const pendientes: HistorialItem[] = filterPendingNotInOptimistic(
-      pendingGastos,
-      optimisticGastos,
+    const pendientes: HistorialItem[] = filterPendingGastos(
+      filterPendingNotInOptimistic(pendingGastos, optimisticGastos),
+      selectedMonth,
+      categoriaFiltro,
+      busqueda,
     ).map((gasto) => ({
       ...gasto,
       pendiente: true as const,
