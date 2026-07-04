@@ -8,6 +8,7 @@ create table if not exists public.presupuestos (
   sueldo_semanal decimal check (sueldo_semanal is null or sueldo_semanal > 0),
   dia_pago smallint check (dia_pago is null or (dia_pago >= 0 and dia_pago <= 6)),
   porcentaje_ahorro smallint check (porcentaje_ahorro is null or (porcentaje_ahorro >= 1 and porcentaje_ahorro <= 100)),
+  limite_es_manual boolean not null default false,
   updated_at timestamptz default timezone('utc', now()) not null
 );
 
@@ -15,13 +16,13 @@ alter table public.presupuestos enable row level security;
 
 create policy "Usuarios pueden ver su presupuesto"
 on public.presupuestos for select
-using (auth.uid() = user_id);
+using ((select auth.uid()) = user_id);
 
 create policy "Usuarios pueden insertar su presupuesto"
 on public.presupuestos for insert
-with check (auth.uid() = user_id);
+with check ((select auth.uid()) = user_id);
 
 create policy "Usuarios pueden actualizar su presupuesto"
 on public.presupuestos for update
-using (auth.uid() = user_id)
-with check (auth.uid() = user_id);
+using ((select auth.uid()) = user_id)
+with check ((select auth.uid()) = user_id);

@@ -9,7 +9,11 @@ export function isModoViaje(): boolean {
 }
 
 export function setModoViaje(activo: boolean): void {
-  sessionStorage.setItem(STORAGE_KEY, activo ? '1' : '0')
+  try {
+    sessionStorage.setItem(STORAGE_KEY, activo ? '1' : '0')
+  } catch {
+    // ignore
+  }
 }
 
 export function toggleModoViaje(): boolean {

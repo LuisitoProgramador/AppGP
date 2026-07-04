@@ -141,6 +141,29 @@ async function callUpdateMsiGrupoRpc(
   }
 }
 
+export async function cambiarCuentaMsiGrupo(params: {
+  grupoMsiId: string
+  categoria: string
+  cuentaAnteriorId: string
+  cuentaNuevaId: string
+  installments: MsiInstallmentUpdate[]
+  totalCompra: number
+  idempotencyKey?: string
+}): Promise<UpdateMsiGrupoResult> {
+  return updateMsiGrupo({
+    grupoMsiId: params.grupoMsiId,
+    categoria: params.categoria,
+    cuentaId: params.cuentaNuevaId,
+    installments: params.installments,
+    idempotencyKey: params.idempotencyKey,
+    saldo: {
+      cuentaAnteriorId: params.cuentaAnteriorId,
+      totalAnterior: params.totalCompra,
+      totalNuevo: params.totalCompra,
+    },
+  })
+}
+
 export async function updateMsiGrupo(params: UpdateMsiGrupoParams): Promise<UpdateMsiGrupoResult> {
   if (params.installments.length < 2 || params.installments.length > 48) {
     return { error: 'El número de cuotas debe estar entre 2 y 48.' }

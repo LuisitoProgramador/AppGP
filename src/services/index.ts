@@ -1,6 +1,7 @@
 export { supabase } from './supabase'
 export {
   updateMsiGrupo,
+  cambiarCuentaMsiGrupo,
   verifyMsiGrupoApplied,
   msiGrupoMatchesExpected,
   type MsiGrupoUndoSnapshot,

@@ -9,5 +9,9 @@ export function isModoTranquilo(): boolean {
 }
 
 export function setModoTranquilo(activo: boolean): void {
-  localStorage.setItem(STORAGE_KEY, activo ? '1' : '0')
+  try {
+    localStorage.setItem(STORAGE_KEY, activo ? '1' : '0')
+  } catch {
+    // ignore
+  }
 }

@@ -4,10 +4,14 @@ import {
   calcIngresoMensualTotal,
   SEMANAS_POR_MES,
 } from '../utils/finanzas'
+import { resolveLimiteMensual } from '../utils/resolveLimiteMensual'
 import { supabase } from './supabase'
+
+export { resolveLimiteMensual }
 
 export interface Presupuesto {
   limite_mensual: number
+  limite_es_manual: boolean
   sueldo_mensual: number | null
   ingresos_extras: number | null
   sueldo_semanal: number | null
@@ -16,10 +20,13 @@ export interface Presupuesto {
 }
 
 const PRESUPUESTO_SELECT =
-  'limite_mensual, sueldo_mensual, ingresos_extras, sueldo_semanal, dia_pago, porcentaje_ahorro' as const
+  'limite_mensual, limite_es_manual, sueldo_mensual, ingresos_extras, sueldo_semanal, dia_pago, porcentaje_ahorro' as const
 
 const PRESUPUESTO_SELECT_LEGACY =
   'limite_mensual, sueldo_semanal, dia_pago, porcentaje_ahorro' as const
+
+const PRESUPUESTO_SELECT_NO_MANUAL =
+  'limite_mensual, sueldo_mensual, ingresos_extras, sueldo_semanal, dia_pago, porcentaje_ahorro' as const
 
 function limiteLocalStorageKey(userId: string) {
   return `presupuesto_limite_${userId}`
@@ -50,6 +57,7 @@ function mapPresupuesto(row: Record<string, unknown>): Presupuesto {
 
   return {
     limite_mensual: Number(row.limite_mensual),
+    limite_es_manual: row.limite_es_manual === true,
     sueldo_mensual,
     ingresos_extras,
     sueldo_semanal,
@@ -86,25 +94,29 @@ export function getIngresoMensualTotal(presupuesto: Presupuesto): number | null 
   )
 }
 
-export function resolveLimiteMensual(presupuesto: Presupuesto): number {
-  if (presupuesto.sueldo_mensual != null && presupuesto.porcentaje_ahorro != null) {
-    return calcEstrategiaFinanciera({
-      sueldoMensual: presupuesto.sueldo_mensual,
-      ingresosExtras: presupuesto.ingresos_extras ?? 0,
-      porcentajeAhorro: presupuesto.porcentaje_ahorro,
-    }).disponibleParaGasto
-  }
-  return presupuesto.limite_mensual
-}
-
 async function fetchPresupuestoRow(userId: string) {
-  const withIngresos = await supabase
+  const withManual = await supabase
     .from('presupuestos')
     .select(PRESUPUESTO_SELECT)
     .eq('user_id', userId)
     .maybeSingle()
 
-  if (!withIngresos.error) return withIngresos
+  if (!withManual.error) return withManual
+
+  const withoutManual = await supabase
+    .from('presupuestos')
+    .select(PRESUPUESTO_SELECT_NO_MANUAL)
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (!withoutManual.error) {
+    return {
+      data: withoutManual.data
+        ? { ...withoutManual.data, limite_es_manual: false }
+        : null,
+      error: null,
+    }
+  }
 
   const withOnboarding = await supabase
     .from('presupuestos')
@@ -115,7 +127,7 @@ async function fetchPresupuestoRow(userId: string) {
   if (!withOnboarding.error) {
     return {
       data: withOnboarding.data
-        ? { ...withOnboarding.data, sueldo_mensual: null, ingresos_extras: 0 }
+        ? { ...withOnboarding.data, sueldo_mensual: null, ingresos_extras: 0, limite_es_manual: false }
         : null,
       error: null,
     }
@@ -132,6 +144,7 @@ async function fetchPresupuestoRow(userId: string) {
   return {
     data: {
       ...fallback.data,
+      limite_es_manual: false,
       sueldo_mensual: null,
       ingresos_extras: 0,
       sueldo_semanal: null,
@@ -160,8 +173,12 @@ export async function getLimiteMensual(userId: string): Promise<number> {
     return resolveLimiteMensual(presupuesto)
   }
 
-  const cachedLimite = localStorage.getItem(limiteLocalStorageKey(userId))
-  if (cachedLimite) return Number(cachedLimite)
+  try {
+    const cachedLimite = localStorage.getItem(limiteLocalStorageKey(userId))
+    if (cachedLimite) return Number(cachedLimite)
+  } catch {
+    /* storage bloqueado o cuota agotada */
+  }
 
   return LIMITE_MENSUAL_DEFAULT
 }
@@ -170,6 +187,7 @@ export async function savePresupuesto(
   userId: string,
   input: {
     limite_mensual: number
+    limite_es_manual?: boolean
     sueldo_mensual?: number | null
     ingresos_extras?: number | null
     sueldo_semanal?: number | null
@@ -183,6 +201,7 @@ export async function savePresupuesto(
     updated_at: new Date().toISOString(),
   }
 
+  if (input.limite_es_manual !== undefined) row.limite_es_manual = input.limite_es_manual
   if (input.sueldo_mensual !== undefined) row.sueldo_mensual = input.sueldo_mensual
   if (input.ingresos_extras !== undefined) row.ingresos_extras = input.ingresos_extras
   if (input.sueldo_semanal !== undefined) row.sueldo_semanal = input.sueldo_semanal
@@ -193,6 +212,7 @@ export async function savePresupuesto(
 
   cachePresupuesto(userId, {
     limite_mensual: input.limite_mensual,
+    limite_es_manual: input.limite_es_manual ?? existing?.limite_es_manual ?? false,
     sueldo_mensual: input.sueldo_mensual ?? existing?.sueldo_mensual ?? null,
     ingresos_extras: input.ingresos_extras ?? existing?.ingresos_extras ?? 0,
     sueldo_semanal: input.sueldo_semanal ?? existing?.sueldo_semanal ?? null,
@@ -213,6 +233,7 @@ export async function saveLimiteMensual(
 
   return savePresupuesto(userId, {
     limite_mensual: limite,
+    limite_es_manual: true,
     sueldo_mensual: existing?.sueldo_mensual ?? null,
     ingresos_extras: existing?.ingresos_extras ?? 0,
     sueldo_semanal: existing?.sueldo_semanal ?? null,
@@ -241,6 +262,7 @@ export async function savePresupuestoFinanciero(
 
   const { error } = await savePresupuesto(userId, {
     limite_mensual: estrategia.disponibleParaGasto,
+    limite_es_manual: false,
     sueldo_mensual: input.sueldo_mensual,
     ingresos_extras: ingresosExtras,
     sueldo_semanal: estrategia.sueldoSemanal,
@@ -252,6 +274,7 @@ export async function savePresupuestoFinanciero(
 
   const presupuesto: Presupuesto = {
     limite_mensual: estrategia.disponibleParaGasto,
+    limite_es_manual: false,
     sueldo_mensual: input.sueldo_mensual,
     ingresos_extras: ingresosExtras,
     sueldo_semanal: estrategia.sueldoSemanal,

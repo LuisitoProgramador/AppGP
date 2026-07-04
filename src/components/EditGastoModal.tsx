@@ -1,9 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useCuentas, useGastosData } from '../contexts'
-import { updateMsiGrupo, type MsiGrupoUndoSnapshot } from '../services/msiGrupo'
+import { updateMsiGrupo, cambiarCuentaMsiGrupo, type MsiGrupoUndoSnapshot } from '../services/msiGrupo'
 import { updateGastoSimple } from '../services/gastos'
 import { supabase } from '../services/supabase'
-import { CATEGORIAS, type Gasto } from '../types/gasto'
+import { CATEGORIAS, type Gasto, type MsiInstallmentUpdate } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { sumMsiGrupoMontos } from '../utils/gastoSaldo'
 import { buildMsiGastos, parseMsiDescripcion, toMsiInstallmentUpdates } from '../utils/msi'
@@ -45,7 +45,7 @@ export default function EditGastoModal({
   modoInicial = 'cuota',
 }: EditGastoModalProps) {
   const { refresh } = useGastosData()
-  const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo, refreshCuentas } = useCuentas()
+  const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
   const [monto, setMonto] = useState(String(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
   const [descripcion, setDescripcion] = useState(gasto.descripcion ?? '')
@@ -144,24 +144,24 @@ export default function EditGastoModal({
     cargarGrupo()
   }, [esMsi, gasto.grupo_msi_id, gasto.descripcion])
 
-  async function transferirSaldoEntreCuentas(
-    cuentaOrigenId: string,
-    cuentaDestinoId: string,
-    montoTransferencia: number,
-  ): Promise<string | null> {
-    const revertResult = await revertGastoSaldo(cuentaOrigenId, montoTransferencia)
-    if (revertResult.error) return revertResult.error
-
-    const applyResult = await applyGastoSaldo(cuentaDestinoId, montoTransferencia)
-    if (applyResult.error) {
-      const rollbackResult = await applyGastoSaldo(cuentaOrigenId, montoTransferencia)
-      if (rollbackResult.error) {
-        return `${applyResult.error} (y no se pudo revertir: ${rollbackResult.error})`
+  function buildInstallmentsFromGrupo(
+    patchCuota?: { monto: number; descripcion: string },
+  ): MsiInstallmentUpdate[] {
+    return grupoRows.map((row) => {
+      if (patchCuota && row.id === gasto.id) {
+        return {
+          monto: patchCuota.monto,
+          descripcion: patchCuota.descripcion,
+          fecha: row.fecha,
+        }
       }
-      return applyResult.error
-    }
 
-    return null
+      return {
+        monto: Number(row.monto),
+        descripcion: row.descripcion ?? '',
+        fecha: row.fecha,
+      }
+    })
   }
 
   function validarCambioCuenta(): string | null {
@@ -321,29 +321,46 @@ export default function EditGastoModal({
         return false
       }
 
+      const montoError = hayCambiosCuota ? validateMonto(monto) : null
+      if (montoError) {
+        showError(montoError)
+        return false
+      }
+
+      const descripcionError = hayCambiosCuota ? validateDescripcion(descripcion) : null
+      if (descripcionError) {
+        showError(descripcionError)
+        return false
+      }
+
       const totalGrupo = sumMsiGrupoMontos(grupoRows)
-      const saldoError = await transferirSaldoEntreCuentas(
-        gasto.cuenta_id,
-        cuentaId,
-        totalGrupo,
+      const installments = buildInstallmentsFromGrupo(
+        hayCambiosCuota
+          ? { monto: Number(monto), descripcion: descripcion.trim() }
+          : undefined,
       )
-      if (saldoError) {
-        showError(`No se pudo transferir el saldo del grupo MSI: ${saldoError}`)
+
+      const result = await cambiarCuentaMsiGrupo({
+        grupoMsiId: gasto.grupo_msi_id,
+        categoria: hayCambiosCuota ? categoria : grupoRows[0].categoria,
+        cuentaAnteriorId: gasto.cuenta_id,
+        cuentaNuevaId: cuentaId,
+        installments,
+        totalCompra: totalGrupo,
+        idempotencyKey: crypto.randomUUID(),
+      })
+
+      if (result.error) {
+        showError(`No se pudo actualizar la cuenta del grupo MSI: ${result.error}`)
         return false
       }
 
-      const { error: grupoError } = await supabase
-        .from('gastos')
-        .update({ cuenta_id: cuentaId })
-        .eq('grupo_msi_id', gasto.grupo_msi_id)
-
-      if (grupoError) {
-        await transferirSaldoEntreCuentas(cuentaId, gasto.cuenta_id, totalGrupo)
-        showError(`Error al actualizar la cuenta del grupo MSI: ${grupoError.message}`)
-        return false
+      if (result.recoveredFromServer) {
+        showInfo('Cambio de cuenta MSI confirmado en el servidor tras un error de red.')
       }
 
-      if (!hayCambiosCuota) return true
+      await refreshCuentas()
+      return true
     }
 
     if (!hayCambiosCuota) return true

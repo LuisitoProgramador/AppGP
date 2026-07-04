@@ -94,9 +94,17 @@ export function detectarRecurrentesSugeridos(
 }
 
 export function dismissRecurrenteSugerido(descripcion: string): void {
-  sessionStorage.setItem(`dismiss-recurrente-${normalizeDescripcion(descripcion)}`, '1')
+  try {
+    sessionStorage.setItem(`dismiss-recurrente-${normalizeDescripcion(descripcion)}`, '1')
+  } catch {
+    // ignore
+  }
 }
 
 export function isRecurrenteSugeridoDismissed(descripcion: string): boolean {
-  return sessionStorage.getItem(`dismiss-recurrente-${normalizeDescripcion(descripcion)}`) === '1'
+  try {
+    return sessionStorage.getItem(`dismiss-recurrente-${normalizeDescripcion(descripcion)}`) === '1'
+  } catch {
+    return false
+  }
 }
