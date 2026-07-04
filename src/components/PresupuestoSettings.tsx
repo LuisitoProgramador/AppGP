@@ -2,6 +2,13 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { useAuthContext, useGastosData } from '../contexts'
 import { getPresupuesto, savePresupuestoFinanciero, applyLimiteCalculado } from '../services/presupuesto'
 import { DIAS_PAGO } from '../constants/diasPago'
+import {
+  PORCENTAJE_AHORRO_DEFAULT,
+  PORCENTAJE_AHORRO_MAX,
+  PORCENTAJE_AHORRO_MIN,
+  PORCENTAJE_AHORRO_STEP,
+  validatePorcentajeAhorro,
+} from '../constants/porcentajeAhorro'
 import { getDaysRemainingInMonth } from '../utils/date'
 import {
   calcDiferenciaAhorroMensual,
@@ -41,14 +48,14 @@ export default function PresupuestoSettings() {
 
   const [sueldoMensual, setSueldoMensual] = useState('')
   const [ingresosExtras, setIngresosExtras] = useState('')
-  const [porcentajeAhorro, setPorcentajeAhorro] = useState(15)
+  const [porcentajeAhorro, setPorcentajeAhorro] = useState(PORCENTAJE_AHORRO_DEFAULT)
   const [diaPago, setDiaPago] = useState(5)
   const [diaPagoInicial, setDiaPagoInicial] = useState(5)
 
   const [valoresIniciales, setValoresIniciales] = useState({
     sueldoMensual: 0,
     ingresosExtras: 0,
-    porcentajeAhorro: 15,
+    porcentajeAhorro: PORCENTAJE_AHORRO_DEFAULT,
   })
 
   useEffect(() => {
@@ -64,7 +71,7 @@ export default function PresupuestoSettings() {
       if (presupuesto?.sueldo_mensual != null) {
         const sueldo = presupuesto.sueldo_mensual
         const extras = presupuesto.ingresos_extras ?? 0
-        const ahorro = presupuesto.porcentaje_ahorro ?? 15
+        const ahorro = presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT
 
         setSueldoMensual(String(sueldo))
         setIngresosExtras(extras > 0 ? String(extras) : '')
@@ -138,6 +145,12 @@ export default function PresupuestoSettings() {
     const extrasError = validateIngresosExtrasOpcional(ingresosExtras)
     if (extrasError) {
       showError(extrasError)
+      return
+    }
+
+    const ahorroError = validatePorcentajeAhorro(porcentajeAhorro)
+    if (ahorroError) {
+      showError(ahorroError)
       return
     }
 
@@ -269,17 +282,17 @@ export default function PresupuestoSettings() {
           <input
             id="cfg-ahorro"
             type="range"
-            min={5}
-            max={50}
-            step={5}
+            min={PORCENTAJE_AHORRO_MIN}
+            max={PORCENTAJE_AHORRO_MAX}
+            step={PORCENTAJE_AHORRO_STEP}
             value={porcentajeAhorro}
             onChange={(e) => setPorcentajeAhorro(Number(e.target.value))}
             className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-500"
             aria-label="Porcentaje de ahorro"
           />
           <div className="flex justify-between text-xs text-slate-500">
-            <span>5%</span>
-            <span>50%</span>
+            <span>{PORCENTAJE_AHORRO_MIN}%</span>
+            <span>{PORCENTAJE_AHORRO_MAX}%</span>
           </div>
           {ahorroSemanalPreview != null && ahorroSemanalPreview > 0 && (
             <p className="text-xs text-slate-400">
@@ -339,6 +352,9 @@ export default function PresupuestoSettings() {
                 </p>
                 <p className="mt-0.5 text-lg font-bold text-emerald-300">
                   {formatCurrency(presupuestoDiarioPreview)}
+                </p>
+                <p className="mt-1 text-[10px] leading-snug text-slate-500">
+                  Referencia teórica (sin gastos del mes). El disponible real está en el inicio.
                 </p>
               </div>
             )}

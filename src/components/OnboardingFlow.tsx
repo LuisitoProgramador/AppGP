@@ -25,6 +25,12 @@ import {
 } from './formStyles'
 
 import { DIAS_PAGO } from '../constants/diasPago'
+import {
+  PORCENTAJE_AHORRO_DEFAULT,
+  PORCENTAJE_AHORRO_MAX,
+  PORCENTAJE_AHORRO_MIN,
+  PORCENTAJE_AHORRO_STEP,
+} from '../constants/porcentajeAhorro'
 
 const TOTAL_STEPS = 4
 
@@ -90,7 +96,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
   const [sueldoMensual, setSueldoMensual] = useState('')
   const [diaPago, setDiaPago] = useState<number>(5)
-  const [porcentajeAhorro, setPorcentajeAhorro] = useState(15)
+  const [porcentajeAhorro, setPorcentajeAhorro] = useState(PORCENTAJE_AHORRO_DEFAULT)
 
   const [gastosFijos, setGastosFijos] = useState<GastoFijoDraft[]>([])
   const [gastoForm, setGastoForm] = useState({
@@ -957,9 +963,9 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
 
               <input
                 type="range"
-                min={5}
-                max={50}
-                step={5}
+                min={PORCENTAJE_AHORRO_MIN}
+                max={PORCENTAJE_AHORRO_MAX}
+                step={PORCENTAJE_AHORRO_STEP}
                 value={porcentajeAhorro}
                 onChange={(e) => setPorcentajeAhorro(Number(e.target.value))}
                 className="h-2 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-emerald-500"
@@ -967,8 +973,8 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
               />
 
               <div className="flex justify-between text-xs text-slate-500">
-                <span>5%</span>
-                <span>50%</span>
+                <span>{PORCENTAJE_AHORRO_MIN}%</span>
+                <span>{PORCENTAJE_AHORRO_MAX}%</span>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import { LIMITE_MENSUAL_DEFAULT } from '../types/gasto'
+import { validatePorcentajeAhorro } from '../constants/porcentajeAhorro'
 import {
   calcEstrategiaFinanciera,
   calcIngresoMensualTotal,
@@ -195,6 +196,11 @@ export async function savePresupuesto(
     porcentaje_ahorro?: number | null
   },
 ): Promise<{ error: string | null }> {
+  if (input.porcentaje_ahorro !== undefined && input.porcentaje_ahorro != null) {
+    const porcentajeError = validatePorcentajeAhorro(input.porcentaje_ahorro)
+    if (porcentajeError) return { error: porcentajeError }
+  }
+
   const row: Record<string, unknown> = {
     user_id: userId,
     limite_mensual: input.limite_mensual,
@@ -210,17 +216,19 @@ export async function savePresupuesto(
 
   const existing = await getPresupuesto(userId)
 
-  cachePresupuesto(userId, {
-    limite_mensual: input.limite_mensual,
-    limite_es_manual: input.limite_es_manual ?? existing?.limite_es_manual ?? false,
-    sueldo_mensual: input.sueldo_mensual ?? existing?.sueldo_mensual ?? null,
-    ingresos_extras: input.ingresos_extras ?? existing?.ingresos_extras ?? 0,
-    sueldo_semanal: input.sueldo_semanal ?? existing?.sueldo_semanal ?? null,
-    dia_pago: input.dia_pago ?? existing?.dia_pago ?? null,
-    porcentaje_ahorro: input.porcentaje_ahorro ?? existing?.porcentaje_ahorro ?? null,
-  })
-
   const { error } = await supabase.from('presupuestos').upsert(row, { onConflict: 'user_id' })
+
+  if (!error) {
+    cachePresupuesto(userId, {
+      limite_mensual: input.limite_mensual,
+      limite_es_manual: input.limite_es_manual ?? existing?.limite_es_manual ?? false,
+      sueldo_mensual: input.sueldo_mensual ?? existing?.sueldo_mensual ?? null,
+      ingresos_extras: input.ingresos_extras ?? existing?.ingresos_extras ?? 0,
+      sueldo_semanal: input.sueldo_semanal ?? existing?.sueldo_semanal ?? null,
+      dia_pago: input.dia_pago ?? existing?.dia_pago ?? null,
+      porcentaje_ahorro: input.porcentaje_ahorro ?? existing?.porcentaje_ahorro ?? null,
+    })
+  }
 
   return { error: error?.message ?? null }
 }
@@ -253,6 +261,11 @@ export async function savePresupuestoFinanciero(
   userId: string,
   input: PresupuestoFinancieroInput,
 ): Promise<{ error: string | null; presupuesto: Presupuesto | null; limiteManualPreservado: boolean }> {
+  const porcentajeError = validatePorcentajeAhorro(input.porcentaje_ahorro)
+  if (porcentajeError) {
+    return { error: porcentajeError, presupuesto: null, limiteManualPreservado: false }
+  }
+
   const ingresosExtras = input.ingresos_extras ?? 0
   const estrategia = calcEstrategiaFinanciera({
     sueldoMensual: input.sueldo_mensual,

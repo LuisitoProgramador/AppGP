@@ -7,6 +7,7 @@ import {
   dismissRecurrenteSugerido,
   type RecurrenteSugerido,
 } from '../utils/detectarRecurrentes'
+import { isOnline } from '../utils/network'
 import { isModoViaje, setModoViaje } from '../utils/travelMode'
 import { isVistaQuincenal, setVistaQuincenal } from '../utils/vistaQuincenal'
 import { showError, showSuccess } from '../utils/toast'
@@ -49,6 +50,11 @@ export function useDashboardMutations({
         return
       }
 
+      if (!isOnline()) {
+        showError('Sin conexión. Conéctate a internet para actualizar el límite mensual.')
+        return
+      }
+
       const limite = Number(limiteInput)
       setGuardandoLimite(true)
       const { error: saveError } = await saveLimiteMensual(user.id, limite)
@@ -60,9 +66,10 @@ export function useDashboardMutations({
       }
 
       setLimiteMensual(limite)
+      refresh()
       showSuccess('Límite mensual guardado.')
     },
-    [user, limiteInput, setLimiteMensual],
+    [user, limiteInput, setLimiteMensual, refresh],
   )
 
   const handleToggleModoViaje = useCallback(() => {
