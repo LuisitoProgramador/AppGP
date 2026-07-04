@@ -17,7 +17,7 @@ export default function LoginForm() {
     setEnviando(true)
 
     const authAction = modo === 'login' ? signIn : signUp
-    const { error } = await authAction(email.trim(), password)
+    const { error, data } = await authAction(email.trim(), password)
 
     setEnviando(false)
 
@@ -27,7 +27,11 @@ export default function LoginForm() {
     }
 
     if (modo === 'register') {
-      showInfo('Cuenta creada. Revisa tu correo si Supabase requiere confirmación.')
+      if (data.session) {
+        showInfo('Cuenta creada. ¡Bienvenido!')
+      } else {
+        showInfo('Revisa tu correo para confirmar la cuenta antes de entrar.')
+      }
     }
   }
 
@@ -86,7 +90,7 @@ export default function LoginForm() {
           ? 'Procesando...'
           : modo === 'login'
             ? 'Entrar'
-            : 'Registrarse'}
+            : 'Crear cuenta y entrar'}
       </button>
 
       <button
