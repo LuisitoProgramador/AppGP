@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useState, useCallback, type ReactNode } from
 import { AuthProvider, GastosProviders, QuietModeProvider, FocusModeProvider, useAuthSession, useAuthActions } from './contexts'
 import ErrorBoundary from './components/ErrorBoundary'
 import Layout from './components/Layout'
+import BottomNav from './components/BottomNav'
 import LoginForm from './components/LoginForm'
 import { navTabClassName, navBottomTabClassName, iconButtonClassName, tabPanelClassName } from './components/formStyles'
 import { TabHistorialIcon, TabPlanIcon, TabRegistroIcon, TabResumenIcon } from './components/icons'
@@ -331,13 +332,12 @@ function AppContent() {
             </div>
 
             {!showAjustes && (
-              <nav
-                className="fixed inset-x-0 bottom-0 z-50 border-t border-white/10 bg-pulso-surface/95 backdrop-blur-md sm:hidden"
-                role="tablist"
-                aria-label="Navegación principal"
-                style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
-              >
-                <div className="mx-auto grid max-w-lg grid-cols-4 gap-0.5 px-2 pt-1">
+              <BottomNav>
+                <nav
+                  className="mx-auto grid max-w-lg grid-cols-4 gap-0.5 px-2 pt-1"
+                  role="tablist"
+                  aria-label="Navegación principal"
+                >
                   {TABS.map(({ id, label, Icon }) => (
                     <button
                       key={`bottom-${id}`}
@@ -353,8 +353,8 @@ function AppContent() {
                       <Icon />
                     </button>
                   ))}
-                </div>
-              </nav>
+                </nav>
+              </BottomNav>
             )}
           </section>
         </Layout>
