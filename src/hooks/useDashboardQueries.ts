@@ -31,7 +31,7 @@ export function useDashboardQueries(
   const lite = options.lite ?? false
   const { user } = useAuthSession()
   const { refreshKey } = useGastosRefreshState()
-  const { recurrentes } = useRecurrentes()
+  const { recurrentes, cargando: recurrentesCargando } = useRecurrentes()
 
   const [resumenMensual, setResumenMensual] = useState<ResumenMensual[]>([])
   const [limiteMensual, setLimiteMensual] = useState(10000)
@@ -44,11 +44,15 @@ export function useDashboardQueries(
   const [gastoTotalResumen, setGastoTotalResumen] = useState<number | null>(null)
   const [gastoTotalAntesResumen, setGastoTotalAntesResumen] = useState<number | null>(null)
   const [recurrenteSugerido, setRecurrenteSugerido] = useState<RecurrenteSugerido | null>(null)
+  const [patronGastos, setPatronGastos] = useState<
+    { descripcion: string; monto: number; categoria: string; fecha: string }[]
+  >([])
 
   useEffect(() => {
     let isMounted = true
 
     if (!user) {
+      setCargando(false)
       return () => {
         isMounted = false
       }
@@ -111,10 +115,11 @@ export function useDashboardQueries(
 
       const { data, error: queryError } = resumenResult
 
-      setCargando(false)
-
       if (queryError) {
-        setError(queryError.message)
+        if (isMounted) {
+          setError(queryError.message)
+          setCargando(false)
+        }
         return
       }
 
@@ -137,7 +142,9 @@ export function useDashboardQueries(
         setEvolucionRows([])
         setGastoTotalResumen(null)
         setGastoTotalAntesResumen(null)
+        setPatronGastos([])
         setRecurrenteSugerido(null)
+        if (isMounted) setCargando(false)
         return
       }
 
@@ -201,17 +208,16 @@ export function useDashboardQueries(
         (resumenAntResult.data ?? []).reduce((sum, row) => sum + Number(row.total), 0),
       )
 
-      const sugeridos = detectarRecurrentesSugeridos(
+      setPatronGastos(
         (patronResult.data ?? []) as {
           descripcion: string
           monto: number
           categoria: string
           fecha: string
         }[],
-        recurrentes,
-      ).filter((item) => !isRecurrenteSugeridoDismissed(item.descripcion))
+      )
 
-      setRecurrenteSugerido(sugeridos[0] ?? null)
+      if (isMounted) setCargando(false)
     }
 
     cargarDashboard()
@@ -219,7 +225,17 @@ export function useDashboardQueries(
     return () => {
       isMounted = false
     }
-  }, [user, refreshKey, selectedMonth, lite, recurrentes])
+  }, [user, refreshKey, selectedMonth, lite])
+
+  useEffect(() => {
+    if (lite || recurrentesCargando) return
+
+    const sugeridos = detectarRecurrentesSugeridos(patronGastos, recurrentes).filter(
+      (item) => !isRecurrenteSugeridoDismissed(item.descripcion),
+    )
+
+    setRecurrenteSugerido(sugeridos[0] ?? null)
+  }, [lite, recurrentesCargando, recurrentes, patronGastos])
 
   return useMemo(
     () => ({

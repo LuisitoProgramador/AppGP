@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import { useAuthSession, useFocusMode } from '../contexts'
+import { useAuthSession, useFocusMode, useGastosRefreshState } from '../contexts'
 import { useStableArray } from '../hooks/useStableArray'
 import { supabase } from '../services/supabase'
 import type { GastoRecurrente } from '../types/gasto'
@@ -24,6 +24,7 @@ function SalidasTimelineSection({
   gastosMsi: gastosMsiProp,
 }: SalidasTimelineSectionProps) {
   const { user } = useAuthSession()
+  const { refreshKey } = useGastosRefreshState()
   const { isFocusMode } = useFocusMode()
   const [gastosMsiLocal, setGastosMsiLocal] = useState<GastoMsiTimelineRow[]>([])
 
@@ -61,7 +62,7 @@ function SalidasTimelineSection({
     return () => {
       cancelled = true
     }
-  }, [user, selectedMonth, canReuseDashboardMsi])
+  }, [user, refreshKey, selectedMonth, canReuseDashboardMsi])
 
   const gastosMsi = useMemo(() => {
     if (canReuseDashboardMsi && gastosMsiProp) {

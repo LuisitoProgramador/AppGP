@@ -249,6 +249,7 @@ export default memo(function Historial() {
 
   useEffect(() => {
     setPage(0)
+    setSyncedItems([])
   }, [selectedMonth, categoriaFiltro, busqueda, refreshKey])
 
   useEffect(() => {

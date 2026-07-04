@@ -40,7 +40,7 @@ export default memo(function GastosRecurrentes() {
   const { user } = useAuthSession()
   const { cuentas, cuentasLoading } = useCuentas()
   const { refresh } = useGastosRefreshState()
-  const { recurrentes: items, cargando, error, reload } = useRecurrentes()
+  const { recurrentes: items, cargando, error } = useRecurrentes()
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<number | null>(null)
@@ -116,7 +116,6 @@ export default memo(function GastosRecurrentes() {
     }))
     showSuccess('Gasto recurrente configurado.')
     refresh()
-    await reload()
   }
 
   async function handleEliminar(item: GastoRecurrente) {
@@ -139,7 +138,6 @@ export default memo(function GastosRecurrentes() {
 
     showSuccess('Gasto recurrente eliminado.')
     refresh()
-    await reload()
   }
 
   return (
