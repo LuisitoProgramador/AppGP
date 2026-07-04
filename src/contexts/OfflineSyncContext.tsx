@@ -9,15 +9,18 @@ import {
   type ReactNode,
 } from 'react'
 import type { PendingGasto } from '../types/gasto'
+import type { PendingIngreso } from '../types/ingreso'
 import { verificarGastosRecurrentes } from '../services/gastosRecurrentes'
 import { syncPendingMetaAhorro } from '../services/metasAhorro'
 import {
   getPendingGastos,
+  getPendingIngresos,
   getTotalPendingCount,
   remapPendingGastoCuentaIds,
 } from '../services/offlineQueue'
 import { syncPendingCuentas } from '../services/syncCuentas'
 import { syncPendingGastos } from '../services/syncGastos'
+import { syncPendingIngresos } from '../services/syncIngresos'
 import { isOnline } from '../utils/network'
 import { showError, showInfo, showSuccess, showWarning } from '../utils/toast'
 import { useAuthSession } from './AuthContext'
@@ -27,6 +30,7 @@ interface OfflineSyncStatusValue {
   isSyncing: boolean
   pendingCount: number
   pendingGastos: PendingGasto[]
+  pendingIngresos: PendingIngreso[]
 }
 
 interface OfflineSyncActionsValue {
@@ -50,6 +54,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
   const [pendingGastos, setPendingGastos] = useState<PendingGasto[]>([])
+  const [pendingIngresos, setPendingIngresos] = useState<PendingIngreso[]>([])
   const syncInProgressRef = useRef(false)
 
   const refreshRef = useRef(refresh)
@@ -59,11 +64,13 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   removeOptimisticRef.current = removeOptimisticGastos
 
   const updatePendingCount = useCallback(async (userId: string) => {
-    const [gastos, total] = await Promise.all([
+    const [gastos, ingresos, total] = await Promise.all([
       getPendingGastos(userId),
+      getPendingIngresos(userId),
       getTotalPendingCount(userId),
     ])
     setPendingGastos(gastos)
+    setPendingIngresos(ingresos)
     setPendingCount(total)
   }, [])
 
@@ -130,6 +137,22 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
         showWarning('Algunos gastos offline fallaron y se reintentarán.')
       }
 
+      const ingresosResult = await syncPendingIngresos(currentUser.id)
+      await updatePendingCount(currentUser.id)
+
+      if (ingresosResult.synced > 0) {
+        showSuccess(`${ingresosResult.synced} ingreso(s) sincronizado(s) desde modo offline.`)
+        refreshRef.current()
+      }
+
+      if (ingresosResult.discarded > 0) {
+        showError(
+          `${ingresosResult.discarded} ingreso(s) no se pudieron sincronizar y se descartaron de la cola.`,
+        )
+      } else if (ingresosResult.failures.length > 0) {
+        showWarning('Algunos ingresos offline fallaron y se reintentarán.')
+      }
+
       const metaSynced = await syncPendingMetaAhorro(currentUser.id)
       if (metaSynced > 0) refreshRef.current()
       await syncRecurring(currentUser.id)
@@ -150,6 +173,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   useEffect(() => {
     if (!user) {
       setPendingGastos([])
+      setPendingIngresos([])
       setPendingCount(0)
       return
     }
@@ -184,8 +208,8 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   }, [user, refreshKey, updatePendingCount])
 
   const statusValue = useMemo(
-    () => ({ isSyncing, pendingCount, pendingGastos }),
-    [isSyncing, pendingCount, pendingGastos],
+    () => ({ isSyncing, pendingCount, pendingGastos, pendingIngresos }),
+    [isSyncing, pendingCount, pendingGastos, pendingIngresos],
   )
 
   const actionsValue = useMemo(() => ({ syncOffline }), [syncOffline])

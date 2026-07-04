@@ -7,6 +7,11 @@ import {
 } from '../services/gastosRecurrentes'
 import { getDefaultCuentaId } from '../services/cuentas'
 import { useCategorias } from '../hooks/useCategorias'
+import {
+  buildCategoriaConSub,
+  categoriaPadre,
+  parseCategoriaParts,
+} from '../services/subcategorias'
 import { type GastoRecurrente, CATEGORIAS, type Categoria } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
@@ -22,12 +27,14 @@ const initialForm: {
   descripcion: string
   monto: string
   categoria: Categoria
+  subcategoria: string
   dia_mes: string
   cuentaId: string
 } = {
   descripcion: '',
   monto: '',
   categoria: CATEGORIAS[0],
+  subcategoria: '',
   dia_mes: '1',
   cuentaId: '',
 }
@@ -42,7 +49,12 @@ export default memo(function GastosRecurrentes() {
   const { cuentas, cuentasLoading } = useCuentas()
   const { refresh } = useGastosRefreshState()
   const { recurrentes: items, cargando, error } = useRecurrentes()
-  const { categorias, selectOptions: categoriaOptions } = useCategorias(user?.id)
+  const { categorias, selectOptions: categoriaOptions, getSubcategorias, subcategoriaSelectOptions } =
+    useCategorias(user?.id)
+  const subsActuales = useMemo(
+    () => getSubcategorias(form.categoria),
+    [getSubcategorias, form.categoria],
+  )
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
   const [eliminandoId, setEliminandoId] = useState<number | null>(null)
@@ -57,22 +69,23 @@ export default memo(function GastosRecurrentes() {
   }, [cuentas, form.cuentaId])
 
   useEffect(() => {
-    if (form.categoria && categorias.includes(form.categoria)) return
+    const padre = categoriaPadre(form.categoria)
+    if (padre && categorias.includes(padre)) return
     if (categorias.length > 0) {
-      setForm((prev) => ({ ...prev, categoria: categorias[0] }))
+      setForm((prev) => ({ ...prev, categoria: categorias[0], subcategoria: '' }))
     }
   }, [categorias, form.categoria])
 
   const cuentasDisponibles = useMemo(() => cuentas, [cuentas])
 
   function iniciarEdicion(item: GastoRecurrente) {
+    const { padre, sub } = parseCategoriaParts(item.categoria)
     setEditandoId(item.id)
     setForm({
       descripcion: item.descripcion,
       monto: String(item.monto),
-      categoria: categorias.includes(item.categoria as Categoria)
-        ? (item.categoria as Categoria)
-        : categorias[0] ?? CATEGORIAS[0],
+      categoria: categorias.includes(padre) ? padre : categorias[0] ?? CATEGORIAS[0],
+      subcategoria: sub ?? '',
       dia_mes: String(item.dia_mes),
       cuentaId: item.cuenta_id ?? '',
     })
@@ -84,7 +97,12 @@ export default memo(function GastosRecurrentes() {
       ...initialForm,
       cuentaId: prev.cuentaId || getDefaultCuentaId(cuentas) || '',
       categoria: categorias[0] ?? CATEGORIAS[0],
+      subcategoria: '',
     }))
+  }
+
+  function categoriaFinal(): Categoria {
+    return buildCategoriaConSub(form.categoria, form.subcategoria)
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -125,13 +143,14 @@ export default memo(function GastosRecurrentes() {
       return
     }
 
+    const categoria = categoriaFinal()
     setGuardando(true)
 
     if (editandoId != null) {
       const { error: updateError } = await updateGastoRecurrente(editandoId, {
         descripcion: form.descripcion.trim(),
         monto: parseMontoValue(form.monto),
-        categoria: form.categoria,
+        categoria,
         dia_mes: diaMes,
         cuenta_id: form.cuentaId,
       })
@@ -151,7 +170,7 @@ export default memo(function GastosRecurrentes() {
     const { error: createError } = await createGastoRecurrente({
       descripcion: form.descripcion.trim(),
       monto: parseMontoValue(form.monto),
-      categoria: form.categoria,
+      categoria,
       dia_mes: diaMes,
       cuenta_id: form.cuentaId,
     })
@@ -167,6 +186,7 @@ export default memo(function GastosRecurrentes() {
       ...initialForm,
       cuentaId: prev.cuentaId,
       categoria: categorias[0] ?? CATEGORIAS[0],
+      subcategoria: '',
     }))
     showSuccess('Gasto recurrente configurado.')
     refresh()
@@ -320,12 +340,29 @@ export default memo(function GastosRecurrentes() {
               setForm((prev) => ({
                 ...prev,
                 categoria: categoria as Categoria,
+                subcategoria: '',
               }))
             }
             options={categoriaOptions}
             required
           />
         </div>
+
+        {subsActuales.length > 0 && (
+          <div className="space-y-2">
+            <label htmlFor="rec-subcategoria" className="block text-sm font-medium text-slate-300">
+              Subcategoría (opcional)
+            </label>
+            <Select
+              id="rec-subcategoria"
+              value={form.subcategoria}
+              onChange={(subcategoria) =>
+                setForm((prev) => ({ ...prev, subcategoria }))
+              }
+              options={subcategoriaSelectOptions(subsActuales)}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <label htmlFor="rec-cuenta" className="block text-sm font-medium text-slate-300">

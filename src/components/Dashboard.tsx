@@ -1,8 +1,10 @@
 import { memo, useMemo, useState } from 'react'
-import { useAuthSession, useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
+import { useAuthSession, useCuentas, useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
 import { calcAlertasCategoria, getLimitesPorCategoria } from '../services/presupuestoCategorias'
+import { aggregateGastosPorCategoriaPadre } from '../services/subcategorias'
+import { calcInteresEstimado, getTasaInteresMensual } from '../services/cuentaInteres'
 import { buildResumenInsights } from '../utils/resumenInsights'
 import {
   dismissWelcomeBack,
@@ -31,6 +33,7 @@ import { dashboardShellClassName } from './formStyles'
 
 export default memo(function Dashboard() {
   const { user } = useAuthSession()
+  const { cuentas } = useCuentas()
   const { isSyncing, pendingCount } = useOfflineSyncStatus()
   const { modoTranquilo, toggleModoTranquilo } = useQuietMode()
   const { isFocusMode, toggleFocusMode } = useFocusMode()
@@ -79,9 +82,23 @@ export default memo(function Dashboard() {
   )
 
   const gastosPorCategoria = useMemo(
-    () => Object.fromEntries(resumen.map((item) => [item.categoria, item.total])),
+    () =>
+      aggregateGastosPorCategoriaPadre(
+        Object.fromEntries(resumen.map((item) => [item.categoria, item.total])),
+      ),
     [resumen],
   )
+
+  const interesTarjetasEstimado = useMemo(() => {
+    let total = 0
+    for (const cuenta of cuentas) {
+      if (cuenta.tipo !== 'credito' || cuenta.saldo_actual <= 0) continue
+      const tasa = getTasaInteresMensual(cuenta.id)
+      const interes = calcInteresEstimado(cuenta.saldo_actual, tasa)
+      if (interes != null) total += interes
+    }
+    return total > 0 ? total : null
+  }, [cuentas])
 
   const alertasCategoria = useMemo(() => {
     if (!user || !esMesActual) return []
@@ -175,7 +192,10 @@ export default memo(function Dashboard() {
               <ListaCuentas embedded />
 
               {tieneCompromisosMsi && (
-                <CompromisosMsiWidget compromisos={compromisosMsi} />
+                <CompromisosMsiWidget
+                  compromisos={compromisosMsi}
+                  interesTarjetasEstimado={interesTarjetasEstimado}
+                />
               )}
 
               {burnRateAlerta && <BurnRateAlert />}

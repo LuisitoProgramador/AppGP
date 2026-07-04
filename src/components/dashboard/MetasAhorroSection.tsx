@@ -2,7 +2,7 @@ import { memo } from 'react'
 import type { useMetasAhorro } from '../../hooks/useMetasAhorro'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { getMetaProgress } from '../../utils/metaProgress'
-import { periodoMetaLabel } from '../../utils/metaCalendario'
+import { nombreMetaAhorroAnual, periodoMetaLabel } from '../../utils/metaCalendario'
 import {
   formWithKeyboardClassName,
   inputClassName,
@@ -76,6 +76,11 @@ export default memo(function MetasAhorroSection({
       {!metasCargando && metas.length === 0 && !metasError && (
         <div className="space-y-3">
           <p className="text-center text-sm text-slate-400">Aún no tienes metas de ahorro.</p>
+          <p className="text-center text-xs text-slate-500">
+            Al guardar tu presupuesto, Pulso crea sola la meta{' '}
+            <span className="text-slate-400">“{nombreMetaAhorroAnual(new Date().getFullYear())}”</span>{' '}
+            prorrateada hasta fin de año.
+          </p>
           {!mostrarFormMeta ? (
             <button
               type="button"

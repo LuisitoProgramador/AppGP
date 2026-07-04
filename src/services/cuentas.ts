@@ -1,7 +1,7 @@
 import type { Cuenta, CuentaInput, PendingCuenta } from '../types/cuenta'
 import { calcSaldoAfterGasto, revertSaldoAfterGasto } from '../utils/cuentaSaldo'
 import { isOnline, offlineServiceError } from '../utils/network'
-import { addPendingCuenta, getPendingCuentas, getPendingGastosCount } from './offlineQueue'
+import { addPendingCuenta, addPendingIngreso, getPendingCuentas, getPendingGastosCount } from './offlineQueue'
 import { supabase } from './supabase'
 
 const CUENTA_SELECT_BASE = 'id, nombre, tipo, limite_credito, saldo_actual' as const
@@ -390,6 +390,42 @@ export function applyGastoSaldoLocal(
   return { cuentas: updated, error: null }
 }
 
+export function applyIngresoSaldoLocal(
+  userId: string,
+  cuentas: Cuenta[],
+  cuentaId: string,
+  monto: number,
+): { cuentas: Cuenta[]; error: string | null } {
+  let found = false
+  const updated = cuentas.map((c) => {
+    if (c.id !== cuentaId) return c
+    found = true
+    if (c.tipo === 'credito') {
+      return c
+    }
+    const newSaldo = revertSaldoAfterGasto(c.tipo, c.saldo_actual, monto)
+    return { ...c, saldo_actual: newSaldo }
+  })
+  if (!found) return { cuentas, error: 'Cuenta no encontrada' }
+  const cuenta = updated.find((c) => c.id === cuentaId)
+  if (cuenta?.tipo === 'credito') {
+    return { cuentas, error: 'Los ingresos solo se registran en cuentas de efectivo o débito.' }
+  }
+
+  writeCache(userId, updated)
+  return { cuentas: updated, error: null }
+}
+
+export function revertIngresoSaldoLocal(
+  userId: string,
+  cuentas: Cuenta[],
+  cuentaId: string,
+  monto: number,
+): Cuenta[] {
+  const { cuentas: updated } = applyGastoSaldoLocal(userId, cuentas, cuentaId, monto)
+  return updated
+}
+
 export async function persistCuentaSaldo(
   userId: string,
   cuentaId: string,
@@ -487,11 +523,7 @@ export async function registrarIngreso(
   cuentaId: string,
   monto: number,
   descripcion: string,
-): Promise<{ error: string | null }> {
-  if (!isOnline()) {
-    return offlineServiceError('Sin conexión. Conéctate para registrar un ingreso.')
-  }
-
+): Promise<{ error: string | null; offline?: boolean }> {
   if (monto <= 0) {
     return { error: 'El monto debe ser mayor a 0.' }
   }
@@ -511,6 +543,25 @@ export async function registrarIngreso(
 
   if (cuenta.tipo === 'credito') {
     return { error: 'Los ingresos solo se registran en cuentas de efectivo o débito.' }
+  }
+
+  if (!isOnline()) {
+    const { cuentas: updated, error: localError } = applyIngresoSaldoLocal(
+      userId,
+      cuentas,
+      cuentaId,
+      monto,
+    )
+    if (localError) return { error: localError }
+
+    await addPendingIngreso({
+      userId,
+      cuenta_id: cuentaId,
+      monto,
+      descripcion: descripcionLimpia,
+    })
+
+    return { error: null, offline: true }
   }
 
   const nuevoSaldo = revertSaldoAfterGasto(cuenta.tipo, cuenta.saldo_actual, monto)

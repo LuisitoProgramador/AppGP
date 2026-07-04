@@ -9,7 +9,7 @@ import {
   iconButtonEditClassName,
   iconButtonMsiClassName,
 } from '../formStyles'
-import { isHistorialPending, isHistorialIngreso, type HistorialItem } from './historialTypes'
+import { isHistorialPending, isHistorialIngreso, isHistorialPendingIngreso, type HistorialItem } from './historialTypes'
 
 interface HistorialItemRowProps {
   item: HistorialItem
@@ -26,7 +26,8 @@ const HistorialItemRow = memo(function HistorialItemRow({
   onEdit,
   onDelete,
 }: HistorialItemRowProps) {
-  const isPending = isHistorialPending(item)
+  const isPendingIngreso = isHistorialPendingIngreso(item)
+  const isPending = isHistorialPending(item) || isPendingIngreso
   const isIngreso = isHistorialIngreso(item)
 
   return (
@@ -91,12 +92,12 @@ const HistorialItemRow = memo(function HistorialItemRow({
             )}
           </>
         )}
-        {!isOptimistic && !isIngreso && (
+        {!isOptimistic && (!isIngreso || isPendingIngreso) && (
           <button
             type="button"
             onClick={() => onDelete(item)}
             disabled={isBusy}
-            aria-label="Eliminar gasto"
+            aria-label={isPendingIngreso ? 'Eliminar ingreso pendiente' : 'Eliminar gasto'}
             className={iconButtonDangerClassName}
           >
             <TrashIcon />

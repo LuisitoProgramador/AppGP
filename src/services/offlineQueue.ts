@@ -1,6 +1,7 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb'
 import type { PendingCuenta } from '../types/cuenta'
 import type { PendingGasto } from '../types/gasto'
+import type { PendingIngreso } from '../types/ingreso'
 
 interface OfflineDB extends DBSchema {
   'pending-gastos': {
@@ -11,23 +12,31 @@ interface OfflineDB extends DBSchema {
     key: string
     value: PendingCuenta
   }
+  'pending-ingresos': {
+    key: string
+    value: PendingIngreso
+  }
 }
 
 const DB_NAME = 'appgp-offline'
 const STORE_GASTOS = 'pending-gastos'
 const STORE_CUENTAS = 'pending-cuentas'
+const STORE_INGRESOS = 'pending-ingresos'
 
 let dbPromise: Promise<IDBPDatabase<OfflineDB>> | null = null
 
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<OfflineDB>(DB_NAME, 2, {
-      upgrade(db) {
+    dbPromise = openDB<OfflineDB>(DB_NAME, 3, {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains(STORE_GASTOS)) {
           db.createObjectStore(STORE_GASTOS, { keyPath: 'id' })
         }
         if (!db.objectStoreNames.contains(STORE_CUENTAS)) {
           db.createObjectStore(STORE_CUENTAS, { keyPath: 'id' })
+        }
+        if (oldVersion < 3 && !db.objectStoreNames.contains(STORE_INGRESOS)) {
+          db.createObjectStore(STORE_INGRESOS, { keyPath: 'id' })
         }
       },
     })
@@ -39,6 +48,13 @@ function normalizePendingGasto(gasto: PendingGasto): PendingGasto {
   return {
     ...gasto,
     retryCount: gasto.retryCount ?? 0,
+  }
+}
+
+function normalizePendingIngreso(ingreso: PendingIngreso): PendingIngreso {
+  return {
+    ...ingreso,
+    retryCount: ingreso.retryCount ?? 0,
   }
 }
 
@@ -129,6 +145,44 @@ export async function removePendingCuenta(id: string): Promise<void> {
   await db.delete(STORE_CUENTAS, id)
 }
 
+export async function addPendingIngreso(
+  ingreso: Omit<PendingIngreso, 'id' | 'createdAt' | 'retryCount'>,
+): Promise<PendingIngreso> {
+  const db = await getDB()
+  const pending: PendingIngreso = {
+    ...ingreso,
+    id: crypto.randomUUID(),
+    createdAt: Date.now(),
+    retryCount: 0,
+  }
+  await db.put(STORE_INGRESOS, pending)
+  return pending
+}
+
+export async function getPendingIngresos(userId: string): Promise<PendingIngreso[]> {
+  const db = await getDB()
+  const items = await db.getAll(STORE_INGRESOS)
+  return items
+    .filter((item) => belongsToUser(item, userId))
+    .map(normalizePendingIngreso)
+    .sort((a, b) => b.createdAt - a.createdAt)
+}
+
+export async function getPendingIngresosCount(userId: string): Promise<number> {
+  const items = await getPendingIngresos(userId)
+  return items.length
+}
+
+export async function updatePendingIngreso(ingreso: PendingIngreso): Promise<void> {
+  const db = await getDB()
+  await db.put(STORE_INGRESOS, normalizePendingIngreso(ingreso))
+}
+
+export async function removePendingIngreso(id: string): Promise<void> {
+  const db = await getDB()
+  await db.delete(STORE_INGRESOS, id)
+}
+
 export async function remapPendingGastoCuentaIds(
   userId: string,
   idMap: Record<string, string>,
@@ -152,21 +206,23 @@ export async function remapPendingGastoCuentaIds(
 }
 
 export async function getTotalPendingCount(userId: string): Promise<number> {
-  const [gastosCount, cuentasCount] = await Promise.all([
+  const [gastosCount, cuentasCount, ingresosCount] = await Promise.all([
     getPendingGastosCount(userId),
     getPendingCuentasCount(userId),
+    getPendingIngresosCount(userId),
   ])
-  return gastosCount + cuentasCount
+  return gastosCount + cuentasCount + ingresosCount
 }
 
 /** Elimina cola offline del usuario y entradas legacy sin userId. */
 export async function clearOfflineQueueForUser(userId: string): Promise<void> {
   const db = await getDB()
-  const [gastos, cuentas] = await Promise.all([
+  const [gastos, cuentas, ingresos] = await Promise.all([
     db.getAll(STORE_GASTOS),
     db.getAll(STORE_CUENTAS),
+    db.getAll(STORE_INGRESOS),
   ])
-  const tx = db.transaction([STORE_GASTOS, STORE_CUENTAS], 'readwrite')
+  const tx = db.transaction([STORE_GASTOS, STORE_CUENTAS, STORE_INGRESOS], 'readwrite')
 
   await Promise.all([
     ...gastos
@@ -175,6 +231,9 @@ export async function clearOfflineQueueForUser(userId: string): Promise<void> {
     ...cuentas
       .filter((item) => belongsToUser(item, userId))
       .map((item) => tx.objectStore(STORE_CUENTAS).delete(item.id)),
+    ...ingresos
+      .filter((item) => belongsToUser(item, userId))
+      .map((item) => tx.objectStore(STORE_INGRESOS).delete(item.id)),
   ])
   await tx.done
 }

@@ -2,10 +2,12 @@ import { useEffect, useState, memo, useCallback, useMemo } from 'react'
 import { useAuthSession, useCuentas, useGastosRefreshState, useOfflineSyncStatus, useOptimisticGastosState } from '../contexts'
 import { useCategorias } from '../hooks/useCategorias'
 import { listIngresosCuenta } from '../services/cuentas'
-import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
+import { addPendingGasto, removePendingGasto, removePendingIngreso } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
 import { HISTORIAL_PAGE_SIZE, type Gasto, type PendingGasto } from '../types/gasto'
-import { isHistorialIngreso, isHistorialSynced, type HistorialItem } from './historial/historialTypes'
+import { isHistorialIngreso, isHistorialPending, isHistorialPendingIngreso, isHistorialSynced, getHistorialAccionId, type HistorialItem } from './historial/historialTypes'
+import { filterPendingIngresos } from '../utils/filterPendingIngresos'
+import { showError, showInfo, showSuccess, showSuccessWithUndo } from '../utils/toast'
 import { getMonthFechaBounds } from '../utils/date'
 import { filterOptimisticGastos, filterPendingGastos, filterPendingNotInOptimistic } from '../utils/optimisticGastos'
 import {
@@ -32,7 +34,7 @@ export default memo(function Historial() {
   const { refreshKey, refresh } = useGastosRefreshState()
   const { optimisticGastos, removeOptimisticGastos, addOptimisticGasto } =
     useOptimisticGastosState()
-  const { pendingGastos, isSyncing, pendingCount } = useOfflineSyncStatus()
+  const { pendingGastos, pendingIngresos, isSyncing, pendingCount } = useOfflineSyncStatus()
   const { revertGastoSaldo, applyGastoSaldo } = useCuentas()
   const { filterOptions } = useCategorias(user?.id)
   const categoriaFilterOptions = useMemo(
@@ -86,10 +88,23 @@ export default memo(function Historial() {
       optimistic: true as const,
     }))
 
-    return [...optimistas, ...pendientes, ...syncedItems, ...ingresosItems].sort(
+    const pendientesIngresos: HistorialItem[] = filterPendingIngresos(
+      pendingIngresos,
+      selectedMonth,
+      categoriaFiltro,
+      busqueda,
+    ).map((ingreso) => ({
+      ...ingreso,
+      tipo: 'ingreso' as const,
+      pendiente: true as const,
+      fecha: new Date(ingreso.createdAt).toISOString(),
+      categoria: 'Ingreso' as const,
+    }))
+
+    return [...optimistas, ...pendientes, ...pendientesIngresos, ...syncedItems, ...ingresosItems].sort(
       (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
     )
-  }, [syncedItems, optimisticGastos, pendingGastos, ingresosItems, selectedMonth, categoriaFiltro, busqueda])
+  }, [syncedItems, optimisticGastos, pendingGastos, pendingIngresos, ingresosItems, selectedMonth, categoriaFiltro, busqueda])
 
   const handleLoadMore = useCallback(() => {
     if (!hasMore || cargandoMas) return
@@ -190,9 +205,23 @@ export default memo(function Historial() {
           : `¿Eliminar el gasto "${etiqueta}"?`
       if (!confirm(mensajeMsi)) return
 
-      setAccionId(item.id)
+      setAccionId(getHistorialAccionId(item) ?? null)
 
-      if (item.pendiente) {
+      if (isHistorialPendingIngreso(item)) {
+        const { error: saldoError } = await applyGastoSaldo(item.cuenta_id, item.monto)
+        if (saldoError) {
+          setAccionId(null)
+          showError(`No se pudo revertir el saldo: ${saldoError}`)
+          return
+        }
+        await removePendingIngreso(item.id)
+        setAccionId(null)
+        refresh()
+        showSuccess('Ingreso pendiente eliminado.')
+        return
+      }
+
+      if (isHistorialPending(item)) {
         const pendingBackup = { ...item }
         if (item.cuenta_id) {
           const montoRevert = montoSaldoAlEliminarPendiente(item)

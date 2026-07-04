@@ -16,6 +16,7 @@ import {
   recordUltimoRegistro,
   saveRegistroPrefs,
 } from '../services/registroPrefs'
+import { buildCategoriaConSub, categoriaPadre, parseCategoriaParts } from '../services/subcategorias'
 import { supabase } from '../services/supabase'
 import { CATEGORIAS_DEFAULT, type Categoria } from '../types/gasto'
 import { parseGastoInput } from '../utils/parser'
@@ -36,6 +37,7 @@ import MontoInput from './MontoInput'
 const initialForm: {
   monto: string
   categoria: Categoria
+  subcategoria: string
   descripcion: string
   cuentaId: string
   esMsi: boolean
@@ -43,6 +45,7 @@ const initialForm: {
 } = {
   monto: '',
   categoria: CATEGORIAS_DEFAULT[0],
+  subcategoria: '',
   descripcion: '',
   cuentaId: '',
   esMsi: false,
@@ -57,7 +60,12 @@ export default memo(function GastoForm() {
   const { addOptimisticGasto, removeOptimisticGastos, optimisticGastos } =
     useOptimisticGastosState()
   const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
-  const { categorias, selectOptions } = useCategorias(user?.id)
+  const { categorias, selectOptions, getSubcategorias, subcategoriaSelectOptions } =
+    useCategorias(user?.id)
+  const subsActuales = useMemo(
+    () => getSubcategorias(form.categoria),
+    [getSubcategorias, form.categoria],
+  )
   const [form, setForm] = useState(initialForm)
   const [modoRapido, setModoRapido] = useState(true)
   const [mostrarDetalle, setMostrarDetalle] = useState(false)
@@ -87,15 +95,18 @@ export default memo(function GastoForm() {
       prefs.ultimaCuentaId && cuentas.some((c) => c.id === prefs.ultimaCuentaId)
         ? prefs.ultimaCuentaId
         : getDefaultCuentaId(cuentas)
+    const ultima = prefs.ultimaCategoria
+    const { padre, sub } = ultima
+      ? parseCategoriaParts(ultima)
+      : { padre: categorias[0], sub: null }
     const categoria =
-      prefs.ultimaCategoria && categorias.includes(prefs.ultimaCategoria)
-        ? prefs.ultimaCategoria
-        : categorias[0]
+      padre && categorias.includes(padre) ? padre : categorias[0]
 
     setForm((prev) => ({
       ...prev,
       cuentaId: prev.cuentaId || (cuentaId ? String(cuentaId) : ''),
       categoria: prev.categoria === CATEGORIAS_DEFAULT[0] ? categoria : prev.categoria,
+      subcategoria: prev.subcategoria || sub || '',
     }))
   }, [user, cuentas, cuentasLoading, categorias])
 
@@ -111,8 +122,14 @@ export default memo(function GastoForm() {
     }
     setMontoSugerido(merchantMatch.montoFrecuente)
     setForm((prev) => {
-      if (prev.categoria === merchantMatch.categoria) return prev
-      return { ...prev, categoria: merchantMatch.categoria }
+      const { padre, sub } = parseCategoriaParts(merchantMatch.categoria)
+      const nextPadre = categorias.includes(padre) ? padre : prev.categoria
+      if (prev.categoria === nextPadre && prev.subcategoria === (sub ?? '')) return prev
+      return {
+        ...prev,
+        categoria: nextPadre,
+        subcategoria: sub ?? prev.subcategoria,
+      }
     })
   }, [merchantMatch])
 
@@ -243,17 +260,21 @@ export default memo(function GastoForm() {
       return
     }
 
-    let categoria = data.categoria
+    let categoria = buildCategoriaConSub(
+      categoriaPadre(data.categoria),
+      data.subcategoria,
+    )
     let cuentaId = data.cuentaId
 
     if (esRapido && user) {
       const rules = getCategoryRules(user.id)
-      categoria = resolveCategoriaFromRules(
+      const padre = resolveCategoriaFromRules(
         descripcion,
         rules,
         merchantMemory,
-        data.categoria || categorias[0] || 'Otros',
+        categoriaPadre(data.categoria) || categorias[0] || 'Otros',
       )
+      categoria = buildCategoriaConSub(padre, data.subcategoria)
       if (!cuentaId) {
         const prefs = getRegistroPrefs(user.id)
         cuentaId =
@@ -635,12 +656,29 @@ export default memo(function GastoForm() {
                 setForm((prev) => ({
                   ...prev,
                   categoria,
+                  subcategoria: '',
                 }))
               }
               options={selectOptions}
               required
             />
           </div>
+
+          {subsActuales.length > 0 && (
+            <div className="space-y-2">
+              <label htmlFor="subcategoria" className="block text-sm font-medium text-slate-300">
+                Subcategoría (opcional)
+              </label>
+              <Select
+                id="subcategoria"
+                value={form.subcategoria}
+                onChange={(subcategoria) =>
+                  setForm((prev) => ({ ...prev, subcategoria }))
+                }
+                options={subcategoriaSelectOptions(subsActuales)}
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <label htmlFor="descripcion" className="block text-sm font-medium text-slate-300">

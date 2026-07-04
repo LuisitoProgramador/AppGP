@@ -4,9 +4,13 @@ import type { MsiCompromisoMes } from '../../utils/msiCompromisos'
 
 interface CompromisosMsiWidgetProps {
   compromisos: MsiCompromisoMes[]
+  interesTarjetasEstimado?: number | null
 }
 
-export default memo(function CompromisosMsiWidget({ compromisos }: CompromisosMsiWidgetProps) {
+export default memo(function CompromisosMsiWidget({
+  compromisos,
+  interesTarjetasEstimado,
+}: CompromisosMsiWidgetProps) {
   return (
     <div className="space-y-3 rounded-xl border border-pulso-accent/20 bg-pulso-accent/5 px-4 py-3">
       <div className="space-y-0.5">
@@ -39,6 +43,12 @@ export default memo(function CompromisosMsiWidget({ compromisos }: CompromisosMs
           </div>
         ))}
       </div>
+      {interesTarjetasEstimado != null && interesTarjetasEstimado > 0 && (
+        <p className="border-t border-pulso-accent/15 pt-2 text-xs text-pulso-warning">
+          Deuda en tarjetas: interés estimado ~{formatCurrency(interesTarjetasEstimado)}/mes si no
+          pagas el total (configura la tasa en cada tarjeta).
+        </p>
+      )}
     </div>
   )
 })

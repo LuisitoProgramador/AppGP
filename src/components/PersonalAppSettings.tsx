@@ -15,6 +15,11 @@ import {
   getLimitesPorCategoria,
   setLimiteCategoria,
 } from '../services/presupuestoCategorias'
+import {
+  addSubcategoria,
+  getSubcategorias,
+  removeSubcategoria,
+} from '../services/subcategorias'
 import { formatMontoFromNumber, parseMontoValue } from '../utils/montoInput'
 import { showError, showSuccess } from '../utils/toast'
 import {
@@ -29,6 +34,8 @@ export default memo(function PersonalAppSettings() {
   const { user } = useAuthSession()
   const { categorias, reloadCategorias, selectOptions } = useCategorias(user?.id)
   const [nuevaCategoria, setNuevaCategoria] = useState('')
+  const [subPadre, setSubPadre] = useState(categorias[0] ?? 'Otros')
+  const [nuevaSub, setNuevaSub] = useState('')
   const [reglaPatron, setReglaPatron] = useState('')
   const [reglaCategoria, setReglaCategoria] = useState(categorias[0] ?? 'Otros')
   const [rules, setRules] = useState(() => (user ? getCategoryRules(user.id) : []))
@@ -46,6 +53,18 @@ export default memo(function PersonalAppSettings() {
     setNuevaCategoria('')
     reloadCategorias()
     showSuccess('Categoría agregada.')
+  }
+
+  function handleAddSubcategoria(event: FormEvent) {
+    event.preventDefault()
+    const result = addSubcategoria(user!.id, subPadre, nuevaSub)
+    if (!result.ok) {
+      showError(result.error ?? 'No se pudo agregar.')
+      return
+    }
+    setNuevaSub('')
+    reloadCategorias()
+    showSuccess('Subcategoría agregada.')
   }
 
   function handleAddRule(event: FormEvent) {
@@ -67,6 +86,7 @@ export default memo(function PersonalAppSettings() {
   }
 
   const custom = getCategoriasCustom(user.id)
+  const subsDelPadre = getSubcategorias(user.id, subPadre)
 
   return (
     <div className="space-y-6">
@@ -105,6 +125,55 @@ export default memo(function PersonalAppSettings() {
             Agregar
           </button>
         </form>
+      </section>
+
+      <section className={settingsPanelClassName}>
+        <h3 className="text-sm font-semibold text-white">Subcategorías (opcional)</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Detalla gastos dentro de una categoría (ej. Comida › Restaurantes). Los límites de
+          presupuesto siguen contando por categoría padre.
+        </p>
+        <div className="mt-3 space-y-2">
+          <Select
+            value={subPadre}
+            onChange={setSubPadre}
+            options={selectOptions}
+            aria-label="Categoría padre"
+          />
+          <ul className="space-y-1 text-sm text-slate-300">
+            {subsDelPadre.map((sub) => (
+              <li key={sub} className="flex items-center justify-between gap-2">
+                <span>
+                  {subPadre} › {sub}
+                </span>
+                <button
+                  type="button"
+                  className={buttonGhostClassName}
+                  onClick={() => {
+                    removeSubcategoria(user.id, subPadre, sub)
+                    reloadCategorias()
+                  }}
+                >
+                  Quitar
+                </button>
+              </li>
+            ))}
+            {subsDelPadre.length === 0 && (
+              <li className="text-xs text-slate-500">Sin subcategorías para {subPadre}.</li>
+            )}
+          </ul>
+          <form onSubmit={handleAddSubcategoria} className="flex gap-2">
+            <input
+              value={nuevaSub}
+              onChange={(e) => setNuevaSub(e.target.value)}
+              placeholder="Ej. Restaurantes, Super"
+              className={inputClassName}
+            />
+            <button type="submit" className={buttonPrimaryCompactClassName}>
+              Agregar
+            </button>
+          </form>
+        </div>
       </section>
 
       <section className={settingsPanelClassName}>
@@ -182,9 +251,9 @@ export default memo(function PersonalAppSettings() {
             tus manos. Registro manual rápido, sin sync bancario ni publicidad.
           </li>
           <li>
-            <strong className="text-slate-300">Offline:</strong> puedes registrar gastos y crear
-            cuentas sin internet. Transferencias, ingresos y ajustes de presupuesto requieren
-            conexión.
+            <strong className="text-slate-300">Offline:</strong> puedes registrar gastos,
+            ingresos y crear cuentas sin internet. Transferencias y ajustes de presupuesto
+            requieren conexión.
           </li>
           <li>
             <strong className="text-slate-300">Pendientes:</strong> si algo falla al sincronizar,
@@ -194,6 +263,21 @@ export default memo(function PersonalAppSettings() {
             <strong className="text-slate-300">iPhone:</strong> agrega a inicio → atajo “Nuevo
             gasto” o usa Registro rápido dentro de la app.
           </li>
+        </ul>
+      </section>
+
+      <section className={settingsPanelClassName}>
+        <h3 className="text-sm font-semibold text-white">Notificaciones Telegram</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Pulso avisa por Telegram (presupuesto, corte, pago, resumen). Configura en Vercel las
+          variables del archivo <code className="text-slate-400">.env.example</code>:
+        </p>
+        <ul className="mt-2 space-y-1.5 font-mono text-[11px] text-slate-400">
+          <li>TELEGRAM_BOT_TOKEN — token de @BotFather</li>
+          <li>TELEGRAM_CHAT_ID — tu chat id (escribe a @userinfobot)</li>
+          <li>SUPABASE_SERVICE_ROLE_KEY — para que el cron lea tus datos</li>
+          <li>CRON_SECRET — protege /api/cron</li>
+          <li>NOTIFY_USER_ID — opcional, limita avisos a tu usuario</li>
         </ul>
       </section>
     </div>

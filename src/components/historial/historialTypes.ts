@@ -1,4 +1,5 @@
 import type { Gasto, OptimisticGasto, PendingGasto } from '../../types/gasto'
+import type { PendingIngreso } from '../../types/ingreso'
 
 export interface IngresoHistorialItem {
   tipo: 'ingreso'
@@ -8,6 +9,14 @@ export interface IngresoHistorialItem {
   fecha: string
   cuenta_id: string
   categoria: 'Ingreso'
+  pendiente?: false
+}
+
+export interface PendingIngresoHistorialItem extends PendingIngreso {
+  tipo: 'ingreso'
+  pendiente: true
+  fecha: string
+  categoria: 'Ingreso'
 }
 
 export type HistorialItem =
@@ -15,9 +24,16 @@ export type HistorialItem =
   | (PendingGasto & { pendiente: true })
   | (OptimisticGasto & { optimistic: true })
   | IngresoHistorialItem
+  | PendingIngresoHistorialItem
 
-export function isHistorialIngreso(item: HistorialItem): item is IngresoHistorialItem {
+export function isHistorialIngreso(
+  item: HistorialItem,
+): item is IngresoHistorialItem | PendingIngresoHistorialItem {
   return 'tipo' in item && item.tipo === 'ingreso'
+}
+
+export function isHistorialPendingIngreso(item: HistorialItem): item is PendingIngresoHistorialItem {
+  return isHistorialIngreso(item) && item.pendiente === true
 }
 
 export function isHistorialOptimistic(
@@ -33,10 +49,15 @@ export function isHistorialPending(
 }
 
 export function isHistorialSynced(item: HistorialItem): item is Gasto {
-  return !isHistorialOptimistic(item) && !isHistorialPending(item) && !isHistorialIngreso(item)
+  return (
+    !isHistorialOptimistic(item) &&
+    !isHistorialPending(item) &&
+    !isHistorialIngreso(item)
+  )
 }
 
 export function getHistorialItemKey(item: HistorialItem): string {
+  if (isHistorialPendingIngreso(item)) return `pending-ingreso-${item.id}`
   if (isHistorialIngreso(item)) return `ingreso-${item.id}`
   if (isHistorialOptimistic(item)) return `optimistic-${item.tempId}`
   if (isHistorialPending(item)) return `pending-${item.id}`
@@ -45,6 +66,7 @@ export function getHistorialItemKey(item: HistorialItem): string {
 
 export function getHistorialAccionId(item: HistorialItem): string | number | null {
   if (isHistorialOptimistic(item)) return null
+  if (isHistorialPendingIngreso(item)) return item.id
   if (isHistorialIngreso(item)) return null
   return item.id
 }

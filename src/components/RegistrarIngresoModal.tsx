@@ -3,8 +3,7 @@ import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
 import { getDefaultCuentaId, registrarIngreso } from '../services/cuentas'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
-import { isOnline } from '../utils/network'
-import { showError, showSuccess } from '../utils/toast'
+import { showError, showSuccess, showWarning } from '../utils/toast'
 import { validateDescripcion, validateMonto } from '../utils/validation'
 import ModalPortal from './ModalPortal'
 import Select from './Select'
@@ -50,11 +49,6 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
       return
     }
 
-    if (!isOnline()) {
-      showError('Sin conexión. Conéctate para registrar un ingreso.')
-      return
-    }
-
     const montoError = validateMonto(monto)
     if (montoError) {
       showError(montoError)
@@ -73,7 +67,7 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
     }
 
     setGuardando(true)
-    const { error } = await registrarIngreso(
+    const { error, offline } = await registrarIngreso(
       user.id,
       cuentaId,
       parseMontoValue(monto),
@@ -86,7 +80,13 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
       return
     }
 
-    showSuccess(`Ingreso de ${formatCurrency(parseMontoValue(monto))} registrado.`)
+    if (offline) {
+      showWarning(
+        'Sin conexión. El ingreso se guardó localmente y se sincronizará al volver internet.',
+      )
+    } else {
+      showSuccess(`Ingreso de ${formatCurrency(parseMontoValue(monto))} registrado.`)
+    }
     await refreshCuentas()
     refresh()
     onSuccess?.()
