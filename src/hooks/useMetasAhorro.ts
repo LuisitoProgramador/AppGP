@@ -1,5 +1,5 @@
-import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import { useAuthContext, useGastosData } from '../contexts'
+import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { useAuthSession, useGastosRefreshState } from '../contexts'
 import {
   addAhorroToMeta,
   createMetaAhorro,
@@ -12,8 +12,8 @@ import { showError, showSuccess, showWarning } from '../utils/toast'
 import { validateMonto, validateNombre } from '../utils/validation'
 
 export function useMetasAhorro(enabled = true) {
-  const { user } = useAuthContext()
-  const { refreshKey } = useGastosData()
+  const { user } = useAuthSession()
+  const { refreshKey } = useGastosRefreshState()
 
   const [metas, setMetas] = useState<MetaAhorro[]>([])
   const [metasCargando, setMetasCargando] = useState(true)
@@ -153,22 +153,38 @@ export function useMetasAhorro(enabled = true) {
     [user, ahorroInputs, metas],
   )
 
-  return {
-    metas,
-    metasCargando,
-    metasError,
-    metasFromCache,
-    mostrarFormMeta,
-    setMostrarFormMeta,
-    metaNombre,
-    setMetaNombre,
-    metaObjetivo,
-    setMetaObjetivo,
-    guardandoMeta,
-    ahorroInputs,
-    setAhorroInputs,
-    sumandoMetaId,
-    handleCrearMeta,
-    handleSumarAhorro,
-  }
+  return useMemo(
+    () => ({
+      metas,
+      metasCargando,
+      metasError,
+      metasFromCache,
+      mostrarFormMeta,
+      setMostrarFormMeta,
+      metaNombre,
+      setMetaNombre,
+      metaObjetivo,
+      setMetaObjetivo,
+      guardandoMeta,
+      ahorroInputs,
+      setAhorroInputs,
+      sumandoMetaId,
+      handleCrearMeta,
+      handleSumarAhorro,
+    }),
+    [
+      metas,
+      metasCargando,
+      metasError,
+      metasFromCache,
+      mostrarFormMeta,
+      metaNombre,
+      metaObjetivo,
+      guardandoMeta,
+      ahorroInputs,
+      sumandoMetaId,
+      handleCrearMeta,
+      handleSumarAhorro,
+    ],
+  )
 }

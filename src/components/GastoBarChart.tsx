@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import {
   Bar,
   BarChart,
@@ -6,7 +7,15 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { formatCurrency } from '../utils/formatCurrency'
+import {
+  BAR_CHART_MARGIN,
+  BAR_RADIUS,
+  BAR_X_TICK,
+  BAR_Y_TICK,
+  CHART_TOOLTIP_STYLE,
+  formatBarYAxisTick,
+  formatChartCurrency,
+} from '../constants/formOptions'
 
 export interface MesTotal {
   label: string
@@ -17,40 +26,32 @@ interface GastoBarChartProps {
   data: MesTotal[]
 }
 
-export default function GastoBarChart({ data }: GastoBarChartProps) {
+function GastoBarChart({ data }: GastoBarChartProps) {
   if (data.length === 0) return null
 
   return (
     <div className="h-56 w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+        <BarChart data={data} margin={BAR_CHART_MARGIN}>
           <XAxis
             dataKey="label"
-            tick={{ fill: '#94a3b8', fontSize: 12 }}
+            tick={BAR_X_TICK}
             axisLine={{ stroke: '#2a3548' }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fill: '#94a3b8', fontSize: 11 }}
+            tick={BAR_Y_TICK}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(value) =>
-              value >= 1000 ? `$${(value / 1000).toFixed(0)}k` : `$${value}`
-            }
+            tickFormatter={formatBarYAxisTick}
             width={48}
           />
-          <Tooltip
-            formatter={(value) => formatCurrency(Number(value))}
-            contentStyle={{
-              backgroundColor: '#0a0f1a',
-              border: '1px solid #2a3548',
-              borderRadius: '0.75rem',
-              color: '#f8fafc',
-            }}
-          />
-          <Bar dataKey="total" fill="#4f8cff" radius={[6, 6, 0, 0]} />
+          <Tooltip formatter={formatChartCurrency} contentStyle={CHART_TOOLTIP_STYLE} />
+          <Bar dataKey="total" fill="#4f8cff" radius={BAR_RADIUS} isAnimationActive={false} />
         </BarChart>
       </ResponsiveContainer>
     </div>
   )
 }
+
+export default memo(GastoBarChart)

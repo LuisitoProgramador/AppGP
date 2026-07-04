@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from 'react'
-import { useAuthContext } from '../contexts'
+import { type FormEvent, useState, memo } from 'react'
+import { useAuthActions } from '../contexts'
 import { formatAuthError } from '../utils/authErrors'
 import { showError, showInfo, showSuccess } from '../utils/toast'
 import {
@@ -14,8 +14,8 @@ import { EyeIcon, EyeOffIcon } from './icons'
 
 type ModoAuth = 'login' | 'register'
 
-export default function LoginForm() {
-  const { signIn, signUp, resetPassword } = useAuthContext()
+export default memo(function LoginForm() {
+  const { signIn, signUp, resetPassword } = useAuthActions()
   const [modo, setModo] = useState<ModoAuth>('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -151,4 +151,4 @@ export default function LoginForm() {
       </button>
     </form>
   )
-}
+})

@@ -1,5 +1,5 @@
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
-import { useAuthContext, useCuentas, useGastosData } from '../contexts'
+import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
 import { createCuenta } from '../services/cuentas'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -112,9 +112,9 @@ function IngresoIcon() {
 }
 
 export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
-  const { user } = useAuthContext()
+  const { user } = useAuthSession()
   const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
-  const { refresh } = useGastosData()
+  const { refresh } = useGastosRefreshState()
   const [modalOpen, setModalOpen] = useState(false)
   const [ingresoModalOpen, setIngresoModalOpen] = useState(false)
   const [transferenciaModalOpen, setTransferenciaModalOpen] = useState(false)

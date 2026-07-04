@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState, memo } from 'react'
-import { useAuthContext, useCuentas, useGastosData } from '../contexts'
+import { useAuthSession, useCuentas, useGastosRefreshState, useOptimisticGastosState } from '../contexts'
 import { getDefaultCuentaId } from '../services/cuentas'
 import {
   getMerchantMemory,
@@ -10,7 +10,8 @@ import {
 } from '../services/merchantMemory'
 import { addPendingGasto, removePendingGasto } from '../services/offlineQueue'
 import { supabase } from '../services/supabase'
-import { CATEGORIAS } from '../types/gasto'
+import { CATEGORIAS, type Categoria } from '../types/gasto'
+import { CATEGORIA_SELECT_OPTIONS } from '../constants/formOptions'
 import { parseGastoInput } from '../utils/parser'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
@@ -25,7 +26,14 @@ import { cardClassName, formSubmitStickyClassName, formWithKeyboardClassName, in
 import Select from './Select'
 import MontoInput from './MontoInput'
 
-const initialForm = {
+const initialForm: {
+  monto: string
+  categoria: Categoria
+  descripcion: string
+  cuentaId: string
+  esMsi: boolean
+  mesesMsi: string
+} = {
   monto: '',
   categoria: CATEGORIAS[0],
   descripcion: '',
@@ -37,9 +45,10 @@ const initialForm = {
 type FormState = typeof initialForm
 
 export default memo(function GastoForm() {
-  const { user } = useAuthContext()
-  const { refresh, refreshKey, addOptimisticGasto, removeOptimisticGastos, optimisticGastos } =
-    useGastosData()
+  const { user } = useAuthSession()
+  const { refresh } = useGastosRefreshState()
+  const { addOptimisticGasto, removeOptimisticGastos, optimisticGastos } =
+    useOptimisticGastosState()
   const { cuentas, cuentasLoading, applyGastoSaldo, revertGastoSaldo } = useCuentas()
   const [form, setForm] = useState(initialForm)
   const [guardando, setGuardando] = useState(false)
@@ -478,7 +487,7 @@ export default memo(function GastoForm() {
               categoria: categoria as (typeof CATEGORIAS)[number],
             }))
           }
-          options={CATEGORIAS.map((item) => ({ value: item, label: item }))}
+          options={CATEGORIA_SELECT_OPTIONS}
           required
         />
       </div>

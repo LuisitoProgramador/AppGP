@@ -1,0 +1,109 @@
+import { memo } from 'react'
+import type { Gasto } from '../../types/gasto'
+import { formatCurrency } from '../../utils/formatCurrency'
+import { formatShortDate } from '../../utils/date'
+import type { EditGastoModo } from '../EditGastoModal'
+import { EditIcon, SpinnerIcon, TrashIcon } from '../icons'
+import {
+  iconButtonDangerClassName,
+  iconButtonEditClassName,
+  iconButtonMsiClassName,
+} from '../formStyles'
+import { isHistorialPending, type HistorialItem } from './historialTypes'
+
+interface HistorialItemRowProps {
+  item: HistorialItem
+  isBusy: boolean
+  isOptimistic: boolean
+  onEdit: (gasto: Gasto, modo: EditGastoModo) => void
+  onDelete: (item: HistorialItem) => void
+}
+
+const HistorialItemRow = memo(function HistorialItemRow({
+  item,
+  isBusy,
+  isOptimistic,
+  onEdit,
+  onDelete,
+}: HistorialItemRowProps) {
+  const isPending = isHistorialPending(item)
+
+  return (
+    <div className="flex flex-col gap-2 bg-slate-900/40 px-3 py-3 sm:flex-row sm:items-center sm:gap-3">
+      <div className="flex min-w-0 flex-1 items-start justify-between gap-2 sm:items-center sm:gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-white">
+            {item.descripcion || item.categoria}
+          </p>
+          {(isOptimistic || isPending) && (
+            <div className="mt-1 flex flex-wrap gap-1.5">
+              {isOptimistic && (
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-blue-500/20 px-2 py-0.5 text-xs text-blue-300">
+                  <SpinnerIcon />
+                  Guardando...
+                </span>
+              )}
+              {isPending && (
+                <span className="shrink-0 rounded-full bg-pulso-warning/20 px-2 py-0.5 text-xs text-pulso-warning">
+                  Pendiente
+                </span>
+              )}
+            </div>
+          )}
+          <p className="text-xs text-slate-400">
+            {item.categoria} · {formatShortDate(item.fecha)}
+          </p>
+        </div>
+        <p className="shrink-0 text-sm font-semibold text-slate-200 sm:hidden">
+          {formatCurrency(Number(item.monto))}
+        </p>
+      </div>
+
+      <div className="flex shrink-0 items-center justify-end gap-1.5">
+        <p className="hidden shrink-0 text-sm font-semibold text-slate-200 sm:block">
+          {formatCurrency(Number(item.monto))}
+        </p>
+        {!isPending && !isOptimistic && (
+          <>
+            <button
+              type="button"
+              onClick={() => onEdit(item as Gasto, 'cuota')}
+              disabled={isBusy}
+              aria-label="Editar gasto"
+              title="Editar gasto"
+              className={`${iconButtonEditClassName} max-sm:rounded-xl max-sm:border max-sm:border-blue-500/40 max-sm:bg-blue-500/15 max-sm:text-blue-200 max-sm:hover:bg-blue-500/25 sm:inline-flex sm:items-center sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold`}
+            >
+              <EditIcon />
+              <span className="hidden sm:inline">Editar</span>
+            </button>
+            {item.es_msi && item.grupo_msi_id && (
+              <button
+                type="button"
+                onClick={() => onEdit(item as Gasto, 'compra')}
+                disabled={isBusy}
+                aria-label="Editar compra MSI"
+                title="Editar compra MSI"
+                className={iconButtonMsiClassName}
+              >
+                MSI
+              </button>
+            )}
+          </>
+        )}
+        {!isOptimistic && (
+          <button
+            type="button"
+            onClick={() => onDelete(item)}
+            disabled={isBusy}
+            aria-label="Eliminar gasto"
+            className={iconButtonDangerClassName}
+          >
+            <TrashIcon />
+          </button>
+        )}
+      </div>
+    </div>
+  )
+})
+
+export default HistorialItemRow

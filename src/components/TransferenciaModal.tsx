@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useAuthContext, useCuentas, useGastosData } from '../contexts'
+import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
 import { getDefaultCuentaId, realizarTransferencia } from '../services/cuentas'
 import type { Cuenta } from '../types/cuenta'
 import { formatCurrency } from '../utils/formatCurrency'
@@ -57,9 +57,9 @@ function pagoExcedeDeuda(destino: Cuenta | undefined, monto: number): string | n
 }
 
 export default function TransferenciaModal({ onClose }: TransferenciaModalProps) {
-  const { user } = useAuthContext()
+  const { user } = useAuthSession()
   const { cuentas, refreshCuentas } = useCuentas()
-  const { refresh } = useGastosData()
+  const { refresh } = useGastosRefreshState()
 
   const [origenId, setOrigenId] = useState('')
   const [destinoId, setDestinoId] = useState('')
@@ -82,15 +82,6 @@ export default function TransferenciaModal({ onClose }: TransferenciaModalProps)
   )
 
   const esPagoTarjeta = cuentaDestino?.tipo === 'credito'
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
 
   useEffect(() => {
     if (origenId) return

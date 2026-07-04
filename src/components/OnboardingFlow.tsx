@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useAuthContext } from '../contexts'
+import { useAuthSession } from '../contexts'
 import {
   calcLimiteMensual,
   calcPrimerAhorro,
@@ -25,7 +25,7 @@ import {
 import Select from './Select'
 import MontoInput from './MontoInput'
 
-import { DIAS_PAGO } from '../constants/diasPago'
+import { DIAS_PAGO_SELECT_OPTIONS } from '../constants/formOptions'
 import {
   PORCENTAJE_AHORRO_DEFAULT,
   PORCENTAJE_AHORRO_MAX,
@@ -90,7 +90,7 @@ function StepIndicator({ step }: { step: number }) {
 const STEP_TITLES = ['Tus ingresos', 'Tus cuentas', 'Gastos fijos', 'Tu ahorro']
 
 export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
-  const { user } = useAuthContext()
+  const { user } = useAuthSession()
   const [step, setStep] = useState(1)
   const [animating, setAnimating] = useState(false)
   const [guardando, setGuardando] = useState(false)
@@ -449,10 +449,7 @@ export default function OnboardingFlow({ onComplete }: OnboardingFlowProps) {
                 value={String(diaPago)}
                 onChange={(value) => setDiaPago(Number(value))}
                 aria-label="Día de pago"
-                options={DIAS_PAGO.map(({ value, label }) => ({
-                  value: String(value),
-                  label,
-                }))}
+                options={DIAS_PAGO_SELECT_OPTIONS}
               />
               <p className="text-xs text-slate-500">
                 El día de la semana en que recibes tu sueldo semanal

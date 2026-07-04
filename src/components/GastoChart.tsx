@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import {
   Cell,
   Pie,
@@ -7,19 +8,19 @@ import {
 } from 'recharts'
 import type { CategoriaResumen } from '../types/gasto'
 import { CHART_COLORS_HEX } from '../types/gasto'
-import { formatCurrency } from '../utils/formatCurrency'
+import { CHART_TOOLTIP_STYLE, formatChartCurrency } from '../constants/formOptions'
 
 interface GastoChartProps {
   data: CategoriaResumen[]
 }
 
-export default function GastoChart({ data }: GastoChartProps) {
-  if (data.length === 0) return null
+function GastoChart({ data }: GastoChartProps) {
+  const chartData = useMemo(
+    () => data.map((item) => ({ name: item.categoria, value: item.total })),
+    [data],
+  )
 
-  const chartData = data.map((item) => ({
-    name: item.categoria,
-    value: item.total,
-  }))
+  if (chartData.length === 0) return null
 
   return (
     <div className="space-y-3">
@@ -35,6 +36,7 @@ export default function GastoChart({ data }: GastoChartProps) {
               innerRadius={50}
               outerRadius={80}
               paddingAngle={2}
+              isAnimationActive={false}
             >
               {chartData.map((entry) => (
                 <Cell
@@ -43,15 +45,7 @@ export default function GastoChart({ data }: GastoChartProps) {
                 />
               ))}
             </Pie>
-            <Tooltip
-              formatter={(value) => formatCurrency(Number(value))}
-              contentStyle={{
-                backgroundColor: '#0a0f1a',
-                border: '1px solid #2a3548',
-                borderRadius: '0.75rem',
-                color: '#f8fafc',
-              }}
-            />
+            <Tooltip formatter={formatChartCurrency} contentStyle={CHART_TOOLTIP_STYLE} />
           </PieChart>
         </ResponsiveContainer>
       </div>
@@ -69,3 +63,5 @@ export default function GastoChart({ data }: GastoChartProps) {
     </div>
   )
 }
+
+export default memo(GastoChart)

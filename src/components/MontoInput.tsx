@@ -1,4 +1,4 @@
-import { forwardRef } from 'react'
+import { forwardRef, memo } from 'react'
 import { formatMontoInput } from '../utils/montoInput'
 import { inputClassName } from './formStyles'
 
@@ -47,4 +47,4 @@ const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoI
   )
 })
 
-export default MontoInput
+export default memo(MontoInput)

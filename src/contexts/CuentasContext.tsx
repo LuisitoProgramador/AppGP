@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -19,8 +20,8 @@ import {
 } from '../services/cuentas'
 import { isOnline } from '../utils/network'
 import { showError } from '../utils/toast'
-import { useAuthContext } from './AuthContext'
-import { useGastosData } from './GastosDataContext'
+import { useAuthSession } from './AuthContext'
+import { useGastosRefreshState } from './GastosDataContext'
 
 interface CuentasContextValue {
   cuentas: Cuenta[]
@@ -37,10 +38,12 @@ interface CuentasProviderProps {
 }
 
 export function CuentasProvider({ children }: CuentasProviderProps) {
-  const { user } = useAuthContext()
-  const { refreshKey } = useGastosData()
+  const { user } = useAuthSession()
+  const { refreshKey } = useGastosRefreshState()
   const [cuentas, setCuentas] = useState<Cuenta[]>([])
   const [cuentasLoading, setCuentasLoading] = useState(true)
+  const cuentasRef = useRef(cuentas)
+  cuentasRef.current = cuentas
 
   const refreshCuentas = useCallback(async () => {
     if (!user) {
@@ -73,7 +76,7 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
     async (cuentaId: string, monto: number): Promise<{ error: string | null }> => {
       if (!user) return { error: 'Sin sesión' }
 
-      const base = resolveCuentasBase(user.id, cuentas)
+      const base = resolveCuentasBase(user.id, cuentasRef.current)
       const { cuentas: updated, error: localError } = applyGastoSaldoLocal(
         user.id,
         base,
@@ -100,14 +103,14 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
 
       return { error: null }
     },
-    [user, cuentas],
+    [user],
   )
 
   const revertGastoSaldo = useCallback(
     async (cuentaId: string, monto: number): Promise<{ error: string | null }> => {
       if (!user) return { error: 'Sin sesión' }
 
-      const base = resolveCuentasBase(user.id, cuentas)
+      const base = resolveCuentasBase(user.id, cuentasRef.current)
       const updated = revertGastoSaldoLocal(user.id, base, cuentaId, monto)
       setCuentas(updated)
 
@@ -127,7 +130,7 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
 
       return { error: null }
     },
-    [user, cuentas],
+    [user],
   )
 
   useEffect(() => {

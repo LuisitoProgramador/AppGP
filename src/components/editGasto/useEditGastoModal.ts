@@ -1,9 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useCuentas, useGastosData } from '../../contexts'
+import { useCuentas, useGastosRefreshState } from '../../contexts'
 import { updateMsiGrupo, cambiarCuentaMsiGrupo, type MsiGrupoUndoSnapshot } from '../../services/msiGrupo'
 import { updateGastoSimple } from '../../services/gastos'
 import { supabase } from '../../services/supabase'
-import type { Gasto, MsiInstallmentUpdate } from '../../types/gasto'
+import type { MsiInstallmentUpdate } from '../../types/gasto'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { formatMontoFromNumber, parseMontoValue } from '../../utils/montoInput'
 import { sumMsiGrupoMontos } from '../../utils/gastoSaldo'
@@ -22,7 +22,7 @@ import type { EditGastoModalProps, GrupoMsiRow } from './types'
 import { OFFLINE_CUENTA_MSG } from './types'
 
 export function useEditGastoModal({ gasto, onClose, modoInicial = 'cuota' }: EditGastoModalProps) {
-  const { refresh } = useGastosData()
+  const { refresh } = useGastosRefreshState()
   const { cuentas, cuentasLoading, refreshCuentas } = useCuentas()
   const [monto, setMonto] = useState(formatMontoFromNumber(gasto.monto))
   const [categoria, setCategoria] = useState(gasto.categoria)
@@ -42,8 +42,14 @@ export function useEditGastoModal({ gasto, onClose, modoInicial = 'cuota' }: Edi
     () => gastoPasado && (!esMsi || !corregirTotal),
     [gastoPasado, esMsi, corregirTotal],
   )
-  const msiInfo = parseMsiDescripcion(gasto.descripcion ?? '')
-  const totalGrupo = sumMsiGrupoMontos(grupoRows.length > 0 ? grupoRows : [{ monto: gasto.monto }])
+  const msiInfo = useMemo(
+    () => parseMsiDescripcion(gasto.descripcion ?? ''),
+    [gasto.descripcion],
+  )
+  const totalGrupo = useMemo(
+    () => sumMsiGrupoMontos(grupoRows.length > 0 ? grupoRows : [{ monto: gasto.monto }]),
+    [grupoRows, gasto.monto],
+  )
 
   const cuentaOriginal = gasto.cuenta_id ?? ''
   const cuentaCambio = cuentaId !== cuentaOriginal
@@ -82,15 +88,6 @@ export function useEditGastoModal({ gasto, onClose, modoInicial = 'cuota' }: Edi
     descripcionBase,
     categoria,
   ])
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
 
   useEffect(() => {
     if (!esMsi || !gasto.grupo_msi_id) return

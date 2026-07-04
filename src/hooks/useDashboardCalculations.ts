@@ -1,5 +1,5 @@
 import { useEffect, useMemo } from 'react'
-import { useGastosData, useOfflineSync, useQuietMode } from '../contexts'
+import { useOptimisticGastosState, useOfflineSyncStatus, useQuietMode } from '../contexts'
 import { usePresupuestoDiario } from './usePresupuestoDiario'
 import { useStableArray } from './useStableArray'
 import type { MetaAhorro } from '../types/metaAhorro'
@@ -44,8 +44,8 @@ export function useDashboardCalculations({
   gastoTotalResumen,
   gastoTotalAntesResumen,
 }: DashboardCalculationsInput) {
-  const { optimisticGastos } = useGastosData()
-  const { pendingGastos } = useOfflineSync()
+  const { optimisticGastos } = useOptimisticGastosState()
+  const { pendingGastos } = useOfflineSyncStatus()
   const { modoTranquilo, reportDisponible } = useQuietMode()
 
   const mesLabel = useMemo(() => formatMonthLabel(selectedMonth), [selectedMonth])
@@ -74,7 +74,7 @@ export function useDashboardCalculations({
     [esMesActual, selectedMonth],
   )
 
-  const diaActual = useMemo(() => new Date().getDate(), [])
+  const diaActual = useMemo(() => new Date().getDate(), [esMesActual, selectedMonth])
 
   const stableRecurrentes = useStableArray(recurrentes)
   const stableGastosMsi = useStableArray(gastosMsi)
@@ -177,45 +177,75 @@ export function useDashboardCalculations({
     [metas, gastoTotal, limiteMensual, disponible],
   )
 
+  const stableGastosMsiForCompromisos = useStableArray(gastosMsi)
+  const stableOptimisticForCompromisos = useStableArray(optimisticGastos)
+  const stablePendingForCompromisos = useStableArray(pendingGastos)
+  const stableEvolucionRows = useStableArray(evolucionRows)
+  const stableOptimisticForEvolucion = useStableArray(optimisticGastos)
+
   const compromisosMsi = useMemo(
     () =>
       calcularCompromisosMsi(
-        gastosMsi,
-        optimisticGastos,
+        stableGastosMsiForCompromisos,
+        stableOptimisticForCompromisos,
         limiteMensual,
         undefined,
         3,
-        pendingGastos,
+        stablePendingForCompromisos,
       ),
-    [gastosMsi, optimisticGastos, limiteMensual, pendingGastos],
+    [stableGastosMsiForCompromisos, stableOptimisticForCompromisos, limiteMensual, stablePendingForCompromisos],
   )
 
   const evolucionMensual = useMemo(
-    () => buildEvolucionMensual(evolucionRows, optimisticGastos),
-    [evolucionRows, optimisticGastos],
+    () => buildEvolucionMensual(stableEvolucionRows, stableOptimisticForEvolucion),
+    [stableEvolucionRows, stableOptimisticForEvolucion],
   )
 
-  const tieneDatosAnalisis =
-    resumen.length > 0 || evolucionMensual.some((item) => item.total > 0)
+  const tieneDatosAnalisis = useMemo(
+    () => resumen.length > 0 || evolucionMensual.some((item) => item.total > 0),
+    [resumen, evolucionMensual],
+  )
 
-  return {
-    esMesActual,
-    mesLabel,
-    gastoTotal,
-    resumen,
-    disponible,
-    presupuestoDiario,
-    diasRestantesEfectivos,
-    recibosEfectivos,
-    msiPendientes,
-    focusView,
-    burnRateAlerta,
-    diaAgotamiento,
-    proyeccionCierre,
-    resumenFinMes,
-    saludAhorro,
-    compromisosMsi,
-    evolucionMensual,
-    tieneDatosAnalisis,
-  }
+  return useMemo(
+    () => ({
+      esMesActual,
+      mesLabel,
+      gastoTotal,
+      resumen,
+      disponible,
+      presupuestoDiario,
+      diasRestantesEfectivos,
+      recibosEfectivos,
+      msiPendientes,
+      focusView,
+      burnRateAlerta,
+      diaAgotamiento,
+      proyeccionCierre,
+      resumenFinMes,
+      saludAhorro,
+      compromisosMsi,
+      evolucionMensual,
+      tieneDatosAnalisis,
+    }),
+    [
+      esMesActual,
+      mesLabel,
+      gastoTotal,
+      resumen,
+      disponible,
+      presupuestoDiario,
+      diasRestantesEfectivos,
+      recibosEfectivos,
+      msiPendientes,
+      focusView,
+      burnRateAlerta,
+      diaAgotamiento,
+      proyeccionCierre,
+      resumenFinMes,
+      saludAhorro,
+      compromisosMsi,
+      evolucionMensual,
+      tieneDatosAnalisis,
+    ],
+  )
 }

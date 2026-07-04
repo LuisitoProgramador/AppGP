@@ -8,16 +8,20 @@ import {
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
 
-interface GastosDataContextValue {
+interface GastosRefreshContextValue {
   refreshKey: number
   refresh: () => void
+}
+
+interface OptimisticGastosContextValue {
   optimisticGastos: OptimisticGasto[]
   addOptimisticGasto: (gasto: Omit<OptimisticGasto, 'tempId'>) => string
   removeOptimisticGasto: (tempId: string) => void
   removeOptimisticGastos: (tempIds: string[]) => void
 }
 
-const GastosDataContext = createContext<GastosDataContextValue | null>(null)
+const GastosRefreshContext = createContext<GastosRefreshContextValue | null>(null)
+const OptimisticGastosContext = createContext<OptimisticGastosContextValue | null>(null)
 
 interface GastosDataProviderProps {
   children: ReactNode
@@ -46,34 +50,47 @@ export function GastosDataProvider({ children }: GastosDataProviderProps) {
     setOptimisticGastos((current) => current.filter((gasto) => !ids.has(gasto.tempId)))
   }, [])
 
-  const contextValue = useMemo(
+  const refreshValue = useMemo(
+    () => ({ refreshKey, refresh }),
+    [refreshKey, refresh],
+  )
+
+  const optimisticValue = useMemo(
     () => ({
-      refreshKey,
-      refresh,
       optimisticGastos,
       addOptimisticGasto,
       removeOptimisticGasto,
       removeOptimisticGastos,
     }),
-    [
-      refreshKey,
-      refresh,
-      optimisticGastos,
-      addOptimisticGasto,
-      removeOptimisticGasto,
-      removeOptimisticGastos,
-    ],
+    [optimisticGastos, addOptimisticGasto, removeOptimisticGasto, removeOptimisticGastos],
   )
 
   return (
-    <GastosDataContext.Provider value={contextValue}>{children}</GastosDataContext.Provider>
+    <GastosRefreshContext.Provider value={refreshValue}>
+      <OptimisticGastosContext.Provider value={optimisticValue}>
+        {children}
+      </OptimisticGastosContext.Provider>
+    </GastosRefreshContext.Provider>
   )
 }
 
-export function useGastosData() {
-  const context = useContext(GastosDataContext)
+export function useGastosRefreshState() {
+  const context = useContext(GastosRefreshContext)
   if (!context) {
-    throw new Error('useGastosData debe usarse dentro de GastosDataProvider')
+    throw new Error('useGastosRefreshState debe usarse dentro de GastosDataProvider')
   }
   return context
+}
+
+export function useOptimisticGastosState() {
+  const context = useContext(OptimisticGastosContext)
+  if (!context) {
+    throw new Error('useOptimisticGastosState debe usarse dentro de GastosDataProvider')
+  }
+  return context
+}
+
+/** Hook completo — preferir useGastosRefreshState o useOptimisticGastosState según necesidad. */
+export function useGastosData() {
+  return { ...useGastosRefreshState(), ...useOptimisticGastosState() }
 }

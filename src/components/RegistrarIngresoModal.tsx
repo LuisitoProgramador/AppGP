@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useAuthContext, useCuentas, useGastosData } from '../contexts'
+import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
 import { getDefaultCuentaId, registrarIngreso } from '../services/cuentas'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
@@ -22,9 +22,9 @@ interface RegistrarIngresoModalProps {
 }
 
 export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModalProps) {
-  const { user } = useAuthContext()
+  const { user } = useAuthSession()
   const { cuentas, refreshCuentas } = useCuentas()
-  const { refresh } = useGastosData()
+  const { refresh } = useGastosRefreshState()
 
   const [descripcion, setDescripcion] = useState('')
   const [monto, setMonto] = useState('')
@@ -35,15 +35,6 @@ export default function RegistrarIngresoModal({ onClose }: RegistrarIngresoModal
     () => cuentas.filter((c) => c.tipo === 'efectivo' || c.tipo === 'debito'),
     [cuentas],
   )
-
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
 
   useEffect(() => {
     if (cuentaId) return

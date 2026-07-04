@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { AuthError, Session } from '@supabase/supabase-js'
 import { supabase } from '../services/supabase'
 import { handleAuthRedirect } from '../services/authRedirect'
@@ -87,13 +87,16 @@ export default function useAuth() {
     return { error: result.error as AuthError | null }
   }, [])
 
-  return {
-    session,
-    user: session?.user ?? null,
-    loading,
-    signIn,
-    signUp,
-    signOut,
-    resetPassword,
-  }
+  return useMemo(
+    () => ({
+      session,
+      user: session?.user ?? null,
+      loading,
+      signIn,
+      signUp,
+      signOut,
+      resetPassword,
+    }),
+    [session, loading, signIn, signUp, signOut, resetPassword],
+  )
 }

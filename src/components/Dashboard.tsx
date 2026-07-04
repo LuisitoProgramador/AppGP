@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from 'react'
-import { useOfflineSync, useQuietMode, useFocusMode } from '../contexts'
+import { useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
 import { useDashboardData } from '../hooks/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
 import ListaCuentas from './ListaCuentas'
@@ -20,7 +20,7 @@ import SalidasTimelineSection from './SalidasTimelineSection'
 import { dashboardShellClassName } from './formStyles'
 
 export default memo(function Dashboard() {
-  const { isSyncing, pendingCount } = useOfflineSync()
+  const { isSyncing, pendingCount } = useOfflineSyncStatus()
   const { modoTranquilo, toggleModoTranquilo } = useQuietMode()
   const { isFocusMode, toggleFocusMode } = useFocusMode()
   const { metas } = useMetasAhorro(!isFocusMode)

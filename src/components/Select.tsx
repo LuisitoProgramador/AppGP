@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, memo } from 'react'
 import { createPortal } from 'react-dom'
 import { inputClassName } from './formStyles'
 
@@ -57,7 +57,7 @@ function CheckIcon() {
   )
 }
 
-export default function Select({
+export default memo(function Select({
   id,
   value,
   onChange,
@@ -71,7 +71,10 @@ export default function Select({
 }: SelectProps) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef<HTMLDivElement>(null)
-  const selectableOptions = options.filter((option) => !option.disabled)
+  const selectableOptions = useMemo(
+    () => options.filter((option) => !option.disabled),
+    [options],
+  )
   const selectedOption = options.find((option) => option.value === value)
   const displayLabel = selectedOption?.label ?? placeholder
   const listboxId = id ? `${id}-listbox` : undefined
@@ -198,4 +201,4 @@ export default function Select({
         )}
     </div>
   )
-}
+})

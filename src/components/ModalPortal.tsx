@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { memo, useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 const MODAL_ROOT_ID = 'modal-root'
@@ -13,19 +13,22 @@ interface ModalPortalProps {
   ariaLabelledBy?: string
 }
 
-export default function ModalPortal({
-  onClose,
-  children,
-  ariaLabelledBy,
-}: ModalPortalProps) {
+function ModalPortal({ onClose, children, ariaLabelledBy }: ModalPortalProps) {
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
 
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+
     return () => {
       document.body.style.overflow = previousOverflow || 'unset'
+      window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [])
+  }, [onClose])
 
   return createPortal(
     <div
@@ -40,3 +43,5 @@ export default function ModalPortal({
     getModalRoot(),
   )
 }
+
+export default memo(ModalPortal)

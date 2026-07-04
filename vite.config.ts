@@ -6,8 +6,21 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   build: {
-    // Recharts + Supabase superan 500 kB; las gráficas ya van en lazy imports.
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+
+          if (id.includes('@supabase')) return 'vendor-supabase'
+          if (id.includes('recharts') || id.includes('d3-')) return 'vendor-recharts'
+          if (id.includes('@tanstack/react-virtual')) return 'vendor-virtual'
+          if (id.includes('sonner')) return 'vendor-sonner'
+          if (id.includes('idb')) return 'vendor-idb'
+          if (id.includes('react-dom') || id.includes('react/')) return 'vendor-react'
+        },
+      },
+    },
   },
   plugins: [
     react(),

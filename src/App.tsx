@@ -1,27 +1,26 @@
-import { useEffect, useState, useCallback, type ReactNode } from 'react'
-import { AuthProvider, GastosProviders, QuietModeProvider, FocusModeProvider, useAuthContext } from './contexts'
-import {
-  Ajustes,
-  Dashboard,
-  ErrorBoundary,
-  GastoForm,
-  Historial,
-  Layout,
-  LoginForm,
-  Plan,
-  OnboardingFlow,
-} from './components'
+import { lazy, Suspense, useEffect, useState, useCallback, type ReactNode } from 'react'
+import { AuthProvider, GastosProviders, QuietModeProvider, FocusModeProvider, useAuthSession, useAuthActions } from './contexts'
+import ErrorBoundary from './components/ErrorBoundary'
+import Layout from './components/Layout'
+import LoginForm from './components/LoginForm'
 import { navTabClassName, navBottomTabClassName, iconButtonClassName, tabPanelClassName } from './components/formStyles'
 import { useTabSwipe } from './hooks/useTabSwipe'
 import { checkNeedsOnboarding } from './services/onboarding'
 import { readSessionStorage, writeSessionStorage } from './utils/storage'
 import { showError } from './utils/toast'
 
+const GastoForm = lazy(() => import('./components/GastoForm'))
+const Dashboard = lazy(() => import('./components/Dashboard'))
+const Historial = lazy(() => import('./components/Historial'))
+const Plan = lazy(() => import('./components/Plan'))
+const Ajustes = lazy(() => import('./components/Ajustes'))
+const OnboardingFlow = lazy(() => import('./components/OnboardingFlow'))
+
 type AppTab = 'registro' | 'resumen' | 'historial' | 'plan'
 
 const TAB_STORAGE_KEY = 'app-tab'
 
-const VALID_TABS: AppTab[] = ['registro', 'resumen', 'historial', 'plan']
+const VALID_TABS = new Set<AppTab>(['registro', 'resumen', 'historial', 'plan'])
 
 const TABS: { id: AppTab; label: string; shortLabel: string }[] = [
   { id: 'registro', label: 'Registro', shortLabel: 'Nuevo' },
@@ -29,6 +28,10 @@ const TABS: { id: AppTab; label: string; shortLabel: string }[] = [
   { id: 'historial', label: 'Historial', shortLabel: 'Historial' },
   { id: 'plan', label: 'Plan', shortLabel: 'Plan' },
 ]
+
+function TabFallback() {
+  return <p className="text-center text-sm text-slate-400">Cargando...</p>
+}
 
 function getInitialTab(): AppTab {
   const params = new URLSearchParams(window.location.search)
@@ -44,7 +47,7 @@ function getInitialTab(): AppTab {
   if (saved === 'recurrentes' || saved === 'metas') {
     return 'plan'
   }
-  if (saved && VALID_TABS.includes(saved as AppTab)) {
+  if (saved && VALID_TABS.has(saved as AppTab)) {
     return saved as AppTab
   }
   return 'registro'
@@ -107,40 +110,48 @@ function TabPanel({ id, activeTab, children }: TabPanelProps) {
       aria-labelledby={`tab-${id}`}
       className={tabPanelClassName}
     >
-      {children}
+      <Suspense fallback={<TabFallback />}>{children}</Suspense>
     </div>
   )
 }
 
 function AppContent() {
-  const { user, loading, signOut } = useAuthContext()
+  const { user, loading } = useAuthSession()
+  const { signOut } = useAuthActions()
   const [tab, setTab] = useState<AppTab>(getInitialTab)
   const [showAjustes, setShowAjustes] = useState(false)
   const [onboardingState, setOnboardingState] = useState<OnboardingState>('loading')
 
-  function handleTabChange(nextTab: AppTab) {
+  const handleTabChange = useCallback((nextTab: AppTab) => {
     setShowAjustes(false)
     setTab(nextTab)
     writeSessionStorage(TAB_STORAGE_KEY, nextTab)
-  }
+  }, [])
 
   const tabIndex = TABS.findIndex(({ id }) => id === tab)
 
   const handleSwipeLeft = useCallback(() => {
     if (showAjustes || tabIndex >= TABS.length - 1) return
     handleTabChange(TABS[tabIndex + 1].id)
-  }, [showAjustes, tabIndex])
+  }, [showAjustes, tabIndex, handleTabChange])
 
   const handleSwipeRight = useCallback(() => {
     if (showAjustes || tabIndex <= 0) return
     handleTabChange(TABS[tabIndex - 1].id)
-  }, [showAjustes, tabIndex])
+  }, [showAjustes, tabIndex, handleTabChange])
 
   const swipeHandlers = useTabSwipe(handleSwipeLeft, handleSwipeRight)
 
-  function handleToggleAjustes() {
+  const handleToggleAjustes = useCallback(() => {
     setShowAjustes((open) => !open)
-  }
+  }, [])
+
+  const handleSignOut = useCallback(async () => {
+    const { error } = await signOut()
+    if (error) {
+      showError(`Error al cerrar sesión: ${error.message}`)
+    }
+  }, [signOut])
 
   useEffect(() => {
     if (!user) {
@@ -180,13 +191,6 @@ function AppContent() {
     )
   }
 
-  async function handleSignOut() {
-    const { error } = await signOut()
-    if (error) {
-      showError(`Error al cerrar sesión: ${error.message}`)
-    }
-  }
-
   if (onboardingState === 'loading') {
     return (
       <Layout>
@@ -198,12 +202,14 @@ function AppContent() {
   if (onboardingState === 'needed') {
     return (
       <Layout>
-        <OnboardingFlow
-          onComplete={() => {
-            setOnboardingState('done')
-            handleTabChange('resumen')
-          }}
-        />
+        <Suspense fallback={<TabFallback />}>
+          <OnboardingFlow
+            onComplete={() => {
+              setOnboardingState('done')
+              handleTabChange('resumen')
+            }}
+          />
+        </Suspense>
       </Layout>
     )
   }
@@ -268,35 +274,37 @@ function AppContent() {
             <div className="relative" {...(!showAjustes ? swipeHandlers : {})}>
               {showAjustes ? (
                 <ErrorBoundary title="Error en ajustes">
-                  <Ajustes />
+                  <Suspense fallback={<TabFallback />}>
+                    <Ajustes />
+                  </Suspense>
                 </ErrorBoundary>
               ) : (
                 <>
-              <TabPanel id="registro" activeTab={tab}>
-                <ErrorBoundary title="Error en el formulario">
-                  <GastoForm />
-                </ErrorBoundary>
-              </TabPanel>
+                  <TabPanel id="registro" activeTab={tab}>
+                    <ErrorBoundary title="Error en el formulario">
+                      <GastoForm />
+                    </ErrorBoundary>
+                  </TabPanel>
 
-              <TabPanel id="resumen" activeTab={tab}>
-                <FocusModeProvider>
-                  <ErrorBoundary title="Error en el Dashboard">
-                    <Dashboard />
-                  </ErrorBoundary>
-                </FocusModeProvider>
-              </TabPanel>
+                  <TabPanel id="resumen" activeTab={tab}>
+                    <FocusModeProvider>
+                      <ErrorBoundary title="Error en el Dashboard">
+                        <Dashboard />
+                      </ErrorBoundary>
+                    </FocusModeProvider>
+                  </TabPanel>
 
-              <TabPanel id="historial" activeTab={tab}>
-                <ErrorBoundary title="Error en el historial">
-                  <Historial />
-                </ErrorBoundary>
-              </TabPanel>
+                  <TabPanel id="historial" activeTab={tab}>
+                    <ErrorBoundary title="Error en el historial">
+                      <Historial />
+                    </ErrorBoundary>
+                  </TabPanel>
 
-              <TabPanel id="plan" activeTab={tab}>
-                <ErrorBoundary title="Error en planificación">
-                  <Plan />
-                </ErrorBoundary>
-              </TabPanel>
+                  <TabPanel id="plan" activeTab={tab}>
+                    <ErrorBoundary title="Error en planificación">
+                      <Plan />
+                    </ErrorBoundary>
+                  </TabPanel>
                 </>
               )}
             </div>

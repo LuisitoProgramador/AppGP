@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useAuthContext, useGastosData } from '../contexts'
+import { useEffect, useMemo, useState } from 'react'
+import { useAuthSession, useGastosRefreshState } from '../contexts'
 import { getLimiteMensual, getPresupuesto, getIngresoMensualTotal } from '../services/presupuesto'
 import { listCuentas } from '../services/cuentas'
 import { listGastosRecurrentes } from '../services/gastosRecurrentes'
@@ -31,8 +31,8 @@ export function useDashboardQueries(
   options: UseDashboardDataOptions = {},
 ): DashboardQueryState & DashboardQueryActions {
   const lite = options.lite ?? false
-  const { user } = useAuthContext()
-  const { refreshKey } = useGastosData()
+  const { user } = useAuthSession()
+  const { refreshKey } = useGastosRefreshState()
 
   const [resumenMensual, setResumenMensual] = useState<ResumenMensual[]>([])
   const [limiteMensual, setLimiteMensual] = useState(10000)
@@ -56,6 +56,8 @@ export function useDashboardQueries(
       }
     }
 
+    const userId = user.id
+
     async function cargarDashboard() {
       if (isMounted) {
         setCargando(true)
@@ -77,20 +79,20 @@ export function useDashboardQueries(
         resumenResult,
         msiResult,
       ] = await Promise.all([
-        getLimiteMensual(user.id),
-        lite ? Promise.resolve(null) : getPresupuesto(user.id),
-        lite ? Promise.resolve({ data: [] as Awaited<ReturnType<typeof listCuentas>>['data'] }) : listCuentas(user.id),
-        listGastosRecurrentes(user.id),
+        getLimiteMensual(userId),
+        lite ? Promise.resolve(null) : getPresupuesto(userId),
+        lite ? Promise.resolve({ data: [] as Awaited<ReturnType<typeof listCuentas>>['data'] }) : listCuentas(userId),
+        listGastosRecurrentes(userId),
         supabase
           .from('gastos_resumen_mensual')
           .select('categoria, total, cantidad')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .gte('mes', inicio)
           .lt('mes', fin),
         supabase
           .from('gastos')
           .select('monto, fecha')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .eq('es_msi', true)
           .gte('fecha', msiBounds.inicio)
           .lt('fecha', finMsiBounds.fin),
@@ -163,25 +165,25 @@ export function useDashboardQueries(
         supabase
           .from('gastos_resumen_mensual')
           .select('mes, total')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .gte('mes', evoInicio.inicio)
           .lt('mes', evoFin.fin),
         supabase
           .from('gastos_resumen_mensual')
           .select('total')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .gte('mes', resumenBounds.inicio)
           .lt('mes', resumenBounds.fin),
         supabase
           .from('gastos_resumen_mensual')
           .select('total')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .gte('mes', antBounds.inicio)
           .lt('mes', antBounds.fin),
         supabase
           .from('gastos')
           .select('descripcion, monto, categoria, fecha')
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .gte('fecha', patronBounds.inicio)
           .lt('fecha', finMsiBounds.fin),
       ])
@@ -227,19 +229,36 @@ export function useDashboardQueries(
     }
   }, [user, refreshKey, selectedMonth, lite])
 
-  return {
-    cargando,
-    error,
-    resumenMensual,
-    limiteMensual,
-    ingresoMensualTotal,
-    patrimonioLiquido,
-    recurrentes,
-    gastosMsi,
-    evolucionRows,
-    gastoTotalResumen,
-    gastoTotalAntesResumen,
-    recurrenteSugerido,
-    setRecurrenteSugerido,
-  }
+  return useMemo(
+    () => ({
+      cargando,
+      error,
+      resumenMensual,
+      limiteMensual,
+      ingresoMensualTotal,
+      patrimonioLiquido,
+      recurrentes,
+      gastosMsi,
+      evolucionRows,
+      gastoTotalResumen,
+      gastoTotalAntesResumen,
+      recurrenteSugerido,
+      setRecurrenteSugerido,
+    }),
+    [
+      cargando,
+      error,
+      resumenMensual,
+      limiteMensual,
+      ingresoMensualTotal,
+      patrimonioLiquido,
+      recurrentes,
+      gastosMsi,
+      evolucionRows,
+      gastoTotalResumen,
+      gastoTotalAntesResumen,
+      recurrenteSugerido,
+      setRecurrenteSugerido,
+    ],
+  )
 }

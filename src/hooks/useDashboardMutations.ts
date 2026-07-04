@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react'
-import { useAuthContext, useGastosData } from '../contexts'
+import { useCallback, useMemo, useState } from 'react'
+import { useAuthSession, useGastosRefreshState } from '../contexts'
 import { getDefaultCuentaId, listCuentas } from '../services/cuentas'
 import { createGastoRecurrente } from '../services/gastosRecurrentes'
 import {
@@ -18,17 +18,19 @@ export function useDashboardMutations({
   recurrenteSugerido,
   setRecurrenteSugerido,
 }: DashboardMutationsInput) {
-  const { user } = useAuthContext()
-  const { refresh } = useGastosData()
+  const { user } = useAuthSession()
+  const { refresh } = useGastosRefreshState()
 
   const [marcandoRecurrente, setMarcandoRecurrente] = useState(false)
   const [modoViaje, setModoViajeState] = useState(() => isModoViaje())
 
   const handleToggleModoViaje = useCallback(() => {
-    const activo = !modoViaje
-    setModoViajeState(activo)
-    setModoViaje(activo)
-  }, [modoViaje])
+    setModoViajeState((prev) => {
+      const activo = !prev
+      setModoViaje(activo)
+      return activo
+    })
+  }, [])
 
   const handleMarcarRecurrente = useCallback(async () => {
     if (!recurrenteSugerido || !user) return
@@ -64,11 +66,20 @@ export function useDashboardMutations({
     setRecurrenteSugerido(null)
   }, [recurrenteSugerido, setRecurrenteSugerido])
 
-  return {
-    marcandoRecurrente,
-    modoViaje,
-    handleToggleModoViaje,
-    handleMarcarRecurrente,
-    handleDescartarRecurrente,
-  }
+  return useMemo(
+    () => ({
+      marcandoRecurrente,
+      modoViaje,
+      handleToggleModoViaje,
+      handleMarcarRecurrente,
+      handleDescartarRecurrente,
+    }),
+    [
+      marcandoRecurrente,
+      modoViaje,
+      handleToggleModoViaje,
+      handleMarcarRecurrente,
+      handleDescartarRecurrente,
+    ],
+  )
 }

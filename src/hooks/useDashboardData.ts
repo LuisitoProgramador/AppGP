@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import type { MetaAhorro } from '../types/metaAhorro'
 import type { UseDashboardDataOptions } from './dashboardTypes'
 import { useDashboardCalculations } from './useDashboardCalculations'
@@ -16,39 +17,32 @@ export function useDashboardData(
   options: UseDashboardDataOptions = {},
 ) {
   const queries = useDashboardQueries(selectedMonth, options)
+  const { setRecurrenteSugerido, ...queryState } = queries
 
   const mutations = useDashboardMutations({
     recurrenteSugerido: queries.recurrenteSugerido,
-    setRecurrenteSugerido: queries.setRecurrenteSugerido,
+    setRecurrenteSugerido,
   })
 
   const calculations = useDashboardCalculations({
+    ...queryState,
     selectedMonth,
     metas,
     modoViaje: mutations.modoViaje,
-    cargando: queries.cargando,
-    resumenMensual: queries.resumenMensual,
-    limiteMensual: queries.limiteMensual,
-    ingresoMensualTotal: queries.ingresoMensualTotal,
-    patrimonioLiquido: queries.patrimonioLiquido,
-    recurrentes: queries.recurrentes,
-    gastosMsi: queries.gastosMsi,
-    evolucionRows: queries.evolucionRows,
-    gastoTotalResumen: queries.gastoTotalResumen,
-    gastoTotalAntesResumen: queries.gastoTotalAntesResumen,
-    error: queries.error,
-    recurrenteSugerido: queries.recurrenteSugerido,
   })
 
-  return {
-    cargando: queries.cargando,
-    error: queries.error,
-    limiteMensual: queries.limiteMensual,
-    ingresoMensualTotal: queries.ingresoMensualTotal,
-    patrimonioLiquido: queries.patrimonioLiquido,
-    recurrenteSugerido: queries.recurrenteSugerido,
-    recurrentes: queries.recurrentes,
-    ...calculations,
-    ...mutations,
-  }
+  return useMemo(
+    () => ({
+      cargando: queries.cargando,
+      error: queries.error,
+      limiteMensual: queries.limiteMensual,
+      ingresoMensualTotal: queries.ingresoMensualTotal,
+      patrimonioLiquido: queries.patrimonioLiquido,
+      recurrenteSugerido: queries.recurrenteSugerido,
+      recurrentes: queries.recurrentes,
+      ...calculations,
+      ...mutations,
+    }),
+    [queries, calculations, mutations],
+  )
 }

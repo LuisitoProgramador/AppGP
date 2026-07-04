@@ -2,20 +2,16 @@ import { lazy, Suspense, memo, useState } from 'react'
 import { COLORES_CATEGORIA, type CategoriaResumen } from '../../types/gasto'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { chartToggleClassName } from '../formStyles'
+import type { MesTotal } from '../GastoBarChart'
 
 const GastoChart = lazy(() => import('../GastoChart'))
 const GastoBarChart = lazy(() => import('../GastoBarChart'))
 
 type ChartView = 'categoria' | 'evolucion'
 
-interface EvolucionItem {
-  mes: string
-  total: number
-}
-
 interface GastosAnalisisSectionProps {
   resumen: CategoriaResumen[]
-  evolucionMensual: EvolucionItem[]
+  evolucionMensual: MesTotal[]
 }
 
 export default memo(function GastosAnalisisSection({

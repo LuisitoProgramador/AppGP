@@ -1,3 +1,4 @@
+import { CATEGORIA_SELECT_OPTIONS } from '../../constants/formOptions'
 import { CATEGORIAS } from '../../types/gasto'
 import { formatCurrency } from '../../utils/formatCurrency'
 import { isOnline } from '../../utils/network'
@@ -97,7 +98,7 @@ export default function EditGastoFormBody({
           id="edit-categoria"
           value={categoria}
           onChange={(value) => setCategoria(value as (typeof CATEGORIAS)[number])}
-          options={CATEGORIAS.map((item) => ({ value: item, label: item }))}
+          options={CATEGORIA_SELECT_OPTIONS}
           required
           disabled={edicionBloqueada}
         />

@@ -11,7 +11,7 @@ import {
 import { getPresupuesto } from '../services/presupuesto'
 import { shouldAutoActivarModoTranquilo } from '../utils/quietModeAuto'
 import { isModoTranquilo, setModoTranquilo } from '../utils/quietMode'
-import { useAuthContext } from './AuthContext'
+import { useAuthSession } from './AuthContext'
 
 interface QuietModeContextValue {
   modoTranquilo: boolean
@@ -24,7 +24,7 @@ interface QuietModeContextValue {
 const QuietModeContext = createContext<QuietModeContextValue | null>(null)
 
 export function QuietModeProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuthContext()
+  const { user } = useAuthSession()
   const [modoTranquilo, setModoTranquiloState] = useState(() => isModoTranquilo())
   const [autoModoTranquilo, setAutoModoTranquilo] = useState(false)
   const [disponible, setDisponible] = useState<number | null>(null)
@@ -77,8 +77,14 @@ export function QuietModeProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const toggleModoTranquilo = useCallback(() => {
-    setModoTranquiloActivo(!modoTranquilo)
-  }, [modoTranquilo, setModoTranquiloActivo])
+    setModoTranquiloState((current) => {
+      const next = !current
+      preferenciaManual.current = next
+      setAutoModoTranquilo(false)
+      setModoTranquilo(next)
+      return next
+    })
+  }, [])
 
   const value = useMemo(
     () => ({

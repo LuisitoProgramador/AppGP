@@ -1,12 +1,13 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState, memo } from 'react'
-import { useAuthContext, useCuentas, useGastosData } from '../contexts'
+import { useAuthSession, useCuentas, useGastosRefreshState } from '../contexts'
 import {
   createGastoRecurrente,
   deleteGastoRecurrente,
   listGastosRecurrentes,
 } from '../services/gastosRecurrentes'
 import { getDefaultCuentaId } from '../services/cuentas'
-import { CATEGORIAS, type GastoRecurrente } from '../types/gasto'
+import { CATEGORIA_SELECT_OPTIONS } from '../constants/formOptions'
+import { type GastoRecurrente, CATEGORIAS, type Categoria } from '../types/gasto'
 import { formatCurrency } from '../utils/formatCurrency'
 import { parseMontoValue } from '../utils/montoInput'
 import { isOnline } from '../utils/network'
@@ -17,7 +18,13 @@ import { TrashIcon } from './icons'
 import Select from './Select'
 import MontoInput from './MontoInput'
 
-const initialForm = {
+const initialForm: {
+  descripcion: string
+  monto: string
+  categoria: Categoria
+  dia_mes: string
+  cuentaId: string
+} = {
   descripcion: '',
   monto: '',
   categoria: CATEGORIAS[0],
@@ -31,9 +38,9 @@ function cuentaLabel(cuentas: { id: string; nombre: string }[], cuentaId: string
 }
 
 export default memo(function GastosRecurrentes() {
-  const { user } = useAuthContext()
+  const { user } = useAuthSession()
   const { cuentas, cuentasLoading } = useCuentas()
-  const { refreshKey, refresh } = useGastosData()
+  const { refreshKey, refresh } = useGastosRefreshState()
   const [items, setItems] = useState<GastoRecurrente[]>([])
   const [form, setForm] = useState(initialForm)
   const [cargando, setCargando] = useState(true)
@@ -277,7 +284,7 @@ export default memo(function GastosRecurrentes() {
                 categoria: categoria as (typeof CATEGORIAS)[number],
               }))
             }
-            options={CATEGORIAS.map((item) => ({ value: item, label: item }))}
+            options={CATEGORIA_SELECT_OPTIONS}
             required
           />
         </div>

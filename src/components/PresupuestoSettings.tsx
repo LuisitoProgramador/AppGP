@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
-import { useAuthContext, useGastosData } from '../contexts'
+import { useAuthSession, useGastosRefreshState } from '../contexts'
 import { getPresupuesto, savePresupuestoFinanciero, applyLimiteCalculado } from '../services/presupuesto'
-import { DIAS_PAGO } from '../constants/diasPago'
+import { DIAS_PAGO_SELECT_OPTIONS } from '../constants/formOptions'
 import {
   PORCENTAJE_AHORRO_DEFAULT,
   PORCENTAJE_AHORRO_MAX,
@@ -38,8 +38,8 @@ function validateIngresosExtrasOpcional(value: string): string | null {
 }
 
 export default function PresupuestoSettings() {
-  const { user } = useAuthContext()
-  const { refreshKey, refresh } = useGastosData()
+  const { user } = useAuthSession()
+  const { refreshKey, refresh } = useGastosRefreshState()
 
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
@@ -63,11 +63,12 @@ export default function PresupuestoSettings() {
   useEffect(() => {
     if (!user) return
 
+    const userId = user.id
     let cancelled = false
 
     async function cargar() {
       setCargando(true)
-      const presupuesto = await getPresupuesto(user.id)
+      const presupuesto = await getPresupuesto(userId)
       if (cancelled) return
 
       if (presupuesto) {
@@ -327,10 +328,7 @@ export default function PresupuestoSettings() {
             value={String(diaPago)}
             onChange={(value) => setDiaPago(Number(value))}
             aria-label="Día de pago semanal"
-            options={DIAS_PAGO.map(({ value, label }) => ({
-              value: String(value),
-              label,
-            }))}
+            options={DIAS_PAGO_SELECT_OPTIONS}
           />
           <p className="text-xs text-slate-500">
             El día de la semana en que recibes tu sueldo semanal
