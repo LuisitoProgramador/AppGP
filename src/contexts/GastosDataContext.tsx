@@ -10,12 +10,13 @@ import {
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
 import { invalidateAppQueries } from '../lib/invalidateAppQueries'
+import type { AppQueryScope } from '../lib/queryKeys'
 
 type RefreshListener = () => void
 const refreshListeners = new Set<RefreshListener>()
 
 interface GastosRefreshContextValue {
-  refresh: () => void
+  refresh: (scopes?: AppQueryScope[]) => void
 }
 
 interface OptimisticGastosContextValue {
@@ -35,8 +36,8 @@ interface GastosDataProviderProps {
 export function GastosDataProvider({ children }: GastosDataProviderProps) {
   const [optimisticGastos, setOptimisticGastos] = useState<OptimisticGasto[]>([])
 
-  const refresh = useCallback(() => {
-    invalidateAppQueries()
+  const refresh = useCallback((scopes?: AppQueryScope[]) => {
+    invalidateAppQueries(scopes)
     refreshListeners.forEach((listener) => listener())
   }, [])
 

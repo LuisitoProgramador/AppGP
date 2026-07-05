@@ -1,4 +1,4 @@
--- Tope de monto alineado con MAX_MONTO del cliente (1_000_000).
+-- Tope de monto alineado con src/types/limits.ts (MAX_MONTO = 1_000_000).
 
 alter table public.gastos
   drop constraint if exists gastos_monto_check,

@@ -10,9 +10,13 @@ export default memo(function GastoForm() {
     <form
       onSubmit={gastoForm.handleSubmit}
       className={`${cardClassName} ${registroFormClassName}`}
+      aria-labelledby="gasto-form-heading"
+      data-testid="gasto-form"
     >
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-white">Nuevo gasto</h2>
+        <h2 id="gasto-form-heading" className="text-lg font-semibold text-white">
+          Nuevo gasto
+        </h2>
         <p className="text-sm text-slate-400">Monto, tarjeta y categoría. Tú eliges todo.</p>
       </div>
 

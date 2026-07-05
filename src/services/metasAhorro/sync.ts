@@ -8,6 +8,7 @@ import {
   nombreMetaAhorroAnual,
 } from '../../utils/finanzas/metaCalendario'
 import { isOnline } from '../../utils/core/network'
+import { roundMoney, sumMoney } from '../../utils/core/centavos'
 import { shouldDiscardAfterRetry } from '../sync/syncPolicy'
 import { getPresupuesto } from '../presupuesto/fetch'
 import { supabase } from '../supabase'
@@ -42,7 +43,7 @@ async function syncPendingMetaAhorroInner(userId: string): Promise<number> {
       continue
     }
 
-    const nextActual = Math.round((Number(meta.monto_actual) + item.amount) * 100) / 100
+    const nextActual = roundMoney(sumMoney(Number(meta.monto_actual), item.amount))
     const { error: updateError } = await supabase
       .from('metas_ahorro')
       .update({ monto_actual: nextActual })

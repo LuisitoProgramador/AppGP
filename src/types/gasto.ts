@@ -102,13 +102,16 @@ export const COLORES_CATEGORIA: Record<string, string> = {
 }
 
 export const LIMITE_MENSUAL_DEFAULT = 10000
-export const MAX_MONTO = 1_000_000
+export { MAX_MONTO, MAX_DESCRIPCION_LENGTH, MIN_MSI_MESES, MAX_MSI_MESES } from './limits'
 
 /** Movimientos internos; excluidos del presupuesto y del resumen mensual. */
 export const CATEGORIA_TRANSFERENCIA = 'Transferencia'
-export const MAX_DESCRIPCION_LENGTH = 200
-export const MIN_MSI_MESES = 2
-export const MAX_MSI_MESES = 48
+
+/** Gastos reales de consumo; excluye transferencias internas entre cuentas. */
+export function esGastoPresupuestable(categoria: string): boolean {
+  return categoria !== CATEGORIA_TRANSFERENCIA
+}
+
 export const HISTORIAL_PAGE_SIZE = 20
 
 export interface GastoRecurrente {

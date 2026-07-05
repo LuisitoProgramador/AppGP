@@ -76,4 +76,20 @@ describe('msiGrupoMatchesExpected', () => {
       ),
     ).toBe(false)
   })
+
+  it('coincide con tolerancia cuando el servidor tiene más decimales', () => {
+    expect(
+      msiGrupoMatchesExpected(
+        {
+          categoria: 'Comida',
+          cuentaId: 'cuenta-1',
+          installments: [
+            { ...expected.installments[0], monto: 100.0004 },
+            { ...expected.installments[1], monto: 99.9996 },
+          ],
+        },
+        expected,
+      ),
+    ).toBe(true)
+  })
 })

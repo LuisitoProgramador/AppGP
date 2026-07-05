@@ -8,6 +8,7 @@ import {
   shiftMonth,
 } from '../../utils/date'
 import { mesParaResumenFinMes } from '../../utils/dashboard/resumenFinMes'
+import { sumGastosPresupuestables } from '../../utils/gastos/gastoPresupuesto'
 import type { EvolucionRow, GastoMsiRow, ResumenMensual } from '../../hooks/dashboard/dashboardTypes'
 
 function appendQueryError(errors: string[], label: string, message: string | undefined | null) {
@@ -188,20 +189,14 @@ export async function fetchDashboardData(
   if (resumenMesResult.error) {
     appendQueryError(partialErrors, 'Resumen del mes', resumenMesResult.error.message)
   } else {
-    gastoTotalResumen = (resumenMesResult.data ?? []).reduce(
-      (sum, row) => sum + Number(row.total),
-      0,
-    )
+    gastoTotalResumen = sumGastosPresupuestables(resumenMesResult.data ?? [])
   }
 
   let gastoTotalAntesResumen: number | null = null
   if (resumenAntResult.error) {
     appendQueryError(partialErrors, 'Resumen mes anterior', resumenAntResult.error.message)
   } else {
-    gastoTotalAntesResumen = (resumenAntResult.data ?? []).reduce(
-      (sum, row) => sum + Number(row.total),
-      0,
-    )
+    gastoTotalAntesResumen = sumGastosPresupuestables(resumenAntResult.data ?? [])
   }
 
   let patronGastos: DashboardFetchResult['patronGastos'] = []

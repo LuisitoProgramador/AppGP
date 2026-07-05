@@ -1,4 +1,5 @@
 import type { MsiInstallmentUpdate } from '../../types/gasto'
+import { moneyEquals } from '../core/centavos'
 
 export interface MsiGrupoServerState {
   categoria: string
@@ -25,7 +26,7 @@ export function msiGrupoMatchesExpected(
   return expected.installments.every((expectedRow, index) => {
     const serverRow = server.installments[index]
     if (!serverRow) return false
-    if (Math.round(Number(serverRow.monto) * 100) !== Math.round(Number(expectedRow.monto) * 100)) {
+    if (!moneyEquals(Number(serverRow.monto), Number(expectedRow.monto))) {
       return false
     }
     if (serverRow.descripcion !== expectedRow.descripcion) return false

@@ -1,7 +1,6 @@
 import type { GastoInsertFields } from '../../types/gasto'
 import type { SaldoRevertAlEliminar } from './gastoSaldo'
-import { montoSaldoAlRegistrar, sumMsiGrupoMontos } from './gastoSaldo'
-import { parseMsiDescripcion, splitMsiAmount } from './msi'
+import { montoSaldoAlRegistrar } from './gastoSaldo'
 
 export interface GastoEliminadoSnapshot {
   row: GastoInsertFields
@@ -17,6 +16,7 @@ export function buildGastoEliminadoSnapshot(
     cuenta_id?: string | null
     es_msi?: boolean
     grupo_msi_id?: string | null
+    total_compra_msi?: number | null
   },
   saldoRevert: SaldoRevertAlEliminar | null,
 ): GastoEliminadoSnapshot {
@@ -29,6 +29,7 @@ export function buildGastoEliminadoSnapshot(
       cuenta_id: item.cuenta_id ?? null,
       es_msi: Boolean(item.es_msi),
       grupo_msi_id: item.grupo_msi_id ?? null,
+      total_compra_msi: item.total_compra_msi ?? null,
     },
     saldoAplicado: saldoRevert,
   }
@@ -41,12 +42,9 @@ export function montoSaldoAlRestaurar(snapshot: GastoEliminadoSnapshot): number 
 
   const { row } = snapshot
   if (row.es_msi) {
-    const parsed = parseMsiDescripcion(row.descripcion)
-    if (parsed && parsed.total > 1) {
-      const inferredTotal = Math.round(row.monto * parsed.total * 100) / 100
-      return sumMsiGrupoMontos(
-        splitMsiAmount(inferredTotal, parsed.total).map((monto) => ({ monto })),
-      )
+    const totalCompra = row.total_compra_msi
+    if (totalCompra != null && totalCompra > 0) {
+      return Number(totalCompra)
     }
     return montoSaldoAlRegistrar(row.monto, true, row.monto)
   }

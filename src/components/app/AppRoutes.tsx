@@ -301,6 +301,7 @@ export default function AppRoutes() {
                     id={`tab-${id}`}
                     aria-selected={tab === id}
                     aria-controls={`panel-${id}`}
+                    data-testid={`nav-tab-${id}`}
                     onClick={() => handleTabChange(id)}
                     className={navTabClassName(tab === id)}
                   >
@@ -365,10 +366,12 @@ export default function AppRoutes() {
                     aria-label={label}
                     title={label}
                     aria-controls={`panel-${id}`}
+                    data-testid={`nav-tab-${id}`}
                     onClick={() => handleTabChange(id)}
                     className={navBottomTabClassName(tab === id)}
                   >
                     <Icon />
+                    <span className="sr-only">{label}</span>
                   </button>
                 ))}
               </nav>

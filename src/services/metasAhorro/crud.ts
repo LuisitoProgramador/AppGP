@@ -1,5 +1,6 @@
 import type { MetaAhorro, MetaAhorroInput } from '../../types/metaAhorro'
 import { isOnline, offlineServiceError } from '../../utils/core/network'
+import { roundMoney, sumMoney } from '../../utils/core/centavos'
 import { supabase } from '../supabase'
 import { readCache, readPending, writeCache, writePending } from './cache'
 
@@ -130,7 +131,7 @@ export async function addAhorroToMeta(
     return { data: null, error: 'Meta de ahorro no encontrada.', offline: false }
   }
 
-  const nextActual = Math.round((meta.monto_actual + amount) * 100) / 100
+  const nextActual = roundMoney(sumMoney(meta.monto_actual, amount))
   const optimistic = cached.map((item) =>
     item.id === metaId ? { ...item, monto_actual: nextActual } : item,
   )

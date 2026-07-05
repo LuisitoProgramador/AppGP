@@ -39,19 +39,26 @@ export default memo(function DashboardHeroCard({
     : 'border-white/10 bg-pulso-surface-muted/50'
 
   return (
-    <div className={`${dashboardCardClassName} px-4 py-4 text-center ${cardTone}`}>
+    <div
+      className={`${dashboardCardClassName} px-4 py-4 text-center ${cardTone}`}
+      data-testid="dashboard-hero"
+    >
       {showBudget ? (
         <>
           <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
             Disponible este mes
           </p>
           {cargando ? (
-            <p className="mt-2 text-4xl font-bold text-slate-500 sm:text-5xl">...</p>
+            <p className="mt-2 text-4xl font-bold text-slate-500 sm:text-5xl" aria-busy="true">
+              ...
+            </p>
           ) : (
             <p
               className={`mt-2 text-4xl font-bold max-sm:text-[clamp(1.75rem,9vw,2.5rem)] sm:text-5xl ${
                 dentroDeLimite ? 'text-white' : 'text-pulso-warning'
               }`}
+              aria-live="polite"
+              data-testid="dashboard-disponible"
             >
               {formatCurrency(disponible)}
             </p>

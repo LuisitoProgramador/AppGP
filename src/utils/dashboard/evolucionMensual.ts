@@ -1,4 +1,5 @@
 import type { OptimisticGasto } from '../../types/gasto'
+import { esGastoPresupuestable } from '../../types/gasto'
 import { formatMonthShortLabel, getYearMonthKey, monthDateToBucketKey, shiftMonth } from '../date'
 
 export interface MesTotal {
@@ -15,6 +16,7 @@ interface ResumenRow {
 function bucketOptimisticByMonth(optimisticGastos: OptimisticGasto[]): Map<string, number> {
   const buckets = new Map<string, number>()
   for (const gasto of optimisticGastos) {
+    if (!esGastoPresupuestable(gasto.categoria)) continue
     const key = getYearMonthKey(new Date(gasto.fecha))
     buckets.set(key, (buckets.get(key) ?? 0) + gasto.monto)
   }
@@ -34,6 +36,7 @@ function sumInMonth(buckets: Map<string, number>, month: Date): number {
   return buckets.get(monthDateToBucketKey(month)) ?? 0
 }
 
+/** Totales mensuales de gasto real (excluye transferencias entre cuentas). */
 export function buildEvolucionMensual(
   resumenRows: ResumenRow[],
   optimisticGastos: OptimisticGasto[],

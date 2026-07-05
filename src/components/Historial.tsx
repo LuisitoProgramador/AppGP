@@ -56,6 +56,9 @@ export default memo(function Historial() {
         <input
           type="search"
           inputMode="search"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar descripción..."

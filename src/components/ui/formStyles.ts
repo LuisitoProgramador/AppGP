@@ -1,6 +1,14 @@
+/** Atributos para evitar autocorrección/autocompletado de Safari en campos financieros. */
+export const iosFinancialInputProps = {
+  autoComplete: 'off',
+  autoCorrect: 'off',
+  autoCapitalize: 'off',
+  spellCheck: false,
+} as const
+
 /** Transición y feedback táctil estándar para controles interactivos */
 const interactive =
-  'touch-manipulation transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100'
+  'touch-manipulation transition active:scale-[0.98] active:opacity-80 disabled:cursor-not-allowed disabled:opacity-60 disabled:active:scale-100 disabled:active:opacity-60'
 
 const accentFocus =
   'focus:border-pulso-accent/80 focus:ring-2 focus:ring-pulso-accent/30'
@@ -24,7 +32,7 @@ export const dashboardCardClassName =
 
 /** Tarjeta compacta de cuenta (lista / transferencias) */
 export const cuentaCardClassName =
-  'rounded-xl border border-white/8 bg-pulso-surface-muted/50 px-3 py-2.5'
+  'rounded-xl border border-white/8 bg-pulso-surface-muted/50 px-3 py-2.5 touch-manipulation transition active:opacity-90'
 
 /** Panel de Ajustes con más aire entre secciones */
 export const settingsPanelClassName = 'space-y-8'
@@ -83,7 +91,7 @@ export const buttonPrimaryFullClassName = `w-full ${buttonPrimaryClassName}`
 
 export const buttonSkyClassName = `rounded-xl border border-pulso-border bg-pulso-surface-raised px-4 py-3 text-xs font-semibold text-pulso-accent-muted active:border-pulso-accent/40 active:bg-pulso-accent/10 min-h-11 ${interactive}`
 
-export const toolbarButtonClassName = `inline-flex shrink-0 items-center justify-center gap-1.5 min-h-11 rounded-xl border border-pulso-border px-3 py-2.5 text-sm font-semibold text-slate-300 active:border-pulso-accent/40 active:bg-pulso-accent/10 active:text-white active:bg-pulso-surface-raised disabled:cursor-not-allowed disabled:opacity-50 ${interactive}`
+export const toolbarButtonClassName = `inline-flex shrink-0 items-center justify-center gap-1.5 min-h-11 rounded-xl border border-pulso-border px-3 py-2.5 text-sm font-semibold text-slate-300 active:border-pulso-accent/40 active:text-white disabled:cursor-not-allowed disabled:opacity-50 ${interactive}`
 
 export const togglePillClassName = `rounded-full border px-4 py-2.5 text-xs font-medium min-h-11 ${interactive}`
 

@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { INGRESO_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import { useAuthSession, useCuentas, useGastosRefreshState } from '../../contexts'
 import { getDefaultCuentaId, registrarIngreso } from '../../services/cuentas'
 import { formatCurrency } from '../../utils/format/formatCurrency'
@@ -89,7 +90,7 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
       showSuccess(`Ingreso de ${formatCurrency(parseMontoValue(monto))} registrado.`)
     }
     await refreshCuentas()
-    refresh()
+    refresh(INGRESO_QUERY_SCOPES)
     onSuccess?.()
     onClose()
   }

@@ -1,4 +1,5 @@
 import { semanasRestantesHastaFinDeAno } from './metaCalendario'
+import { fromCentavos, roundMoney, sumMoney, toCentavos } from '../core/centavos'
 
 export const SEMANAS_POR_MES = 4.33
 
@@ -16,17 +17,19 @@ export interface EstrategiaFinanciera {
 }
 
 function round2(value: number): number {
-  return Math.round(value * 100) / 100
+  return roundMoney(value)
 }
 
 export function calcEstrategiaFinanciera(
   params: EstrategiaFinancieraInput,
 ): EstrategiaFinanciera {
   const ingresosExtras = params.ingresosExtras ?? 0
-  const presupuestoTotalMensual = round2(params.sueldoMensual + ingresosExtras)
-  const ahorroMensual = round2(presupuestoTotalMensual * (params.porcentajeAhorro / 100))
-  const disponibleParaGasto = round2(presupuestoTotalMensual - ahorroMensual)
-  const sueldoSemanal = round2(params.sueldoMensual / SEMANAS_POR_MES)
+  const presupuestoTotalMensual = fromCentavos(
+    toCentavos(params.sueldoMensual) + toCentavos(ingresosExtras),
+  )
+  const ahorroMensual = roundMoney(presupuestoTotalMensual * (params.porcentajeAhorro / 100))
+  const disponibleParaGasto = sumMoney(presupuestoTotalMensual, -ahorroMensual)
+  const sueldoSemanal = roundMoney(params.sueldoMensual / SEMANAS_POR_MES)
 
   return {
     presupuestoTotalMensual,

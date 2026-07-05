@@ -1,5 +1,7 @@
 import type { GastoRecurrente } from '../../types/gasto'
+import { esGastoPresupuestable } from '../../types/gasto'
 import { getCalendarDay, getYearMonthKey } from '../date'
+import { roundMoney } from '../core/centavos'
 
 export interface RecurrenteSugerido {
   descripcion: string
@@ -48,10 +50,11 @@ export function detectarRecurrentesSugeridos(
   >()
 
   for (const gasto of gastos) {
+    if (!esGastoPresupuestable(gasto.categoria)) continue
     const key = normalizeDescripcion(gasto.descripcion)
     if (!key || recurrentesKeys.has(key)) continue
 
-    const monto = Math.round(Number(gasto.monto) * 100) / 100
+    const monto = roundMoney(Number(gasto.monto))
     const diaMes = getCalendarDay(gasto.fecha)
     const mes = monthKey(gasto.fecha)
     const existing = groups.get(key)

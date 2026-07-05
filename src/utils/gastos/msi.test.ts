@@ -5,7 +5,10 @@ describe('splitMsiAmount', () => {
   it('divide el monto en partes iguales con ajuste en el último pago', () => {
     const parts = splitMsiAmount(1000, 3)
     expect(parts).toHaveLength(3)
-    expect(parts.reduce((a, b) => a + b, 0)).toBeCloseTo(1000, 2)
+    expect(parts.reduce((a, b) => a + b, 0)).toBe(1000)
+    expect(parts[0]).toBe(333.33)
+    expect(parts[1]).toBe(333.33)
+    expect(parts[2]).toBe(333.34)
   })
 })
 

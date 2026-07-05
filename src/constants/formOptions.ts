@@ -17,6 +17,8 @@ export const DIAS_PAGO_SELECT_OPTIONS = DIAS_PAGO.map(({ value, label }) => ({
   label,
 }))
 
+export const CHART_HEIGHT_PX = 176
+
 export const CHART_TOOLTIP_STYLE = {
   backgroundColor: '#181818',
   border: '1px solid #3a3a3a',

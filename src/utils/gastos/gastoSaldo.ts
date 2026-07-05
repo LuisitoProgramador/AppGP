@@ -1,5 +1,6 @@
 import type { GastoInsertFields } from '../../types/gasto'
 import { montoParaSaldoCuenta } from '../core/cuentaSaldo'
+import { roundMoney, sumMoney } from '../core/centavos'
 import { parseMsiDescripcion, splitMsiAmount } from './msi'
 
 /** Monto que se aplicó al saldo de la cuenta al registrar el gasto. */
@@ -57,7 +58,7 @@ export function saldoRevertAlEliminar(
 }
 
 export function sumMsiGrupoMontos(rows: { monto: number }[]): number {
-  return Math.round(rows.reduce((sum, row) => sum + Number(row.monto), 0) * 100) / 100
+  return roundMoney(rows.reduce((sum, row) => sumMoney(sum, Number(row.monto)), 0))
 }
 
 /** Total de compra MSI a revertir en crédito (cuando se elimina la última cuota). */
@@ -80,7 +81,7 @@ function msiTotalParaRevertir(
 
   const parsed = gasto.descripcion ? parseMsiDescripcion(gasto.descripcion) : null
   if (parsed && parsed.total > 1) {
-    const inferredTotal = Math.round(Number(gasto.monto) * parsed.total * 100) / 100
+    const inferredTotal = roundMoney(Number(gasto.monto) * parsed.total)
     return sumMsiGrupoMontos(
       splitMsiAmount(inferredTotal, parsed.total).map((monto) => ({ monto })),
     )
@@ -91,5 +92,5 @@ function msiTotalParaRevertir(
 
 /** Delta de saldo de crédito al corregir el total de una compra MSI. */
 export function saldoDeltaAlCorregirMsiGrupo(oldTotal: number, newTotal: number): number {
-  return Math.round((newTotal - oldTotal) * 100) / 100
+  return roundMoney(sumMoney(newTotal, -oldTotal))
 }

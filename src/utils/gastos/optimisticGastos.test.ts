@@ -114,4 +114,24 @@ describe('optimisticGastos utils', () => {
 
     expect(resultado).toEqual([{ monto: 100, categoria: 'Comida' }])
   })
+
+  it('excluye transferencias del merge de resumen', () => {
+    const optimistic: OptimisticGasto[] = [
+      {
+        tempId: 't1',
+        monto: 500,
+        categoria: 'Transferencia',
+        descripcion: 'A debito',
+        fecha: new Date(2026, 2, 10).toISOString(),
+      },
+    ]
+
+    const resultado = mergeResumenWithOptimistic(
+      [{ categoria: 'Comida', total: 200 }],
+      optimistic,
+      mes,
+    )
+
+    expect(resultado).toEqual([{ monto: 200, categoria: 'Comida' }])
+  })
 })

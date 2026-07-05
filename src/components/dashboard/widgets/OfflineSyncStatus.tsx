@@ -12,7 +12,7 @@ export default memo(function OfflineSyncStatus({ isSyncing, pendingCount }: Offl
   if (!isSyncing && pendingCount === 0) return null
 
   return (
-    <div className="space-y-1 text-center">
+    <div className="space-y-1 text-center" data-testid="offline-sync-status">
       <p className="text-xs text-pulso-warning">
         {isSyncing
           ? 'Sincronizando cambios offline...'

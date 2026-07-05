@@ -1,5 +1,6 @@
 import { addMonthsInTimezone, toGastoFecha } from '../date'
 import type { MsiInstallmentUpdate } from '../../types/gasto'
+import { fromCentavos } from '../core/centavos'
 
 export interface GastoInsertPayload {
   monto: number
@@ -13,11 +14,12 @@ export interface GastoInsertPayload {
 }
 
 export function splitMsiAmount(total: number, months: number): number[] {
-  const base = Math.floor((total / months) * 100) / 100
-  const amounts = Array.from({ length: months }, () => base)
-  const remainder = Math.round((total - base * months) * 100) / 100
-  amounts[months - 1] = Math.round((amounts[months - 1] + remainder) * 100) / 100
-  return amounts
+  const totalCentavos = Math.round(total * 100)
+  const baseCentavos = Math.floor(totalCentavos / months)
+  const remainder = totalCentavos - baseCentavos * months
+  const amounts = Array.from({ length: months }, () => baseCentavos)
+  amounts[months - 1] += remainder
+  return amounts.map(fromCentavos)
 }
 
 export function buildMsiGastos(params: {

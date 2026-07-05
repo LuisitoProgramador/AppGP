@@ -1,6 +1,7 @@
 import type { Categoria } from '../types/gasto'
 import { getCategoriasUsuario } from './categorias'
 import { calcLimitesRegla503020 } from '../utils/finanzas/regla503020'
+import { roundMoney } from '../utils/core/centavos'
 
 export type LimitesPorCategoria = Record<string, number>
 
@@ -23,7 +24,7 @@ export function setLimiteCategoria(userId: string, categoria: Categoria, limite:
   if (limite == null || limite <= 0) {
     delete actuales[categoria]
   } else {
-    actuales[categoria] = Math.round(limite * 100) / 100
+    actuales[categoria] = roundMoney(limite)
   }
   localStorage.setItem(storageKey(userId), JSON.stringify(actuales))
 }

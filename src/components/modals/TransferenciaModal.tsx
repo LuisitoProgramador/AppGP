@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { TRANSFERENCIA_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import { useAuthSession, useCuentas, useGastosRefreshState } from '../../contexts'
 import { getDefaultCuentaId, realizarTransferencia } from '../../services/cuentas'
 import type { Cuenta } from '../../types/cuenta'
@@ -6,6 +7,7 @@ import { formatCurrency } from '../../utils/format/formatCurrency'
 import { parseMontoValue } from '../../utils/format/montoInput'
 import { isOnline } from '../../utils/core/network'
 import { showError, showSuccess } from '../../utils/core/toast'
+import { roundMoney } from '../../utils/core/centavos'
 import { validateCuentaId, validateMonto } from '../../utils/core/validation'
 import ModalPortal from '../ui/ModalPortal'
 import Select from '../ui/Select'
@@ -32,16 +34,18 @@ function cuentaOptionLabel(cuenta: Cuenta): string {
 function saldoOrigenInsuficiente(origen: Cuenta | undefined, monto: number): string | null {
   if (!origen || monto <= 0) return null
 
+  const montoRedondeado = roundMoney(monto)
+
   if (origen.tipo === 'efectivo' || origen.tipo === 'debito') {
-    if (origen.saldo_actual < monto) {
+    if (roundMoney(origen.saldo_actual) < montoRedondeado) {
       return `Saldo insuficiente. Disponible: ${formatCurrency(origen.saldo_actual)}`
     }
     return null
   }
 
   if (origen.limite_credito != null) {
-    const disponible = origen.limite_credito - origen.saldo_actual
-    if (monto > disponible) {
+    const disponible = roundMoney(origen.limite_credito - origen.saldo_actual)
+    if (montoRedondeado > disponible) {
       return `Crédito insuficiente. Disponible: ${formatCurrency(Math.max(disponible, 0))}`
     }
   }
@@ -51,7 +55,7 @@ function saldoOrigenInsuficiente(origen: Cuenta | undefined, monto: number): str
 
 function pagoExcedeDeuda(destino: Cuenta | undefined, monto: number): string | null {
   if (!destino || destino.tipo !== 'credito' || monto <= 0) return null
-  if (monto > destino.saldo_actual) {
+  if (roundMoney(monto) > roundMoney(destino.saldo_actual)) {
     return `El pago supera la deuda (${formatCurrency(destino.saldo_actual)})`
   }
   return null
@@ -159,7 +163,7 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
     const accion = esPagoTarjeta ? 'Pago a tarjeta' : 'Transferencia'
     showSuccess(`${accion} de ${formatCurrency(montoNum)} realizada.`)
     await refreshCuentas()
-    refresh()
+    refresh(TRANSFERENCIA_QUERY_SCOPES)
     onSuccess?.()
     onClose()
   }
@@ -175,6 +179,7 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
       <form
         onSubmit={handleSubmit}
         className={`${modalFormClassName} max-h-[90svh] overflow-y-auto`}
+        data-testid="transferencia-form"
       >
         <div className="space-y-1">
           <h2 id="transferencia-title" className="text-lg font-semibold text-white">
@@ -236,6 +241,7 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
                 onChange={setMonto}
                 placeholder="0"
                 required
+                data-testid="transferencia-monto"
               />
               {saldoAdvertencia && (
                 <p className="text-xs text-red-400">{saldoAdvertencia}</p>
@@ -253,6 +259,7 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
               type="submit"
               disabled={guardando || cuentas.length < 2 || Boolean(saldoAdvertencia)}
               className={`flex-1 ${buttonPrimaryClassName}`}
+              data-testid="transferencia-submit"
             >
               {guardando
                 ? 'Procesando...'

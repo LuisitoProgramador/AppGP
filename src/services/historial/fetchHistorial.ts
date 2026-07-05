@@ -60,7 +60,7 @@ export async function fetchHistorialGastosPage({
 
   let query = supabase
     .from('gastos')
-    .select('id, monto, categoria, descripcion, fecha, cuenta_id, es_msi, grupo_msi_id')
+    .select('id, monto, categoria, descripcion, fecha, cuenta_id, es_msi, grupo_msi_id, total_compra_msi')
     .eq('user_id', userId)
     .gte('fecha', inicio)
     .lt('fecha', fin)

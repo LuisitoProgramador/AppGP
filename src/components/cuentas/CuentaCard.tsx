@@ -27,7 +27,7 @@ export default function CuentaCard({ cuenta, onEdit }: CuentaCardProps) {
       : null
 
   return (
-    <div className={cuentaCardClassName}>
+    <div className={cuentaCardClassName} data-testid={`cuenta-card-${cuenta.id}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-white">{cuenta.nombre}</p>
@@ -37,19 +37,28 @@ export default function CuentaCard({ cuenta, onEdit }: CuentaCardProps) {
           <button
             type="button"
             onClick={() => onEdit(cuenta)}
-            className="mb-1 text-[10px] font-medium text-pulso-accent-muted underline-offset-2 active:text-pulso-accent active:underline"
+            aria-label={`Editar cuenta ${cuenta.nombre}`}
+            className="mb-1 text-[10px] font-medium text-pulso-accent-muted underline-offset-2 transition active:opacity-60 active:underline"
           >
             Editar
           </button>
           {isCredito ? (
             <>
-              <p className="text-sm font-medium text-slate-200">
+              <p
+                className="text-sm font-medium text-slate-200"
+                data-testid={`cuenta-saldo-${cuenta.id}`}
+                aria-label={`Deuda ${formatCurrency(cuenta.saldo_actual)}`}
+              >
                 {formatCurrency(cuenta.saldo_actual)}
               </p>
               <p className="text-[10px] uppercase tracking-wide text-slate-500">Deuda</p>
             </>
           ) : (
-            <p className="text-sm font-semibold text-slate-200">
+            <p
+              className="text-sm font-semibold text-slate-200"
+              data-testid={`cuenta-saldo-${cuenta.id}`}
+              aria-label={`Saldo ${formatCurrency(cuenta.saldo_actual)}`}
+            >
               {formatCurrency(cuenta.saldo_actual)}
             </p>
           )}

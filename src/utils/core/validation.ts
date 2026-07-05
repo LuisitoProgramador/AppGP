@@ -3,7 +3,7 @@ import {
   MAX_MONTO,
   MAX_MSI_MESES,
   MIN_MSI_MESES,
-} from '../../types/gasto'
+} from '../../types/limits'
 
 import { parseMontoValue } from '../format/montoInput'
 

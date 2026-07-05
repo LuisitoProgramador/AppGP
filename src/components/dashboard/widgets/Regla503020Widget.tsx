@@ -1,4 +1,5 @@
 import { memo } from 'react'
+import { PORCENTAJE_AHORRO_DEFAULT } from '../../../constants/porcentajeAhorro'
 import type { ResumenBucket503020 } from '../../../utils/finanzas/regla503020'
 import { formatCurrency } from '../../../utils/format/formatCurrency'
 import { dashboardCardClassName } from '../../ui/formStyles'
@@ -25,12 +26,21 @@ export default memo(function Regla503020Widget({
   if (ingresoMensual <= 0) return null
 
   return (
-    <section className={dashboardCardClassName}>
+    <section className={dashboardCardClassName} aria-labelledby="regla-503020-heading">
       <div className="space-y-1">
-        <h3 className="text-sm font-semibold text-white">Regla 50 / 30 / 20</h3>
+        <h3 id="regla-503020-heading" className="text-sm font-semibold text-white">
+          Regla 50 / 30 / 20
+        </h3>
         <p className="text-xs text-slate-500">
           Sobre {formatCurrency(ingresoMensual)} de ingreso este mes
         </p>
+        {porcentajeAhorro !== PORCENTAJE_AHORRO_DEFAULT && (
+          <p className="text-xs leading-relaxed text-slate-400">
+            Tus límites de gasto están ajustados porque destinas {porcentajeAhorro}% a ahorro.
+            El {100 - porcentajeAhorro}% restante se reparte en proporción 50/30 entre
+            necesidades (62.5%) y caprichos (37.5%).
+          </p>
+        )}
       </div>
 
       <div className="space-y-3">

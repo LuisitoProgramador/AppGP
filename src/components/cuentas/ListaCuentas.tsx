@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useCuentas, useGastosRefreshState } from '../../contexts'
+import { CUENTA_QUERY_SCOPES, INGRESO_QUERY_SCOPES, TRANSFERENCIA_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import type { Cuenta } from '../../types/cuenta'
 import RegistrarIngresoModal from '../modals/RegistrarIngresoModal'
 import TransferenciaModal from '../modals/TransferenciaModal'
@@ -63,17 +64,17 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
   }
 
   async function handleFormSuccess() {
-    refresh()
+    refresh(CUENTA_QUERY_SCOPES)
     await cargarCuentas()
   }
 
   function handleTransferSuccess() {
-    refresh()
+    refresh(TRANSFERENCIA_QUERY_SCOPES)
     void cargarCuentas()
   }
 
   function handleIngresoSuccess() {
-    refresh()
+    refresh(INGRESO_QUERY_SCOPES)
     void cargarCuentas()
   }
 
@@ -93,6 +94,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
             disabled={cuentas.length < 2}
             className={toolbarButtonClassName}
             aria-label="Transferir entre cuentas"
+            data-testid="cuentas-transferir"
           >
             <TransferIcon />
             <span className="hidden sm:inline">Transferir</span>
@@ -121,13 +123,13 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
       {cuentasLoading && <CuentasListSkeleton count={Math.max(cuentas.length, 2)} />}
 
       {!cuentasLoading && cuentas.length === 0 && (
-        <p className="text-center text-sm text-slate-400">
+        <p className="content-fade-in text-center text-sm text-slate-400">
           No hay cuentas configuradas. Añade una para comenzar.
         </p>
       )}
 
       {!cuentasLoading && cuentas.length > 0 && (
-        <div className="flex flex-col gap-2">
+        <div className="content-fade-in flex flex-col gap-2">
           {cuentas.map((cuenta) => (
             <CuentaCard key={cuenta.id} cuenta={cuenta} onEdit={openEditModal} />
           ))}

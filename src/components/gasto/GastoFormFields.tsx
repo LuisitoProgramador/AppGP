@@ -4,6 +4,7 @@ import {
   chipPickerClassName,
   formSubmitClassName,
   inputClassName,
+  iosFinancialInputProps,
 } from '../ui/formStyles'
 import type { useGastoForm } from '../../hooks/forms/useGastoForm'
 
@@ -42,6 +43,8 @@ export default function GastoFormFields({
           onChange={(value) => setForm((prev) => ({ ...prev, monto: value }))}
           placeholder="0"
           required
+          aria-label="Monto del gasto"
+          data-testid="gasto-monto"
         />
       </div>
 
@@ -65,6 +68,8 @@ export default function GastoFormFields({
                   key={cuenta.id}
                   type="button"
                   aria-pressed={active}
+                  aria-label={`Cuenta ${cuenta.nombre}${cuenta.tipo === 'credito' ? ', crédito' : ''}`}
+                  data-testid={`cuenta-${cuenta.id}`}
                   onClick={() => setForm((prev) => ({ ...prev, cuentaId: cuenta.id }))}
                   className={chipPickerClassName(active)}
                 >
@@ -88,6 +93,7 @@ export default function GastoFormFields({
               role="switch"
               aria-checked={form.esMsi}
               aria-label="Meses sin intereses"
+              data-testid="gasto-msi-toggle"
               onClick={() => setForm((prev) => ({ ...prev, esMsi: !prev.esMsi }))}
               className={`relative h-7 w-12 shrink-0 rounded-full transition active:scale-[0.98] ${
                 form.esMsi ? 'bg-pulso-accent' : 'bg-slate-600'
@@ -157,6 +163,7 @@ export default function GastoFormFields({
           value={form.descripcion}
           onChange={(e) => setForm((prev) => ({ ...prev, descripcion: e.target.value }))}
           className={inputClassName}
+          {...iosFinancialInputProps}
         />
       </div>
 
@@ -165,6 +172,7 @@ export default function GastoFormFields({
           type="submit"
           disabled={guardando || cuentas.length === 0 || !form.cuentaId}
           className={buttonPrimaryClassName}
+          data-testid="gasto-submit"
         >
           {guardando
             ? 'Guardando...'

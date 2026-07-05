@@ -1,9 +1,10 @@
 import type { Cuenta } from '../../types/cuenta'
+import { roundMoney, sumMoney } from '../core/centavos'
 
 export function calcPatrimonioLiquido(cuentas: Cuenta[]): number {
-  const total = cuentas
+  const montos = cuentas
     .filter((c) => c.tipo === 'efectivo' || c.tipo === 'debito')
-    .reduce((sum, c) => sum + Math.max(0, c.saldo_actual), 0)
+    .map((c) => Math.max(0, c.saldo_actual))
 
-  return Math.round(total * 100) / 100
+  return roundMoney(sumMoney(...montos))
 }

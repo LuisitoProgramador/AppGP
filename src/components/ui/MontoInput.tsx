@@ -1,6 +1,6 @@
 import { forwardRef, memo, type KeyboardEvent } from 'react'
 import { formatMontoInput } from '../../utils/format/montoInput'
-import { inputClassName } from './formStyles'
+import { inputClassName, iosFinancialInputProps } from './formStyles'
 
 interface MontoInputProps {
   id: string
@@ -12,6 +12,7 @@ interface MontoInputProps {
   required?: boolean
   disabled?: boolean
   'aria-label'?: string
+  'data-testid'?: string
   onKeyDown?: (event: KeyboardEvent<HTMLInputElement>) => void
 }
 
@@ -26,6 +27,7 @@ const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoI
     required,
     disabled,
     'aria-label': ariaLabel,
+    'data-testid': testId,
     onKeyDown,
   },
   ref,
@@ -36,7 +38,7 @@ const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoI
       id={id}
       type="text"
       inputMode="decimal"
-      autoComplete="off"
+      {...iosFinancialInputProps}
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(formatMontoInput(e.target.value))}
@@ -46,6 +48,7 @@ const MontoInput = forwardRef<HTMLInputElement, MontoInputProps>(function MontoI
       required={required}
       disabled={disabled}
       aria-label={ariaLabel}
+      data-testid={testId}
     />
   )
 })

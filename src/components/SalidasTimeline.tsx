@@ -11,9 +11,11 @@ function SalidasTimeline({ items }: SalidasTimelineProps) {
   if (items.length === 0) return null
 
   return (
-    <section className={cardClassName}>
+    <section className={cardClassName} aria-labelledby="salidas-timeline-heading">
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold text-white">Salidas del mes</h2>
+        <h2 id="salidas-timeline-heading" className="text-lg font-semibold text-white">
+          Salidas del mes
+        </h2>
         <p className="text-sm text-slate-400">
           Pagos recurrentes y cuotas MSI programadas para este mes
         </p>

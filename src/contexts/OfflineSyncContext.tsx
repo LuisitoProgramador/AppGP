@@ -21,6 +21,7 @@ import {
 import { syncPendingCuentas } from '../services/sync/syncCuentas'
 import { syncPendingGastos } from '../services/sync/syncGastos'
 import { syncPendingIngresos } from '../services/sync/syncIngresos'
+import { reconcileOfflineQueue } from '../services/sync/reconcileOfflineQueue'
 import { isOnline } from '../utils/core/network'
 import { showError, showSuccess, showWarning } from '../utils/core/toast'
 import { useAuthSession } from './AuthContext'
@@ -195,6 +196,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
     let cancelled = false
 
     async function initializeSync() {
+      await reconcileOfflineQueue(userId)
       await updatePendingCount(userId)
       if (cancelled) return
       await syncOfflineRef.current()

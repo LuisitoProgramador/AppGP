@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { GASTO_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import { useAuthSession, useCuentas, useGastosRefreshState, useOptimisticGastosState } from '../../contexts'
 import { useCategorias } from '../useCategorias'
 import { getDefaultCuentaId } from '../../services/cuentas'
@@ -63,6 +64,7 @@ export function useGastoForm() {
   const { categorias } = useCategorias(user?.id)
   const [form, setForm] = useState(initialGastoForm)
   const [guardando, setGuardando] = useState(false)
+  const submitInFlightRef = useRef(false)
   const montoInputRef = useRef<HTMLInputElement>(null)
 
   const selectedCuenta = cuentas.find((c) => String(c.id) === form.cuentaId)
@@ -117,15 +119,17 @@ export function useGastoForm() {
     const { error: saldoError } = await revertGastoSaldo(params.cuentaId, params.saldoMonto)
     if (saldoError) {
       showError(`Gasto eliminado, pero el saldo no se revirtió: ${saldoError}`)
-      refresh()
+      refresh(GASTO_QUERY_SCOPES)
       return
     }
 
-    refresh()
+    refresh(GASTO_QUERY_SCOPES)
     showInfo('Gasto deshecho.')
   }
 
   async function submitGasto(data: GastoFormState) {
+    if (submitInFlightRef.current) return
+
     const submitError = getGastoFormValidationError(
       data,
       cuentas.find((c) => String(c.id) === data.cuentaId)?.tipo === 'credito',
@@ -140,6 +144,10 @@ export function useGastoForm() {
       return
     }
 
+    submitInFlightRef.current = true
+    setGuardando(true)
+
+    try {
     const categoria = data.categoria
     const cuentaIdResolved = data.cuentaId
     const descripcion = resolveGastoDescripcion(data)
@@ -248,17 +256,15 @@ export function useGastoForm() {
     }
 
     if (!isOnline()) {
-      setGuardando(true)
       const pending = await addPendingGasto({
         ...offlinePayload,
         userId: user.id,
         optimisticTempIds: tempIds,
       })
-      setGuardando(false)
       resetForm()
       recordUltimoRegistro(user.id, cuentaIdResolved)
       markAppVisit()
-      refresh()
+      refresh(GASTO_QUERY_SCOPES)
       const msg =
         rows.length > 1
           ? `Sin conexión. Compra MSI (${rows.length} pagos) guardada localmente.`
@@ -277,11 +283,8 @@ export function useGastoForm() {
 
     resetForm()
     showInfo(rows.length > 1 ? `Guardando compra MSI (${rows.length} pagos)...` : 'Guardando gasto...')
-    setGuardando(true)
 
     const { data: inserted, error } = await supabase.from('gastos').insert(rows).select('id')
-
-    setGuardando(false)
 
     if (error) {
       removeOptimisticGastos(tempIds)
@@ -296,7 +299,7 @@ export function useGastoForm() {
 
     recordUltimoRegistro(user.id, cuentaIdResolved)
     markAppVisit()
-    refresh()
+    refresh(GASTO_QUERY_SCOPES)
     showSuccessWithUndo(
       rows.length > 1
         ? `Compra MSI registrada: ${rows.length} mensualidades.`
@@ -309,6 +312,10 @@ export function useGastoForm() {
           saldoMonto,
         }),
     )
+    } finally {
+      submitInFlightRef.current = false
+      setGuardando(false)
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {

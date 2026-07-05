@@ -141,7 +141,7 @@ export default memo(function Select({
       {open &&
         createPortal(
           <div
-            className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 p-4 sm:items-center"
+            className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 sm:items-center"
             onClick={() => setOpen(false)}
           >
             <div
@@ -172,7 +172,7 @@ export default memo(function Select({
                         role="option"
                         aria-selected={isSelected}
                         onClick={() => handleSelect(option.value)}
-                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-base touch-manipulation transition active:scale-[0.99] ${
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-base touch-manipulation transition duration-75 active:scale-[0.97] ${
                           isSelected
                             ? 'bg-pulso-accent/20 text-neutral-100'
                             : 'text-slate-200 active:bg-slate-700/60 active:text-white'

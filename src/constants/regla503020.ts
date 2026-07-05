@@ -1,10 +1,16 @@
 import { CATEGORIAS_DEFAULT } from '../types/gasto'
 
-/** Porcentajes sobre el ingreso mensual total (sueldo + extras). */
+/** Proporciones clásicas 50/30/20 sobre el gasto disponible (no sobre el ingreso total). */
 export const REGLA_503020 = {
   necesidades: 0.5,
   caprichos: 0.3,
   ahorro: 0.2,
+} as const
+
+/** Reparto del (100% − ahorro%): necesidades = disponible × 0.625, caprichos = disponible × 0.375. */
+export const BUCKET_SHARE_GASTO_DISPONIBLE = {
+  necesidades: 0.625,
+  caprichos: 0.375,
 } as const
 
 export type Bucket503020 = 'necesidades' | 'caprichos'

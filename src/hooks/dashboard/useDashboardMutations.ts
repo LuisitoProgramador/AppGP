@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useState } from 'react'
+import { RECURRENTE_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import { useAuthSession, useGastosRefreshState } from '../../contexts'
 import { getDefaultCuentaId, listCuentas } from '../../services/cuentas'
 import { createGastoRecurrente } from '../../services/gastos/gastosRecurrentes'
@@ -57,7 +58,7 @@ export function useDashboardMutations({
     dismissRecurrenteSugerido(recurrenteSugerido.descripcion)
     setRecurrenteSugerido(null)
     showSuccess('Gasto recurrente configurado.')
-    refresh()
+    refresh(RECURRENTE_QUERY_SCOPES)
   }, [recurrenteSugerido, user, refresh, setRecurrenteSugerido])
 
   const handleDescartarRecurrente = useCallback(() => {

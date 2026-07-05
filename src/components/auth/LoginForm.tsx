@@ -66,9 +66,14 @@ export default memo(function LoginForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className={`${cardClassName} ${formWithKeyboardClassName}`}>
+    <form
+      onSubmit={handleSubmit}
+      className={`${cardClassName} ${formWithKeyboardClassName}`}
+      aria-labelledby="auth-form-heading"
+      data-testid="login-form"
+    >
       <div className="space-y-1 text-center">
-        <h2 className="text-lg font-semibold text-white">
+        <h2 id="auth-form-heading" className="text-lg font-semibold text-white">
           {modo === 'login' ? 'Iniciar sesión' : 'Crear cuenta'}
         </h2>
         <p className="text-sm text-slate-400">
@@ -91,6 +96,7 @@ export default memo(function LoginForm() {
           onChange={(e) => setEmail(e.target.value)}
           className={inputClassName}
           required
+          data-testid="login-email"
         />
       </div>
 
@@ -109,6 +115,7 @@ export default memo(function LoginForm() {
             onChange={(e) => setPassword(e.target.value)}
             className={`${inputClassName} pr-12`}
             required
+            data-testid="login-password"
           />
           <button
             type="button"
@@ -132,7 +139,7 @@ export default memo(function LoginForm() {
         </button>
       )}
 
-      <button type="submit" disabled={enviando} className={buttonPrimaryClassName}>
+      <button type="submit" disabled={enviando} className={buttonPrimaryClassName} data-testid="login-submit">
         {enviando
           ? 'Procesando...'
           : modo === 'login'

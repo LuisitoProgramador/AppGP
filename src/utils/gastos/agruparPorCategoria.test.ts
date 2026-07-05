@@ -25,4 +25,18 @@ describe('agruparPorCategoria', () => {
   it('retorna arreglo vacío sin gastos', () => {
     expect(agruparPorCategoria([])).toEqual([])
   })
+
+  it('excluye transferencias internas del total', () => {
+    const resultado = agruparPorCategoria([
+      { monto: 500, categoria: 'Comida' },
+      { monto: 500, categoria: 'Transferencia' },
+    ])
+
+    expect(resultado).toHaveLength(1)
+    expect(resultado[0]).toMatchObject({
+      categoria: 'Comida',
+      total: 500,
+      porcentaje: 100,
+    })
+  })
 })

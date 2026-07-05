@@ -1,4 +1,5 @@
 import { QueryClient } from '@tanstack/react-query'
+import { Sentry } from './sentry'
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -7,6 +8,11 @@ export const queryClient = new QueryClient({
       gcTime: 5 * 60_000,
       retry: 2,
       refetchOnWindowFocus: true,
+    },
+    mutations: {
+      onError: (error) => {
+        Sentry.captureException(error)
+      },
     },
   },
 })

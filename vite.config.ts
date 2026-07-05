@@ -16,6 +16,7 @@ export default defineConfig({
           if (id.includes('recharts') || id.includes('d3-')) return 'vendor-recharts'
           if (id.includes('@tanstack/react-virtual')) return 'vendor-virtual'
           if (id.includes('sonner')) return 'vendor-sonner'
+          if (id.includes('@sentry')) return 'vendor-sentry'
           if (id.includes('idb')) return 'vendor-idb'
           if (id.includes('react-dom') || id.includes('react/')) return 'vendor-react'
         },

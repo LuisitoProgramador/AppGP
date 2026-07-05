@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState, memo } from 'react'
 import { useAuthSession, useCuentas, useGastosRefreshState, useRecurrentes } from '../../contexts'
+import { RECURRENTE_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import {
   createGastoRecurrente,
   deleteGastoRecurrente,
@@ -126,7 +127,7 @@ export default memo(function GastosRecurrentes() {
 
       cancelarEdicion()
       showSuccess('Gasto recurrente actualizado.')
-      refresh()
+      refresh(RECURRENTE_QUERY_SCOPES)
       return
     }
 
@@ -151,7 +152,7 @@ export default memo(function GastosRecurrentes() {
       categoria: prev.categoria,
     }))
     showSuccess('Gasto recurrente configurado.')
-    refresh()
+    refresh(RECURRENTE_QUERY_SCOPES)
   }
 
   async function handleEliminar(item: GastoRecurrente) {
@@ -173,7 +174,7 @@ export default memo(function GastosRecurrentes() {
     }
 
     showSuccess('Gasto recurrente eliminado.')
-    refresh()
+    refresh(RECURRENTE_QUERY_SCOPES)
   }
 
   return (

@@ -1,4 +1,4 @@
-import { lazy, Suspense, memo, useState } from 'react'
+import { lazy, Suspense, memo, useMemo, useState } from 'react'
 import { colorCategoriaHex, type CategoriaResumen } from '../../../types/gasto'
 import { formatCurrency } from '../../../utils/format/formatCurrency'
 import { chartToggleClassName } from '../../ui/formStyles'
@@ -22,12 +22,21 @@ export default memo(function GastosAnalisisSection({
   const [chartView, setChartView] = useState<ChartView>('categoria')
   const chartPanelId = 'gastos-analisis-chart-panel'
 
+  const pieChartKey = useMemo(
+    () => resumen.map((item) => `${item.categoria}:${item.total}`).join('|'),
+    [resumen],
+  )
+  const barChartKey = useMemo(
+    () => evolucionMensual.map((item) => `${item.label}:${item.total}`).join('|'),
+    [evolucionMensual],
+  )
+
   return (
     <div className="space-y-3 transition-all duration-300">
       <button
         type="button"
         onClick={() => setMostrarGraficas((v) => !v)}
-        className="flex w-full min-h-11 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-2.5 text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:bg-slate-700/50 active:border-slate-600 active:text-white"
+        className="flex w-full min-h-11 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-2.5 text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:opacity-80 active:border-slate-600 active:text-white"
       >
         <span>{mostrarGraficas ? 'Ocultar análisis' : 'Ver análisis de gastos'}</span>
         <span className="text-slate-500">{mostrarGraficas ? '▲' : '▼'}</span>
@@ -69,9 +78,9 @@ export default memo(function GastosAnalisisSection({
             fallback={<p className="text-center text-sm text-slate-400">Cargando gráfica...</p>}
           >
             {chartView === 'categoria' ? (
-              <GastoChart data={resumen} />
+              <GastoChart key={pieChartKey} data={resumen} />
             ) : (
-              <GastoBarChart data={evolucionMensual} />
+              <GastoBarChart key={barChartKey} data={evolucionMensual} />
             )}
           </Suspense>
           </div>
@@ -103,8 +112,10 @@ export default memo(function GastosAnalisisSection({
           )}
 
           {chartView === 'evolucion' && (
-            <p className="text-center text-xs text-slate-500">
-              Total gastado en los últimos 4 meses
+            <p className="text-center text-xs leading-snug text-slate-500">
+              Gastos reales registrados en los últimos 4 meses. No incluye transferencias entre
+              cuentas ni otros movimientos de capital; el patrimonio líquido los refleja por
+              separado.
             </p>
           )}
         </div>

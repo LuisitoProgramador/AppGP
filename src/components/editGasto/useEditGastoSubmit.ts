@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react'
+import { GASTO_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import { useCuentas, useGastosRefreshState } from '../../contexts'
 import { updateMsiGrupo, cambiarCuentaMsiGrupo, type MsiGrupoUndoSnapshot } from '../../services/msiGrupo'
 import { updateGastoSimple } from '../../services/gastos/gastos'
@@ -85,7 +86,7 @@ export function useEditGastoSubmit(
     }
 
     await refreshCuentas()
-    refresh()
+    refresh(GASTO_QUERY_SCOPES)
     showInfo('Corrección MSI deshecha.')
   }
 
@@ -160,7 +161,7 @@ export function useEditGastoSubmit(
     }
 
     await refreshCuentas()
-    refresh()
+    refresh(GASTO_QUERY_SCOPES)
     const meses = Number(mesesMsi)
     if (result.recoveredFromServer) {
       showInfo('Compra MSI confirmada en el servidor tras un error de red.')
@@ -312,7 +313,7 @@ export function useEditGastoSubmit(
     }
 
     await refreshCuentas()
-    refresh()
+    refresh(GASTO_QUERY_SCOPES)
     return true
   }
 
@@ -338,7 +339,7 @@ export function useEditGastoSubmit(
 
     if (!ok) return
 
-    refresh()
+    refresh(GASTO_QUERY_SCOPES)
     if (esMsi && cuentaCambio) {
       showSuccess(
         `Cuenta de la compra MSI actualizada. Se movieron ${grupoRows.length} cuotas (${formatCurrency(totalGrupo)}).`,

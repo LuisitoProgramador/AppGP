@@ -32,6 +32,13 @@ async function alreadySyncedOnServer(ingreso: PendingIngreso, userId: string): P
   return (count ?? 0) > 0
 }
 
+export async function isPendingIngresoSyncedOnServer(
+  ingreso: PendingIngreso,
+  userId: string,
+): Promise<boolean> {
+  return alreadySyncedOnServer(ingreso, userId)
+}
+
 async function tryInsertPendingIngreso(
   ingreso: PendingIngreso,
   userId: string,

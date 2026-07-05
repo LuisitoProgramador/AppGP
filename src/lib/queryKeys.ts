@@ -1,3 +1,14 @@
+export const queryKeyPrefixes = {
+  cuentas: ['app', 'cuentas'] as const,
+  dashboard: ['app', 'dashboard'] as const,
+  historial: ['app', 'historial'] as const,
+  presupuesto: ['app', 'presupuesto'] as const,
+  metas: ['app', 'metas'] as const,
+  recurrentes: ['app', 'recurrentes'] as const,
+} as const
+
+export type AppQueryScope = keyof typeof queryKeyPrefixes
+
 export const queryKeys = {
   all: ['app'] as const,
   cuentas: (userId: string | undefined) => ['app', 'cuentas', userId] as const,

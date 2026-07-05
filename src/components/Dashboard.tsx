@@ -2,6 +2,7 @@ import { memo, useMemo, useState } from 'react'
 import { useAuthSession, useCuentas, useOfflineSyncStatus, useQuietMode, useFocusMode } from '../contexts'
 import { useDashboardData } from '../hooks/dashboard/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
+import { useCalendarDay } from '../hooks/useCalendarDay'
 import { calcAlertasCategoria, getLimitesPorCategoria } from '../services/presupuestoCategorias'
 import { PORCENTAJE_AHORRO_DEFAULT } from '../constants/porcentajeAhorro'
 import {
@@ -10,6 +11,8 @@ import {
 } from '../utils/finanzas/regla503020'
 import { calcInteresEstimado, getTasaInteresMensual } from '../services/cuentaInteres'
 import { buildResumenInsights } from '../utils/dashboard/resumenInsights'
+import { buildSalidasTimeline } from '../utils/dashboard/salidasTimeline'
+import { calcFlujoEfectivoAlertas } from '../utils/dashboard/flujoEfectivoAsistente'
 import {
   dismissWelcomeBack,
   getWelcomeBackState,
@@ -34,6 +37,7 @@ import ResumenFinMesBanner from './dashboard/alerts/ResumenFinMesBanner'
 import RecurrenteSugeridoBanner from './dashboard/alerts/RecurrenteSugeridoBanner'
 import CompromisosMsiWidget from './dashboard/widgets/CompromisosMsiWidget'
 import SalidasTimelineSection from './SalidasTimelineSection'
+import FlujoEfectivoAsistente from './dashboard/widgets/FlujoEfectivoAsistente'
 import { dashboardShellClassName } from './ui/formStyles'
 
 export default memo(function Dashboard() {
@@ -47,6 +51,7 @@ export default memo(function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(
     () => new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   )
+  const diaActual = useCalendarDay()
 
   const {
     cargando,
@@ -128,8 +133,18 @@ export default memo(function Dashboard() {
     })
   }, [esMesActual, cargando, gastoTotal, limiteMensual, gastosPorCategoria, disponible])
 
+  const flujoEfectivoAlertas = useMemo(() => {
+    if (!esMesActual || cargando || disponible == null) return []
+    const salidas = buildSalidasTimeline(recurrentes, gastosMsi ?? [], selectedMonth)
+    return calcFlujoEfectivoAlertas({
+      salidas,
+      diaActual,
+      disponible,
+    })
+  }, [esMesActual, cargando, disponible, recurrentes, gastosMsi, selectedMonth, diaActual])
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="min-h-screen flex flex-col gap-4">
       <section className={dashboardShellClassName}>
         <div className="flex flex-col gap-4">
           <DashboardHeader
@@ -235,6 +250,10 @@ export default memo(function Dashboard() {
 
               {proyeccionCierre && !cargando && (
                 <ProyeccionCierre proyeccion={proyeccionCierre} ocultarAdvertencias={modoTranquilo} />
+              )}
+
+              {flujoEfectivoAlertas.length > 0 && !cargando && (
+                <FlujoEfectivoAsistente alertas={flujoEfectivoAlertas} />
               )}
 
               {tieneDatosAnalisis && (

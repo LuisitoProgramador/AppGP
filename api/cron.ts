@@ -91,6 +91,16 @@ function esc(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
+const CATEGORIA_TRANSFERENCIA = 'Transferencia'
+
+function esGastoPresupuestable(categoria: string): boolean {
+  return categoria !== CATEGORIA_TRANSFERENCIA
+}
+
+function roundMoney(monto: number): number {
+  return Math.round(monto * 100) / 100
+}
+
 interface PresupuestoRow {
   limite_mensual: number | string
   limite_es_manual: boolean | null
@@ -104,7 +114,7 @@ function resolveLimite(p: PresupuestoRow): number {
   if (p.sueldo_mensual != null && p.porcentaje_ahorro != null) {
     const total = Number(p.sueldo_mensual) + Number(p.ingresos_extras ?? 0)
     const ahorro = total * (Number(p.porcentaje_ahorro) / 100)
-    return Math.round((total - ahorro) * 100) / 100
+    return roundMoney(total - ahorro)
   }
   return Number(p.limite_mensual)
 }
@@ -155,7 +165,12 @@ async function resumenMensual(admin: SupabaseClient, userId: string): Promise<Re
 
 function totalDelMes(rows: ResumenRow[], clave: string): number {
   return rows
-    .filter((r) => typeof r.mes === 'string' && r.mes.slice(0, 7) === clave)
+    .filter(
+      (r) =>
+        typeof r.mes === 'string' &&
+        r.mes.slice(0, 7) === clave &&
+        esGastoPresupuestable(r.categoria),
+    )
     .reduce((acc, r) => acc + Number(r.total), 0)
 }
 
@@ -394,6 +409,13 @@ async function revisarResumenMensual(
   return true
 }
 
+/** Solo invocable con service_role (cliente admin del cron). No exponer al frontend. */
+async function purgeMsiIdempotencyKeys(admin: SupabaseClient): Promise<number> {
+  const { data, error } = await admin.rpc('purge_msi_idempotency_keys')
+  if (error) throw error
+  return Number(data ?? 0)
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method && req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' })
@@ -421,7 +443,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     corte: 0,
     sinRegistro: 0,
     resumen: 0,
+    idempotencyPurged: 0,
     errores: [] as string[],
+  }
+
+  try {
+    // createSupabaseAdmin usa SUPABASE_SERVICE_ROLE_KEY; la RPC no está expuesta a authenticated.
+    resultado.idempotencyPurged = await purgeMsiIdempotencyKeys(admin)
+  } catch (error) {
+    resultado.errores.push(`purge_msi_idempotency: ${(error as Error).message}`)
   }
 
   const usuarios = await targetUserIds(admin)

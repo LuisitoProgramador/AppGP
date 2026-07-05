@@ -1,19 +1,15 @@
 import {
   BUCKET_LABELS,
+  BUCKET_SHARE_GASTO_DISPONIBLE,
   CATEGORIA_BUCKET,
   CATEGORIA_PESO_EN_BUCKET,
-  REGLA_503020,
   type Bucket503020,
 } from '../../constants/regla503020'
 import { PORCENTAJE_AHORRO_DEFAULT } from '../../constants/porcentajeAhorro'
 import type { Categoria } from '../../types/gasto'
+import { esGastoPresupuestable } from '../../types/gasto'
 import type { LimitesPorCategoria } from '../../services/presupuestoCategorias'
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100
-}
-
-const GASTO_BUCKET_SHARE = REGLA_503020.necesidades + REGLA_503020.caprichos
+import { roundMoney, sumMoney } from '../core/centavos'
 
 export interface PorcentajesRegla503020 {
   necesidades: number
@@ -27,8 +23,8 @@ export function calcPorcentajesRegla503020(
 ): PorcentajesRegla503020 {
   const disponiblePct = 100 - porcentajeAhorro
   return {
-    necesidades: round2((disponiblePct * REGLA_503020.necesidades) / GASTO_BUCKET_SHARE),
-    caprichos: round2((disponiblePct * REGLA_503020.caprichos) / GASTO_BUCKET_SHARE),
+    necesidades: roundMoney(disponiblePct * BUCKET_SHARE_GASTO_DISPONIBLE.necesidades),
+    caprichos: roundMoney(disponiblePct * BUCKET_SHARE_GASTO_DISPONIBLE.caprichos),
     ahorro: porcentajeAhorro,
   }
 }
@@ -38,13 +34,11 @@ export function calcDisponibleGasto503020(
   porcentajeAhorro: number = PORCENTAJE_AHORRO_DEFAULT,
 ): number {
   if (ingresoMensual <= 0) return 0
-  return round2(ingresoMensual * (1 - porcentajeAhorro / 100))
+  return roundMoney(ingresoMensual * (1 - porcentajeAhorro / 100))
 }
 
 function bucketShareOfDisponible(bucket: Bucket503020): number {
-  return bucket === 'necesidades'
-    ? REGLA_503020.necesidades / GASTO_BUCKET_SHARE
-    : REGLA_503020.caprichos / GASTO_BUCKET_SHARE
+  return BUCKET_SHARE_GASTO_DISPONIBLE[bucket]
 }
 
 export function getBucketLabel503020(
@@ -71,7 +65,7 @@ export function calcLimiteCategoria503020(
   if (!bucket || peso == null) return null
 
   const bucketTotal = calcTotalBucket503020(ingresoMensual, bucket, porcentajeAhorro)
-  return round2(bucketTotal * peso)
+  return roundMoney(bucketTotal * peso)
 }
 
 export function calcLimitesRegla503020(
@@ -98,7 +92,7 @@ export function calcTotalBucket503020(
 ): number {
   if (ingresoMensual <= 0) return 0
   const disponible = calcDisponibleGasto503020(ingresoMensual, porcentajeAhorro)
-  return round2(disponible * bucketShareOfDisponible(bucket))
+  return roundMoney(disponible * bucketShareOfDisponible(bucket))
 }
 
 export function calcAhorroMensual503020(
@@ -106,7 +100,7 @@ export function calcAhorroMensual503020(
   porcentajeAhorro: number = PORCENTAJE_AHORRO_DEFAULT,
 ): number {
   if (ingresoMensual <= 0) return 0
-  return round2(ingresoMensual * (porcentajeAhorro / 100))
+  return roundMoney(ingresoMensual * (porcentajeAhorro / 100))
 }
 
 export function sumarGastosPorBucket(
@@ -118,9 +112,10 @@ export function sumarGastosPorBucket(
   }
 
   for (const [categoria, monto] of Object.entries(gastosPorCategoria)) {
+    if (!esGastoPresupuestable(categoria)) continue
     const bucket = getBucketCategoria(categoria)
     if (bucket) {
-      totales[bucket] = round2(totales[bucket] + monto)
+      totales[bucket] = sumMoney(totales[bucket], monto)
     }
   }
 

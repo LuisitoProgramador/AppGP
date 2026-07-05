@@ -2,6 +2,7 @@ import { assertRowObject, readNumber, readOptionalNumber } from '../../utils/cor
 import { LIMITE_MENSUAL_DEFAULT } from '../../types/gasto'
 import { calcIngresoMensualTotal, SEMANAS_POR_MES } from '../../utils/finanzas'
 import { resolveLimiteMensual } from '../../utils/finanzas/resolveLimiteMensual'
+import { roundMoney } from '../../utils/core/centavos'
 import { supabase } from '../supabase'
 import { cachePresupuesto, limiteLocalStorageKey, readCachedPresupuesto } from './cache'
 import type { Presupuesto } from './types'
@@ -30,10 +31,10 @@ export function mapPresupuesto(row: unknown): Presupuesto {
   const ingresos_extras = readOptionalNumber(data.ingresos_extras) ?? 0
 
   if (sueldo_mensual == null && sueldo_semanal != null) {
-    sueldo_mensual = Math.round(sueldo_semanal * SEMANAS_POR_MES * 100) / 100
+    sueldo_mensual = roundMoney(sueldo_semanal * SEMANAS_POR_MES)
   }
   if (sueldo_semanal == null && sueldo_mensual != null) {
-    sueldo_semanal = Math.round((sueldo_mensual / SEMANAS_POR_MES) * 100) / 100
+    sueldo_semanal = roundMoney(sueldo_mensual / SEMANAS_POR_MES)
   }
 
   return {

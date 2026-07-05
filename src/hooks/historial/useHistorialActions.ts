@@ -6,6 +6,7 @@ import {
   useOptimisticGastosState,
 } from '../../contexts'
 import { addPendingGasto, removePendingGasto, removePendingIngreso } from '../../services/sync/offlineQueue'
+import { GASTO_QUERY_SCOPES, INGRESO_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 import { supabase } from '../../services/supabase'
 import type { Gasto, PendingGasto } from '../../types/gasto'
 import {
@@ -57,12 +58,12 @@ export function useHistorialActions() {
         const { error: saldoError } = await applyGastoSaldo(cuentaId, montoSaldo)
         if (saldoError) {
           showError(`Gasto restaurado, pero el saldo no se actualizó: ${saldoError}`)
-          refresh()
+          refresh(GASTO_QUERY_SCOPES)
           return
         }
       }
 
-      refresh()
+      refresh(GASTO_QUERY_SCOPES)
       showInfo('Gasto restaurado.')
     },
     [applyGastoSaldo, refresh],
@@ -119,7 +120,7 @@ export function useHistorialActions() {
         }
       }
 
-      refresh()
+      refresh(GASTO_QUERY_SCOPES)
       showInfo('Gasto restaurado.')
     },
     [addOptimisticGasto, applyGastoSaldo, refresh, user],
@@ -147,7 +148,7 @@ export function useHistorialActions() {
         }
         await removePendingIngreso(item.id)
         setAccionId(null)
-        refresh()
+        refresh(INGRESO_QUERY_SCOPES)
         showSuccess('Ingreso pendiente eliminado.')
         return
       }
@@ -168,7 +169,7 @@ export function useHistorialActions() {
         }
         await removePendingGasto(item.id)
         setAccionId(null)
-        refresh()
+        refresh(GASTO_QUERY_SCOPES)
         const esMsi = Boolean(pendingBackup.msiInstallments?.length)
         showSuccessWithUndo(
           esMsi ? 'Compra MSI pendiente eliminada.' : 'Gasto pendiente eliminado.',
@@ -225,12 +226,12 @@ export function useHistorialActions() {
         )
         if (saldoError) {
           showError(`Gasto eliminado, pero el saldo no se actualizó: ${saldoError}`)
-          refresh()
+          refresh(GASTO_QUERY_SCOPES)
           return
         }
       }
 
-      refresh()
+      refresh(GASTO_QUERY_SCOPES)
       showSuccessWithUndo(
         'es_msi' in item && item.es_msi ? 'Cuota MSI eliminada.' : 'Gasto eliminado.',
         () => restaurarGastoEliminado(snapshot),

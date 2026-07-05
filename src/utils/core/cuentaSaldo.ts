@@ -1,4 +1,5 @@
 import type { CuentaTipo } from '../../types/cuenta'
+import { roundMoney, sumMoney } from './centavos'
 
 export function calcSaldoAfterGasto(
   tipo: CuentaTipo,
@@ -6,7 +7,7 @@ export function calcSaldoAfterGasto(
   monto: number,
 ): number {
   const delta = tipo === 'credito' ? monto : -monto
-  return Math.round((saldoActual + delta) * 100) / 100
+  return roundMoney(sumMoney(saldoActual, delta))
 }
 
 export function revertSaldoAfterGasto(
@@ -15,7 +16,7 @@ export function revertSaldoAfterGasto(
   monto: number,
 ): number {
   const delta = tipo === 'credito' ? -monto : monto
-  return Math.round((saldoActual + delta) * 100) / 100
+  return roundMoney(sumMoney(saldoActual, delta))
 }
 
 /** Monto que afecta el saldo de la cuenta al registrar un gasto. */

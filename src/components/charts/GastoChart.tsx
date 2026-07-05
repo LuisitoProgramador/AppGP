@@ -6,15 +6,17 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from 'recharts'
+import { useChartAnimation, CHART_ANIMATION_MS } from '../../hooks/useChartAnimation'
 import type { CategoriaResumen } from '../../types/gasto'
 import { colorCategoriaHex } from '../../types/gasto'
-import { CHART_TOOLTIP_STYLE, formatChartCurrency } from '../../constants/formOptions'
+import { CHART_HEIGHT_PX, CHART_TOOLTIP_STYLE, formatChartCurrency } from '../../constants/formOptions'
 
 interface GastoChartProps {
   data: CategoriaResumen[]
 }
 
 function GastoChart({ data }: GastoChartProps) {
+  const animate = useChartAnimation()
   const chartData = useMemo(
     () => data.map((item) => ({ name: item.categoria, value: item.total })),
     [data],
@@ -24,8 +26,8 @@ function GastoChart({ data }: GastoChartProps) {
 
   return (
     <div className="space-y-3">
-      <div className="h-44 w-full" aria-hidden="true">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="w-full" style={{ height: CHART_HEIGHT_PX }} aria-hidden="true">
+        <ResponsiveContainer width="100%" height={CHART_HEIGHT_PX}>
           <PieChart>
             <Pie
               data={chartData}
@@ -36,7 +38,8 @@ function GastoChart({ data }: GastoChartProps) {
               innerRadius={50}
               outerRadius={80}
               paddingAngle={2}
-              isAnimationActive={false}
+              isAnimationActive={animate}
+              animationDuration={CHART_ANIMATION_MS}
             >
               {chartData.map((entry, index) => (
                 <Cell

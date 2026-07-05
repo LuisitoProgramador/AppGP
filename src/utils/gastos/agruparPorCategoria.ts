@@ -1,25 +1,28 @@
-import type { CategoriaResumen } from '../../types/gasto'
+import { esGastoPresupuestable, type CategoriaResumen } from '../../types/gasto'
+import { fromCentavos, toCentavos } from '../core/centavos'
 
 export function agruparPorCategoria(
   gastos: { monto: number; categoria: string }[],
 ): CategoriaResumen[] {
-  const totales = gastos.reduce<{ acc: Record<string, number>; totalGeneral: number }>(
+  const totales = gastos.reduce<{ acc: Record<string, number>; totalCentavos: number }>(
     (state, gasto) => {
-      const monto = Number(gasto.monto)
-      state.acc[gasto.categoria] = (state.acc[gasto.categoria] ?? 0) + monto
-      state.totalGeneral += monto
+      if (!esGastoPresupuestable(gasto.categoria)) return state
+
+      const centavos = toCentavos(Number(gasto.monto))
+      state.acc[gasto.categoria] = (state.acc[gasto.categoria] ?? 0) + centavos
+      state.totalCentavos += centavos
       return state
     },
-    { acc: {}, totalGeneral: 0 },
+    { acc: {}, totalCentavos: 0 },
   )
 
-  const { acc, totalGeneral } = totales
+  const { acc, totalCentavos } = totales
 
   return Object.entries(acc)
-    .map(([categoria, total]) => ({
+    .map(([categoria, centavos]) => ({
       categoria,
-      total,
-      porcentaje: totalGeneral > 0 ? (total / totalGeneral) * 100 : 0,
+      total: fromCentavos(centavos),
+      porcentaje: totalCentavos > 0 ? (centavos / totalCentavos) * 100 : 0,
     }))
     .sort((a, b) => b.total - a.total)
 }

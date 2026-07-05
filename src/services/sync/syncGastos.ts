@@ -135,6 +135,13 @@ async function alreadySyncedOnServer(gasto: PendingGasto, userId: string): Promi
   return true
 }
 
+export async function isPendingGastoSyncedOnServer(
+  gasto: PendingGasto,
+  userId: string,
+): Promise<boolean> {
+  return alreadySyncedOnServer(gasto, userId)
+}
+
 async function revertPendingSaldo(
   userId: string,
   gasto: PendingGasto,

@@ -1,4 +1,5 @@
 import type { MetaAhorro, PendingMetaAhorroUpdate } from '../../types/metaAhorro'
+import { roundMoney, sumMoney } from '../../utils/core/centavos'
 
 function cacheKey(userId: string) {
   return `metas_ahorro_${userId}`
@@ -56,7 +57,7 @@ export function revertPendingMetaInCache(userId: string, item: PendingMetaAhorro
       meta.id === item.metaId
         ? {
             ...meta,
-            monto_actual: Math.max(0, Math.round((meta.monto_actual - item.amount) * 100) / 100),
+            monto_actual: Math.max(0, roundMoney(sumMoney(meta.monto_actual, -item.amount))),
           }
         : meta,
     ),

@@ -10,6 +10,7 @@ import {
   validatePorcentajeAhorro,
 } from '../../constants/porcentajeAhorro'
 import { getDaysRemainingInMonth } from '../../utils/date'
+import { roundMoney } from '../../utils/core/centavos'
 import {
   calcDiferenciaAhorroMensual,
   calcEstrategiaFinanciera,
@@ -28,6 +29,7 @@ import { isOnline } from '../../utils/core/network'
 import { showError, showSuccess } from '../../utils/core/toast'
 import { validateMonto } from '../../utils/core/validation'
 import { queryKeys } from '../../lib/queryKeys'
+import { PRESUPUESTO_QUERY_SCOPES } from '../../lib/invalidateAppQueries'
 
 function validateIngresosExtrasOpcional(value: string): string | null {
   if (!value.trim()) return null
@@ -130,7 +132,7 @@ export function usePresupuestoSettings() {
   const presupuestoDiarioPreview = useMemo(() => {
     if (!estrategiaPreview) return null
     const dias = getDaysRemainingInMonth(new Date()) || 1
-    return Math.round((estrategiaPreview.disponibleParaGasto / dias) * 100) / 100
+    return roundMoney(estrategiaPreview.disponibleParaGasto / dias)
   }, [estrategiaPreview])
 
   const ingresoMensualPreview = sueldoNum + extrasNum
@@ -203,7 +205,7 @@ export function usePresupuestoSettings() {
     })
     setDiaPagoInicial(diaPago)
 
-    refresh()
+    refresh(PRESUPUESTO_QUERY_SCOPES)
     if (limiteManualPreservado) {
       const limite =
         presupuestoGuardado?.limite_mensual ?? limiteManualActual ?? null
@@ -241,7 +243,7 @@ export function usePresupuestoSettings() {
 
     setLimiteEsManual(false)
     setLimiteManualActual(null)
-    refresh()
+    refresh(PRESUPUESTO_QUERY_SCOPES)
     showSuccess(`Límite de gasto actualizado a ${formatCurrency(limite ?? estrategiaPreview.disponibleParaGasto)}.`)
   }
 

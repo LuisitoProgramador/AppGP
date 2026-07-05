@@ -1,5 +1,7 @@
 import type { OptimisticGasto, PendingGasto } from '../../types/gasto'
+import { esGastoPresupuestable } from '../../types/gasto'
 import { isFechaInMonth } from '../date'
+import { filterGastosPresupuestables } from './gastoPresupuesto'
 
 interface ResumenMensual {
   categoria: string
@@ -60,6 +62,7 @@ export function filterPendingGastos(
 
   return pending.filter((gasto) => {
     if (!pendingMatchesMonth(gasto, month)) return false
+    if (!esGastoPresupuestable(gasto.categoria)) return false
     if (categoria !== 'Todas' && gasto.categoria !== categoria) return false
     if (termino && !gasto.descripcion.toLowerCase().includes(termino)) return false
     return true
@@ -76,26 +79,32 @@ export function mergeResumenWithOptimistic(
   month: Date,
   pendingGastos: PendingGasto[] = [],
 ): { monto: number; categoria: string }[] {
-  const base = resumenMensual.map((item) => ({
-    monto: item.total,
-    categoria: item.categoria,
-  }))
-
-  const optimistic = filterLineItemsByMonth(
-    optimisticGastos.map((gasto) => ({
-      monto: gasto.monto,
-      categoria: gasto.categoria,
-      fecha: gasto.fecha,
+  const base = filterGastosPresupuestables(
+    resumenMensual.map((item) => ({
+      monto: item.total,
+      categoria: item.categoria,
     })),
-    month,
-  ).map(({ monto, categoria }) => ({ monto, categoria }))
+  )
 
-  const pending = filterLineItemsByMonth(
-    filterPendingNotInOptimistic(pendingGastos, optimisticGastos).flatMap(
-      expandPendingToLineItems,
-    ),
-    month,
-  ).map(({ monto, categoria }) => ({ monto, categoria }))
+  const optimistic = filterGastosPresupuestables(
+    filterLineItemsByMonth(
+      optimisticGastos.map((gasto) => ({
+        monto: gasto.monto,
+        categoria: gasto.categoria,
+        fecha: gasto.fecha,
+      })),
+      month,
+    ).map(({ monto, categoria }) => ({ monto, categoria })),
+  )
+
+  const pending = filterGastosPresupuestables(
+    filterLineItemsByMonth(
+      filterPendingNotInOptimistic(pendingGastos, optimisticGastos).flatMap(
+        expandPendingToLineItems,
+      ),
+      month,
+    ).map(({ monto, categoria }) => ({ monto, categoria })),
+  )
 
   return [...base, ...optimistic, ...pending]
 }
@@ -109,6 +118,7 @@ export function filterOptimisticGastos(
   const termino = busqueda.trim().toLowerCase()
 
   return optimisticGastos.filter((gasto) => {
+    if (!esGastoPresupuestable(gasto.categoria)) return false
     if (!isFechaInMonth(gasto.fecha, month)) return false
     if (categoria !== 'Todas' && gasto.categoria !== categoria) return false
     if (termino && !gasto.descripcion.toLowerCase().includes(termino)) return false

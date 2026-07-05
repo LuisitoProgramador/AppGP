@@ -5,6 +5,9 @@ import { Toaster } from 'sonner'
 import './index.css'
 import App from './App'
 import { queryClient } from './lib/queryClient'
+import { initSentry } from './lib/sentry'
+
+initSentry()
 
 const root = createRoot(document.getElementById('root')!)
 root.render(

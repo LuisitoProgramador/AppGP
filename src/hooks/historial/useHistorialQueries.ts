@@ -8,39 +8,12 @@ import {
 import { useCategorias } from '../useCategorias'
 import { useDebouncedValue } from '../useDebouncedValue'
 import { fetchHistorialGastosPage } from '../../services/historial/fetchHistorial'
-import type { HistorialItem } from '../../components/historial/historialTypes'
-import { filterPendingIngresos } from '../../utils/gastos/filterPendingIngresos'
-import {
-  filterOptimisticGastos,
-  filterPendingGastos,
-  filterPendingNotInOptimistic,
-} from '../../utils/gastos/optimisticGastos'
 import { monthQueryKey, queryKeys } from '../../lib/queryKeys'
-
-function sortByFechaDesc(a: HistorialItem, b: HistorialItem): number {
-  return new Date(b.fecha).getTime() - new Date(a.fecha).getTime()
-}
-
-function mergeSortedByFechaDesc(
-  left: HistorialItem[],
-  right: HistorialItem[],
-): HistorialItem[] {
-  const merged: HistorialItem[] = []
-  let i = 0
-  let j = 0
-
-  while (i < left.length && j < right.length) {
-    if (sortByFechaDesc(left[i], right[j]) <= 0) {
-      merged.push(left[i])
-      i += 1
-    } else {
-      merged.push(right[j])
-      j += 1
-    }
-  }
-
-  return merged.concat(left.slice(i), right.slice(j))
-}
+import {
+  buildLocalHistorialItems,
+  buildSyncedHistorialItems,
+  mergePreSortedHistorial,
+} from '../../utils/gastos/historialMerge'
 
 export function useHistorialQueries() {
   const { user } = useAuthSession()
@@ -76,74 +49,36 @@ export function useHistorialQueries() {
     enabled: Boolean(user),
   })
 
-  const syncedItems = useMemo(
-    () => query.data?.pages.flatMap((page) => page.gastos) ?? [],
-    [query.data],
-  )
+  const syncedItems = useMemo(() => {
+    const ingresosItems = query.data?.pages[0]?.ingresos ?? []
+    return buildSyncedHistorialItems(query.data?.pages, ingresosItems, categoriaFiltro)
+  }, [query.data, categoriaFiltro])
 
-  const ingresosItems = useMemo(
-    () => query.data?.pages[0]?.ingresos ?? [],
-    [query.data],
-  )
-
-  const ingresosVisibles = useMemo(
-    () => (categoriaFiltro === 'Todas' || categoriaFiltro === 'Ingreso' ? ingresosItems : []),
-    [categoriaFiltro, ingresosItems],
-  )
-
-  const syncedSorted = useMemo(
-    () => [...syncedItems, ...ingresosVisibles].sort(sortByFechaDesc),
-    [syncedItems, ingresosVisibles],
-  )
-
-  const localSorted = useMemo(() => {
-    const pendientes: HistorialItem[] = filterPendingGastos(
-      filterPendingNotInOptimistic(pendingGastos, optimisticGastos),
-      selectedMonth,
-      categoriaFiltro,
-      busqueda,
-    ).map((gasto) => ({
-      ...gasto,
-      pendiente: true as const,
-    }))
-
-    const optimistas: HistorialItem[] = filterOptimisticGastos(
+  const localItems = useMemo(
+    () =>
+      buildLocalHistorialItems(
+        optimisticGastos,
+        pendingGastos,
+        pendingIngresos,
+        selectedMonth,
+        categoriaFiltro,
+        debouncedBusqueda,
+      ),
+    [
       optimisticGastos,
-      selectedMonth,
-      categoriaFiltro,
-      busqueda,
-    ).map((gasto) => ({
-      ...gasto,
-      optimistic: true as const,
-    }))
-
-    const pendientesIngresos: HistorialItem[] = filterPendingIngresos(
+      pendingGastos,
       pendingIngresos,
       selectedMonth,
       categoriaFiltro,
-      busqueda,
-    ).map((ingreso) => ({
-      ...ingreso,
-      tipo: 'ingreso' as const,
-      pendiente: true as const,
-      fecha: new Date(ingreso.createdAt).toISOString(),
-      categoria: 'Ingreso' as const,
-    }))
-
-    return [...optimistas, ...pendientes, ...pendientesIngresos].sort(sortByFechaDesc)
-  }, [
-    optimisticGastos,
-    pendingGastos,
-    pendingIngresos,
-    selectedMonth,
-    categoriaFiltro,
-    busqueda,
-  ])
-
-  const items = useMemo(
-    () => mergeSortedByFechaDesc(localSorted, syncedSorted),
-    [localSorted, syncedSorted],
+      debouncedBusqueda,
+    ],
   )
+
+  const items = useMemo(() => {
+    if (localItems.length === 0) return syncedItems
+    if (syncedItems.length === 0) return localItems
+    return mergePreSortedHistorial(localItems, syncedItems)
+  }, [localItems, syncedItems])
 
   const handleLoadMore = useCallback(() => {
     if (!query.hasNextPage || query.isFetchingNextPage) return
