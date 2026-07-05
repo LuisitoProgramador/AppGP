@@ -7,7 +7,7 @@ import {
   Tooltip,
 } from 'recharts'
 import type { CategoriaResumen } from '../../types/gasto'
-import { CHART_COLORS_HEX } from '../../types/gasto'
+import { colorCategoriaHex } from '../../types/gasto'
 import { CHART_TOOLTIP_STYLE, formatChartCurrency } from '../../constants/formOptions'
 
 interface GastoChartProps {
@@ -38,10 +38,10 @@ function GastoChart({ data }: GastoChartProps) {
               paddingAngle={2}
               isAnimationActive={false}
             >
-              {chartData.map((entry) => (
+              {chartData.map((entry, index) => (
                 <Cell
                   key={entry.name}
-                  fill={CHART_COLORS_HEX[entry.name] ?? '#e5e5e5'}
+                  fill={colorCategoriaHex(entry.name, index)}
                 />
               ))}
             </Pie>
@@ -50,11 +50,11 @@ function GastoChart({ data }: GastoChartProps) {
         </ResponsiveContainer>
       </div>
       <ul className="grid grid-cols-2 gap-2 text-xs sm:hidden" aria-label="Leyenda por categoría">
-        {chartData.map((entry) => (
+        {chartData.map((entry, index) => (
           <li key={entry.name} className="flex items-center gap-2 text-slate-300">
             <span
               className="h-2.5 w-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: CHART_COLORS_HEX[entry.name] ?? '#e5e5e5' }}
+              style={{ backgroundColor: colorCategoriaHex(entry.name, index) }}
             />
             <span className="truncate">{entry.name}</span>
           </li>

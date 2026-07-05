@@ -69,12 +69,33 @@ export interface CategoriaResumen {
   cantidad?: number
 }
 
+/** Colores sutiles pero distinguibles en fondo oscuro (#181818 / #242424). */
+export const CATEGORIA_COLOR_HEX: Record<string, string> = {
+  Comida: '#c9a06c',
+  Transporte: '#6a9ec4',
+  Casa: '#6da882',
+  Suscripciones: '#9582b8',
+  Compras: '#c47a7a',
+  Otros: '#8a9199',
+}
+
+const CATEGORIA_PALETTE = Object.values(CATEGORIA_COLOR_HEX)
+
+export function colorCategoriaHex(categoria: string, index = 0): string {
+  return CATEGORIA_COLOR_HEX[categoria] ?? CATEGORIA_PALETTE[index % CATEGORIA_PALETTE.length] ?? '#8a9199'
+}
+
+/** @deprecated Usar colorCategoriaHex — mapa directo para compatibilidad con recharts */
+export const CHART_COLORS_HEX: Record<string, string> = CATEGORIA_COLOR_HEX
+
+/** @deprecated Usar colorCategoriaHex con style.backgroundColor */
 export const COLORES_CATEGORIA: Record<string, string> = {
-  Comida: 'bg-neutral-400',
-  Transporte: 'bg-pulso-accent',
-  Casa: 'bg-pulso-accent-dim',
-  Suscripciones: 'bg-pulso-accent-muted',
-  Otros: 'bg-neutral-600',
+  Comida: 'bg-[#c9a06c]',
+  Transporte: 'bg-[#6a9ec4]',
+  Casa: 'bg-[#6da882]',
+  Suscripciones: 'bg-[#9582b8]',
+  Compras: 'bg-[#c47a7a]',
+  Otros: 'bg-[#8a9199]',
 }
 
 export const LIMITE_MENSUAL_DEFAULT = 10000
@@ -98,11 +119,3 @@ export type GastoRecurrenteInput = Pick<
   GastoRecurrente,
   'descripcion' | 'monto' | 'categoria' | 'dia_mes' | 'cuenta_id'
 >
-
-export const CHART_COLORS_HEX: Record<string, string> = {
-  Comida: '#d4d4d4',
-  Transporte: '#e5e5e5',
-  Casa: '#a3a3a3',
-  Suscripciones: '#f5f5f5',
-  Otros: '#737373',
-}

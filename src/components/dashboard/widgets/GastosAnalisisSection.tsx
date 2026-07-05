@@ -1,5 +1,5 @@
 import { lazy, Suspense, memo, useState } from 'react'
-import { COLORES_CATEGORIA, type CategoriaResumen } from '../../../types/gasto'
+import { colorCategoriaHex, type CategoriaResumen } from '../../../types/gasto'
 import { formatCurrency } from '../../../utils/format/formatCurrency'
 import { chartToggleClassName } from '../../ui/formStyles'
 import type { MesTotal } from '../../charts/GastoBarChart'
@@ -79,7 +79,7 @@ export default memo(function GastosAnalisisSection({
           {chartView === 'categoria' && (
             <>
               <h3 className="text-sm font-semibold text-slate-300">Por categoría</h3>
-              {resumen.map((item) => (
+              {resumen.map((item, index) => (
                 <div key={item.categoria} className="space-y-2">
                   <div className="flex items-center justify-between gap-3 text-sm">
                     <span className="font-medium text-slate-200">{item.categoria}</span>
@@ -90,8 +90,11 @@ export default memo(function GastosAnalisisSection({
                   </div>
                   <div className="h-2.5 overflow-hidden rounded-full bg-slate-700/80">
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${COLORES_CATEGORIA[item.categoria] ?? 'bg-neutral-500'}`}
-                      style={{ width: `${item.porcentaje}%` }}
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${item.porcentaje}%`,
+                        backgroundColor: colorCategoriaHex(item.categoria, index),
+                      }}
                     />
                   </div>
                 </div>

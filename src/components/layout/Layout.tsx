@@ -11,7 +11,7 @@ function Layout({ children, withBottomNav = false }: LayoutProps) {
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-pulso-bg text-white">
       <main
         className={`mx-auto min-h-0 w-full max-w-lg flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain px-4 pt-[max(1.5rem,env(safe-area-inset-top))] ${
-          withBottomNav ? 'pb-[var(--bottom-nav-total)]' : 'pb-4'
+          withBottomNav ? 'pb-[var(--bottom-nav-total)]' : 'pb-[max(1rem,env(safe-area-inset-bottom))]'
         }`}
       >
         {children}
