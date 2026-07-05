@@ -7,15 +7,20 @@ import {
   UMBRAL_SEGURIDAD,
 } from './quietModeAuto'
 
+/** Mediodía en Ciudad de México — estable en CI (UTC) y en local. */
+function fechaMx(isoDate: string): Date {
+  return new Date(`${isoDate}T12:00:00-06:00`)
+}
+
 describe('quietModeAuto', () => {
   it('detecta fin de semana', () => {
-    expect(isFinDeSemana(new Date(2026, 6, 4))).toBe(true) // sábado
-    expect(isFinDeSemana(new Date(2026, 6, 6))).toBe(false) // lunes
+    expect(isFinDeSemana(fechaMx('2026-07-04'))).toBe(true) // sábado
+    expect(isFinDeSemana(fechaMx('2026-07-06'))).toBe(false) // lunes
   })
 
   it('detecta día de pago', () => {
-    expect(isDiaDePago(new Date(2026, 6, 15), 15)).toBe(true)
-    expect(isDiaDePago(new Date(2026, 6, 15), 5)).toBe(false)
+    expect(isDiaDePago(fechaMx('2026-07-15'), 15)).toBe(true)
+    expect(isDiaDePago(fechaMx('2026-07-15'), 5)).toBe(false)
   })
 
   it('activa modo tranquilo en fin de semana con saldo seguro', () => {
@@ -23,7 +28,7 @@ describe('quietModeAuto', () => {
       shouldAutoActivarModoTranquilo({
         disponible: UMBRAL_SEGURIDAD + 1,
         diaPago: 5,
-        fecha: new Date(2026, 6, 4),
+        fecha: fechaMx('2026-07-04'),
       }),
     ).toBe(true)
   })
@@ -33,7 +38,7 @@ describe('quietModeAuto', () => {
       shouldAutoActivarModoTranquilo({
         disponible: 5000,
         diaPago: 15,
-        fecha: new Date(2026, 6, 15),
+        fecha: fechaMx('2026-07-15'),
       }),
     ).toBe(true)
   })
@@ -43,7 +48,7 @@ describe('quietModeAuto', () => {
       shouldAutoActivarModoTranquilo({
         disponible: UMBRAL_SEGURIDAD,
         diaPago: 15,
-        fecha: new Date(2026, 6, 15),
+        fecha: fechaMx('2026-07-15'),
       }),
     ).toBe(false)
   })
