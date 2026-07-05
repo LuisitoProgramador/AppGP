@@ -49,7 +49,9 @@ VITE_SUPABASE_ANON_KEY=tu-anon-key
 VITE_SENTRY_DSN=          # opcional: alertas de errores en producción
 ```
 
-4. Iniciar el servidor de desarrollo:
+4. Para tests E2E, define `E2E_TEST_PASSWORD` en `.env` (usuario de prueba en Supabase Auth).
+
+5. Iniciar el servidor de desarrollo:
 
 ```bash
 npm run dev

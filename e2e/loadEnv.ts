@@ -18,4 +18,3 @@ export function loadEnvFile(path = resolve(process.cwd(), '.env')) {
 }
 
 export const E2E_DEFAULT_EMAIL = 'e2e.pulso.test@pulso-e2e.local'
-export const E2E_DEFAULT_PASSWORD = 'PulsoE2e_Test_2026!'

@@ -1,4 +1,4 @@
-import { E2E_DEFAULT_EMAIL, E2E_DEFAULT_PASSWORD, loadEnvFile } from './loadEnv'
+import { E2E_DEFAULT_EMAIL, loadEnvFile } from './loadEnv'
 
 export interface E2ECredentials {
   email: string
@@ -170,7 +170,7 @@ export async function ensureTestUser(): Promise<E2ECredentials> {
   const baseUrl = requireEnv('VITE_SUPABASE_URL')
   const anonKey = requireEnv('VITE_SUPABASE_ANON_KEY')
   const email = process.env.E2E_TEST_EMAIL ?? E2E_DEFAULT_EMAIL
-  const password = process.env.E2E_TEST_PASSWORD ?? E2E_DEFAULT_PASSWORD
+  const password = requireEnv('E2E_TEST_PASSWORD')
 
   const session = await signInOrSignUp(baseUrl, anonKey, email, password)
   await seedOnboardingData(baseUrl, session.access_token, anonKey, session.user.id)
