@@ -1,6 +1,6 @@
 import { type FormEvent, useCallback, useMemo, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useAuthSession, useGastosRefreshState } from '../contexts'
+import { useAuthSession } from '../contexts'
 import {
   addAhorroToMeta,
   createMetaAhorro,
@@ -18,11 +18,10 @@ import { validateMonto, validateNombre } from '../utils/core/validation'
 
 export function useMetasAhorro(enabled = true) {
   const { user } = useAuthSession()
-  const { refreshKey } = useGastosRefreshState()
   const queryClient = useQueryClient()
 
   const metasQuery = useQuery({
-    queryKey: [...queryKeys.metas(user?.id), refreshKey],
+    queryKey: queryKeys.metas(user?.id),
     queryFn: async () => {
       const { data, error: listError, fromCache } = await listMetasAhorro(user!.id)
       if (listError) throw new Error(listError)
@@ -41,14 +40,14 @@ export function useMetasAhorro(enabled = true) {
     (updater: (current: MetaAhorro[]) => MetaAhorro[]) => {
       if (!user) return
       queryClient.setQueryData<{ data: MetaAhorro[]; fromCache: boolean }>(
-        [...queryKeys.metas(user.id), refreshKey],
+        queryKeys.metas(user.id),
         (current) => ({
           data: updater(current?.data ?? []),
           fromCache: current?.fromCache ?? false,
         }),
       )
     },
-    [queryClient, refreshKey, user],
+    [queryClient, user],
   )
 
   const [mostrarFormMeta, setMostrarFormMeta] = useState(false)

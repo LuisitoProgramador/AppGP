@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { useAuthSession, useGastosRefreshState } from '../../contexts'
+import { useAuthSession } from '../../contexts'
 import { fetchDashboardData } from '../../services/dashboard/fetchDashboard'
 import { monthQueryKey, queryKeys } from '../../lib/queryKeys'
 import type {
@@ -16,10 +16,9 @@ export function useDashboardQueries(
 ): DashboardQueryState & DashboardQueryActions {
   const lite = options.lite ?? false
   const { user } = useAuthSession()
-  const { refreshKey } = useGastosRefreshState()
 
   const query = useQuery({
-    queryKey: [...queryKeys.dashboard(user?.id, monthQueryKey(selectedMonth), lite), refreshKey],
+    queryKey: queryKeys.dashboard(user?.id, monthQueryKey(selectedMonth), lite),
     queryFn: () => fetchDashboardData(user!.id, selectedMonth, lite),
     enabled: Boolean(user),
   })

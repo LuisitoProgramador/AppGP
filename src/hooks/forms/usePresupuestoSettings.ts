@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthSession, useGastosRefreshState } from '../../contexts'
 import { getPresupuesto, savePresupuestoFinanciero, applyLimiteCalculado } from '../../services/presupuesto'
@@ -40,7 +40,7 @@ function validateIngresosExtrasOpcional(value: string): string | null {
 
 export function usePresupuestoSettings() {
   const { user } = useAuthSession()
-  const { refreshKey, refresh } = useGastosRefreshState()
+  const { refresh } = useGastosRefreshState()
 
   const [guardando, setGuardando] = useState(false)
   const [aplicandoLimite, setAplicandoLimite] = useState(false)
@@ -60,16 +60,27 @@ export function usePresupuestoSettings() {
     porcentajeAhorro: PORCENTAJE_AHORRO_DEFAULT,
   })
 
+  const formHydratedRef = useRef(false)
+  const hydratedUserIdRef = useRef<string | undefined>(undefined)
+
   const presupuestoQuery = useQuery({
-    queryKey: [...queryKeys.presupuesto(user?.id), refreshKey],
+    queryKey: queryKeys.presupuesto(user?.id),
     queryFn: () => getPresupuesto(user!.id),
     enabled: Boolean(user),
   })
 
   useEffect(() => {
-    const presupuesto = presupuestoQuery.data
-    if (!presupuesto) return
+    if (user?.id !== hydratedUserIdRef.current) {
+      hydratedUserIdRef.current = user?.id
+      formHydratedRef.current = false
+    }
+  }, [user?.id])
 
+  useEffect(() => {
+    const presupuesto = presupuestoQuery.data
+    if (!presupuesto || formHydratedRef.current) return
+
+    formHydratedRef.current = true
     setLimiteEsManual(presupuesto.limite_es_manual)
     setLimiteManualActual(presupuesto.limite_es_manual ? presupuesto.limite_mensual : null)
 

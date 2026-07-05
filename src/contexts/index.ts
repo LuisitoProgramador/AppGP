@@ -3,6 +3,7 @@ export { GastosProviders } from './GastosProviders'
 export {
   GastosDataProvider,
   useGastosRefreshState,
+  useOnAppRefresh,
   useOptimisticGastosState,
 } from './GastosDataContext'
 export { RecurrentesProvider, useRecurrentes } from './RecurrentesContext'

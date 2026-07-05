@@ -10,7 +10,8 @@ import {
   type HistorialItem,
 } from './historialTypes'
 
-const ROW_ESTIMATE_PX = 92
+/** Estimación inicial; measureElement ajusta altura real (descripciones multilínea). */
+const ROW_ESTIMATE_PX = 104
 const LOAD_MORE_THRESHOLD = 5
 
 interface HistorialVirtualListProps {

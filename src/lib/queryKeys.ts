@@ -11,6 +11,7 @@ export const queryKeys = {
     busqueda: string,
   ) => ['app', 'historial', userId, monthKey, categoriaFiltro, busqueda] as const,
   presupuesto: (userId: string | undefined) => ['app', 'presupuesto', userId] as const,
+  recurrentes: (userId: string | undefined) => ['app', 'recurrentes', userId] as const,
 }
 
 export function monthQueryKey(date: Date): string {

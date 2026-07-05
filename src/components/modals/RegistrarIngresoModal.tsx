@@ -123,7 +123,6 @@ export default function RegistrarIngresoModal({ onClose, onSuccess }: RegistrarI
             onChange={(e) => setDescripcion(e.target.value)}
             className={inputClassName}
             required
-            autoFocus
           />
         </div>
 

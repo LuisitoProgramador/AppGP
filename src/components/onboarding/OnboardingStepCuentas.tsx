@@ -85,7 +85,7 @@ export default function OnboardingStepCuentas({
                   type="button"
                   onClick={() => removeCuentaLiquida(cuenta.id)}
                   aria-label={`Eliminar ${cuenta.nombre}`}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="rounded-lg p-2 text-slate-400 transition active:bg-red-500/10 active:text-red-400"
                 >
                   ×
                 </button>
@@ -98,7 +98,7 @@ export default function OnboardingStepCuentas({
           <button
             type="button"
             onClick={() => setShowCuentaLiquidaForm(true)}
-            className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-pulso-accent/50 hover:text-white"
+            className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition active:border-pulso-accent/50 active:text-white"
           >
             + Añadir cuenta de débito o ahorro
           </button>
@@ -190,7 +190,7 @@ export default function OnboardingStepCuentas({
                   type="button"
                   onClick={() => removeTarjeta(tarjeta.id)}
                   aria-label={`Eliminar ${tarjeta.nombre}`}
-                  className="rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                  className="rounded-lg p-2 text-slate-400 transition active:bg-red-500/10 active:text-red-400"
                 >
                   ×
                 </button>
@@ -203,7 +203,7 @@ export default function OnboardingStepCuentas({
           <button
             type="button"
             onClick={() => setShowTarjetaForm(true)}
-            className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:border-pulso-accent/50 hover:text-white"
+            className="w-full rounded-xl border border-dashed border-slate-600 px-4 py-3 text-sm font-semibold text-slate-300 transition active:border-pulso-accent/50 active:text-white"
           >
             + Añadir tarjeta
           </button>

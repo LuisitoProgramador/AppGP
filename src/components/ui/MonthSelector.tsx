@@ -111,8 +111,8 @@ function MonthPickerPanel({
                 isSelected
                   ? 'bg-pulso-accent text-neutral-950 shadow-sm'
                   : isCurrent
-                    ? 'border border-pulso-accent/40 bg-pulso-accent/10 text-pulso-accent-muted hover:bg-pulso-accent/20'
-                    : 'bg-slate-900/60 text-slate-300 hover:bg-slate-700 hover:text-white'
+                    ? 'border border-pulso-accent/40 bg-pulso-accent/10 text-pulso-accent-muted active:bg-pulso-accent/20'
+                    : 'bg-slate-900/60 text-slate-300 active:bg-slate-700 active:text-white'
               }`}
             >
               {label}
@@ -125,14 +125,14 @@ function MonthPickerPanel({
         <button
           type="button"
           onClick={onClose}
-          className="text-sm font-medium text-slate-400 transition hover:text-white"
+          className="text-sm font-medium text-slate-400 transition active:text-white"
         >
           Cerrar
         </button>
         <button
           type="button"
           onClick={onSelectCurrentMonth}
-          className="text-sm font-semibold text-pulso-accent-muted transition hover:text-pulso-accent"
+          className="text-sm font-semibold text-pulso-accent-muted transition active:text-pulso-accent"
         >
           Este mes
         </button>

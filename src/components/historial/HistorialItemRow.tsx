@@ -73,7 +73,7 @@ const HistorialItemRow = memo(function HistorialItemRow({
               disabled={isBusy}
               aria-label="Editar gasto"
               title="Editar gasto"
-              className={`${iconButtonEditClassName} max-sm:rounded-xl max-sm:border max-sm:border-pulso-accent/40 max-sm:bg-pulso-accent/15 max-sm:text-pulso-accent-muted max-sm:hover:bg-pulso-accent/25 sm:inline-flex sm:items-center sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold`}
+              className={`${iconButtonEditClassName} max-sm:rounded-xl max-sm:border max-sm:border-pulso-accent/40 max-sm:bg-pulso-accent/15 max-sm:text-pulso-accent-muted max-sm:active:bg-pulso-accent/25 sm:inline-flex sm:items-center sm:gap-1.5 sm:px-3 sm:py-2 sm:text-xs sm:font-semibold`}
             >
               <EditIcon />
               <span className="hidden sm:inline">Editar</span>

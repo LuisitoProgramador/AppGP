@@ -40,7 +40,7 @@ export default class ErrorBoundary extends Component<
           <button
             type="button"
             onClick={this.handleRetry}
-            className="mt-4 rounded-xl bg-slate-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-600"
+            className="mt-4 rounded-xl bg-slate-700 px-4 py-2 text-sm font-medium text-white transition active:bg-slate-600"
           >
             Reintentar
           </button>

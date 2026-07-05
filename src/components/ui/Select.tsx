@@ -175,7 +175,7 @@ export default memo(function Select({
                         className={`flex w-full items-center justify-between gap-3 rounded-xl px-4 py-3.5 text-left text-base touch-manipulation transition active:scale-[0.99] ${
                           isSelected
                             ? 'bg-pulso-accent/20 text-neutral-100'
-                            : 'text-slate-200 hover:bg-slate-700/60 hover:text-white'
+                            : 'text-slate-200 active:bg-slate-700/60 active:text-white'
                         }`}
                       >
                         <span className="min-w-0 flex-1 truncate">{option.label}</span>
@@ -190,7 +190,7 @@ export default memo(function Select({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="w-full rounded-xl bg-slate-700/90 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-600 active:bg-slate-800"
+                  className="w-full rounded-xl bg-slate-700/90 px-4 py-3 text-sm font-medium text-white transition active:bg-slate-800"
                 >
                   Cerrar
                 </button>

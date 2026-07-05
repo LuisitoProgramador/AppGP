@@ -113,7 +113,7 @@ export default memo(function LoginForm() {
           <button
             type="button"
             onClick={() => setMostrarPassword((visible) => !visible)}
-            className={`${iconButtonClassName} absolute top-1/2 right-1 -translate-y-1/2 text-slate-400 hover:text-white`}
+            className={`${iconButtonClassName} absolute top-1/2 right-1 -translate-y-1/2 text-slate-400 active:text-white`}
             aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
           >
             {mostrarPassword ? <EyeOffIcon /> : <EyeIcon />}
@@ -126,7 +126,7 @@ export default memo(function LoginForm() {
           type="button"
           onClick={handleForgotPassword}
           disabled={enviandoReset}
-          className="text-left text-sm text-slate-400 transition hover:text-white"
+          className="text-left text-sm text-slate-400 transition active:text-white"
         >
           {enviandoReset ? 'Enviando enlace...' : '¿Olvidaste tu contraseña?'}
         </button>

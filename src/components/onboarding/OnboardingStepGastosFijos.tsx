@@ -95,7 +95,7 @@ export default function OnboardingStepGastosFijos({
                     type="button"
                     onClick={() => removeGasto(gasto.id)}
                     aria-label={`Eliminar ${gasto.descripcion}`}
-                    className="shrink-0 rounded-lg p-2 text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
+                    className="shrink-0 rounded-lg p-2 text-slate-400 transition active:bg-red-500/10 active:text-red-400"
                   >
                     ×
                   </button>
@@ -110,7 +110,7 @@ export default function OnboardingStepGastosFijos({
                 key={nombre}
                 type="button"
                 onClick={() => addSugerencia(nombre)}
-                className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition hover:border-pulso-accent/50 hover:text-white"
+                className="rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 transition active:border-pulso-accent/50 active:text-white"
               >
                 + {nombre}
               </button>

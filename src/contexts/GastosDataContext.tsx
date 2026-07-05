@@ -2,15 +2,19 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
 import { invalidateAppQueries } from '../lib/invalidateAppQueries'
 
+type RefreshListener = () => void
+const refreshListeners = new Set<RefreshListener>()
+
 interface GastosRefreshContextValue {
-  refreshKey: number
   refresh: () => void
 }
 
@@ -29,12 +33,11 @@ interface GastosDataProviderProps {
 }
 
 export function GastosDataProvider({ children }: GastosDataProviderProps) {
-  const [refreshKey, setRefreshKey] = useState(0)
   const [optimisticGastos, setOptimisticGastos] = useState<OptimisticGasto[]>([])
 
   const refresh = useCallback(() => {
-    setRefreshKey((key) => key + 1)
     invalidateAppQueries()
+    refreshListeners.forEach((listener) => listener())
   }, [])
 
   const addOptimisticGasto = useCallback((gasto: Omit<OptimisticGasto, 'tempId'>) => {
@@ -52,10 +55,7 @@ export function GastosDataProvider({ children }: GastosDataProviderProps) {
     setOptimisticGastos((current) => current.filter((gasto) => !ids.has(gasto.tempId)))
   }, [])
 
-  const refreshValue = useMemo(
-    () => ({ refreshKey, refresh }),
-    [refreshKey, refresh],
-  )
+  const refreshValue = useMemo(() => ({ refresh }), [refresh])
 
   const optimisticValue = useMemo(
     () => ({
@@ -74,6 +74,20 @@ export function GastosDataProvider({ children }: GastosDataProviderProps) {
       </OptimisticGastosContext.Provider>
     </GastosRefreshContext.Provider>
   )
+}
+
+/** Re-ejecuta un efecto cuando refresh() invalida la caché (sin refreshKey en queryKey). */
+export function useOnAppRefresh(listener: RefreshListener): void {
+  const listenerRef = useRef(listener)
+  listenerRef.current = listener
+
+  useEffect(() => {
+    const wrapped = () => listenerRef.current()
+    refreshListeners.add(wrapped)
+    return () => {
+      refreshListeners.delete(wrapped)
+    }
+  }, [])
 }
 
 export function useGastosRefreshState() {

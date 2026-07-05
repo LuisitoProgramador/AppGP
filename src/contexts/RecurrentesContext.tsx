@@ -2,15 +2,14 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { listGastosRecurrentes } from '../services/gastos/gastosRecurrentes'
 import type { GastoRecurrente } from '../types/gasto'
+import { queryKeys } from '../lib/queryKeys'
 import { useAuthSession } from './AuthContext'
-import { useGastosRefreshState } from './GastosDataContext'
 
 interface RecurrentesContextValue {
   recurrentes: GastoRecurrente[]
@@ -27,35 +26,29 @@ interface RecurrentesProviderProps {
 
 export function RecurrentesProvider({ children }: RecurrentesProviderProps) {
   const { user } = useAuthSession()
-  const { refreshKey } = useGastosRefreshState()
-  const [recurrentes, setRecurrentes] = useState<GastoRecurrente[]>([])
-  const [cargando, setCargando] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+
+  const query = useQuery({
+    queryKey: queryKeys.recurrentes(user?.id),
+    queryFn: async () => {
+      const { data, error: listError } = await listGastosRecurrentes(user!.id)
+      if (listError) throw new Error(listError)
+      return data
+    },
+    enabled: Boolean(user),
+  })
 
   const reload = useCallback(async () => {
-    if (!user) {
-      setRecurrentes([])
-      setError(null)
-      setCargando(false)
-      return
-    }
-
-    setCargando(true)
-    setError(null)
-
-    const { data, error: listError } = await listGastosRecurrentes(user.id)
-    setRecurrentes(data)
-    setError(listError)
-    setCargando(false)
-  }, [user])
-
-  useEffect(() => {
-    void reload()
-  }, [reload, refreshKey])
+    await query.refetch()
+  }, [query])
 
   const value = useMemo(
-    () => ({ recurrentes, cargando, error, reload }),
-    [recurrentes, cargando, error, reload],
+    () => ({
+      recurrentes: query.data ?? [],
+      cargando: query.isLoading,
+      error: query.error ? (query.error as Error).message : null,
+      reload,
+    }),
+    [query.data, query.isLoading, query.error, reload],
   )
 
   return <RecurrentesContext.Provider value={value}>{children}</RecurrentesContext.Provider>

@@ -270,7 +270,7 @@ export default function AppRoutes() {
                   className={`${iconButtonClassName} border ${
                     showAjustes
                       ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent'
-                      : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
+                      : 'border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700'
                   }`}
                 >
                   <SettingsIcon />
@@ -280,7 +280,7 @@ export default function AppRoutes() {
                   onClick={handleSignOut}
                   aria-label="Cerrar sesión"
                   title="Cerrar sesión"
-                  className={`${iconButtonClassName} border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700`}
+                  className={`${iconButtonClassName} border border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700`}
                 >
                   <LogOutIcon />
                 </button>

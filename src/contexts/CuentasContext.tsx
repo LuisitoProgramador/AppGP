@@ -22,7 +22,6 @@ import { queryKeys } from '../lib/queryKeys'
 import { isOnline } from '../utils/core/network'
 import { showError } from '../utils/core/toast'
 import { useAuthSession } from './AuthContext'
-import { useGastosRefreshState } from './GastosDataContext'
 
 interface CuentasContextValue {
   cuentas: Cuenta[]
@@ -56,12 +55,11 @@ async function loadCuentasForUser(userId: string): Promise<Cuenta[]> {
 
 export function CuentasProvider({ children }: CuentasProviderProps) {
   const { user } = useAuthSession()
-  const { refreshKey } = useGastosRefreshState()
   const queryClient = useQueryClient()
   const cuentasRef = useRef<Cuenta[]>([])
 
   const query = useQuery({
-    queryKey: [...queryKeys.cuentas(user?.id), refreshKey],
+    queryKey: queryKeys.cuentas(user?.id),
     queryFn: () => loadCuentasForUser(user!.id),
     enabled: Boolean(user),
   })
@@ -77,12 +75,11 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
   const setCuentasOptimistic = useCallback(
     (updater: (current: Cuenta[]) => Cuenta[]) => {
       if (!user) return
-      queryClient.setQueryData<Cuenta[]>(
-        [...queryKeys.cuentas(user.id), refreshKey],
-        (current) => updater(current ?? []),
+      queryClient.setQueryData<Cuenta[]>(queryKeys.cuentas(user.id), (current) =>
+        updater(current ?? []),
       )
     },
-    [queryClient, refreshKey, user],
+    [queryClient, user],
   )
 
   const applyGastoSaldo = useCallback(

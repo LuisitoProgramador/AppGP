@@ -27,7 +27,7 @@ export default memo(function GastosAnalisisSection({
       <button
         type="button"
         onClick={() => setMostrarGraficas((v) => !v)}
-        className="flex w-full min-h-11 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-2.5 text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:bg-slate-700/50 hover:border-slate-600 hover:text-white"
+        className="flex w-full min-h-11 items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-4 py-2.5 text-sm font-medium text-slate-300 touch-manipulation transition active:scale-[0.98] active:bg-slate-700/50 active:border-slate-600 active:text-white"
       >
         <span>{mostrarGraficas ? 'Ocultar análisis' : 'Ver análisis de gastos'}</span>
         <span className="text-slate-500">{mostrarGraficas ? '▲' : '▼'}</span>

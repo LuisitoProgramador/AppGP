@@ -54,7 +54,6 @@ export default function OnboardingStepIngresos({
           value={sueldoMensual}
           onChange={setSueldoMensual}
           placeholder="0"
-          autoFocus
         />
       </div>
 

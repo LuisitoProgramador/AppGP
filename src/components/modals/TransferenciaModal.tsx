@@ -236,7 +236,6 @@ export default function TransferenciaModal({ onClose, onSuccess }: Transferencia
                 onChange={setMonto}
                 placeholder="0"
                 required
-                autoFocus
               />
               {saldoAdvertencia && (
                 <p className="text-xs text-red-400">{saldoAdvertencia}</p>

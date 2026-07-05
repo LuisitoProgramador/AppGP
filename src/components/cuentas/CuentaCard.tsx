@@ -37,7 +37,7 @@ export default function CuentaCard({ cuenta, onEdit }: CuentaCardProps) {
           <button
             type="button"
             onClick={() => onEdit(cuenta)}
-            className="mb-1 text-[10px] font-medium text-pulso-accent-muted underline-offset-2 hover:text-pulso-accent hover:underline"
+            className="mb-1 text-[10px] font-medium text-pulso-accent-muted underline-offset-2 active:text-pulso-accent active:underline"
           >
             Editar
           </button>

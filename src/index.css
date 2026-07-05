@@ -31,6 +31,8 @@ html {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  touch-action: manipulation;
   background-color: var(--color-pulso-surface);
 }
 
@@ -43,9 +45,24 @@ body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  touch-action: manipulation;
   font-family: system-ui, -apple-system, sans-serif;
   background-color: var(--color-pulso-bg);
   color: #f5f5f5;
+}
+
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: auto;
+  -webkit-user-select: auto;
 }
 
 #root {
@@ -55,6 +72,8 @@ body {
   min-height: 0;
   overflow: hidden;
   background-color: var(--color-pulso-bg);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 /* Contenedor de scroll principal (iOS PWA / standalone necesita -webkit-overflow-scrolling) */
@@ -64,7 +83,7 @@ body {
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  overscroll-behavior-y: none;
   touch-action: pan-y;
 }
 

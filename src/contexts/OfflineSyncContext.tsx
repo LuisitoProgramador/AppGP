@@ -24,7 +24,7 @@ import { syncPendingIngresos } from '../services/sync/syncIngresos'
 import { isOnline } from '../utils/core/network'
 import { showError, showSuccess, showWarning } from '../utils/core/toast'
 import { useAuthSession } from './AuthContext'
-import { useGastosRefreshState, useOptimisticGastosState } from './GastosDataContext'
+import { useGastosRefreshState, useOnAppRefresh, useOptimisticGastosState } from './GastosDataContext'
 
 interface OfflineSyncStatusValue {
   isSyncing: boolean
@@ -49,7 +49,7 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
   const userRef = useRef(user)
   userRef.current = user
 
-  const { refreshKey, refresh } = useGastosRefreshState()
+  const { refresh } = useGastosRefreshState()
   const { removeOptimisticGastos } = useOptimisticGastosState()
   const [isSyncing, setIsSyncing] = useState(false)
   const [pendingCount, setPendingCount] = useState(0)
@@ -216,9 +216,9 @@ export function OfflineSyncProvider({ children }: OfflineSyncProviderProps) {
     return () => window.removeEventListener('online', onOnline)
   }, [])
 
-  useEffect(() => {
+  useOnAppRefresh(() => {
     if (user) updatePendingCount(user.id)
-  }, [user, refreshKey, updatePendingCount])
+  })
 
   const statusValue = useMemo(
     () => ({ isSyncing, pendingCount, pendingGastos, pendingIngresos }),

@@ -122,7 +122,7 @@ export default memo(function DashboardHeader({
         aria-pressed={isFocusMode}
         aria-label="Activar vista concentrada"
         title="Vista concentrada"
-        className={`${iconButtonClassName} border border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700`}
+        className={`${iconButtonClassName} border border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700`}
       >
         <FocusIcon />
       </button>
@@ -134,7 +134,7 @@ export default memo(function DashboardHeader({
           className={`${iconButtonClassName} border ${
             modoViaje || modoTranquilo || menuOpen
               ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted'
-              : 'border-slate-600 text-slate-400 hover:border-slate-500 hover:text-white active:bg-slate-700'
+              : 'border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700'
           }`}
           aria-label="Modos de visualización"
           title="Modos de visualización"
@@ -159,7 +159,7 @@ export default memo(function DashboardHeader({
               className={`w-full ${togglePillClassName} ${
                 modoViaje
                   ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted'
-                  : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+                  : 'border-slate-600 text-slate-300 active:border-slate-500 active:text-white'
               }`}
               aria-pressed={modoViaje}
             >
@@ -175,7 +175,7 @@ export default memo(function DashboardHeader({
               className={`w-full ${togglePillClassName} ${
                 modoTranquilo
                   ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent-muted'
-                  : 'border-slate-600 text-slate-300 hover:border-slate-500 hover:text-white'
+                  : 'border-slate-600 text-slate-300 active:border-slate-500 active:text-white'
               }`}
               aria-pressed={modoTranquilo}
             >

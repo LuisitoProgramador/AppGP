@@ -23,7 +23,7 @@ export default memo(function OfflineSyncStatus({ isSyncing, pendingCount }: Offl
           <button
             type="button"
             onClick={() => void syncOffline()}
-            className="text-xs font-medium text-pulso-accent-muted underline-offset-2 hover:text-pulso-accent hover:underline"
+            className="text-xs font-medium text-pulso-accent-muted underline-offset-2 active:text-pulso-accent active:underline"
           >
             Reintentar sincronización
           </button>
