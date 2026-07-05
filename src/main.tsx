@@ -6,8 +6,10 @@ import './index.css'
 import App from './App'
 import { queryClient } from './lib/queryClient'
 import { initSentry } from './lib/sentry'
+import { installSafeAreaInsetListeners } from './utils/core/safeAreaInsets'
 
 initSentry()
+installSafeAreaInsetListeners()
 
 const root = createRoot(document.getElementById('root')!)
 root.render(
