@@ -20,11 +20,12 @@
 :root {
   --app-height: 100vh;
   --bottom-nav-height: 3.25rem;
+  --bottom-inset: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
-  --bottom-nav-total: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
+  --bottom-nav-total: calc(var(--bottom-nav-height) + var(--bottom-inset));
 }
 
 @supports (height: 100svh) {
@@ -116,14 +117,14 @@ textarea,
   overflow: hidden;
 }
 
-/* Barra inferior fija: fondo hasta el borde físico; safe area solo como padding interno */
+/* Barra inferior fija: fondo hasta el borde físico; safe area como padding interno */
 .bottom-nav {
   position: fixed;
   inset-inline: 0;
   bottom: 0;
   z-index: 40;
   margin: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: var(--bottom-inset, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgb(255 255 255 / 0.1);
   background-color: var(--color-pulso-surface);
   box-sizing: border-box;
@@ -136,36 +137,39 @@ textarea,
   margin-inline: auto;
   align-items: center;
   padding-inline: 0.5rem;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-}
-
-/* Oculto salvo PWA instalada; portal directo a body sin transform en ancestros */
-.bottom-nav-safe-fill {
-  display: none;
 }
 
 /*
- * iOS no siempre activa @media (display-mode: standalone).
- * .standalone-pwa se añade vía navigator.standalone en index.html.
- * iOS 26 PWA: 100dvh corta el viewport y env(safe-area-inset-bottom) devuelve 0.
+ * PWA instalada en iOS: --app-height y --bottom-inset los fija iosViewport.ts
+ * con window.innerHeight (100dvh/env() fallan en iOS 26).
+ * El degradado en html pinta la franja bajo el layout viewport.
  */
 html.standalone-pwa {
-  --ios-home-indicator: 34px;
-  height: -webkit-fill-available;
-  min-height: -webkit-fill-available;
+  height: var(--app-height);
+  min-height: var(--app-height);
+  background-color: var(--color-pulso-surface);
+  background-image: linear-gradient(
+    to bottom,
+    var(--color-pulso-bg) 0%,
+    var(--color-pulso-bg) calc(100% - var(--bottom-nav-total, 5.25rem)),
+    var(--color-pulso-surface) calc(100% - var(--bottom-nav-total, 5.25rem))
+  );
+}
+
+html.standalone-pwa {
+  --bottom-nav-total: calc(var(--bottom-nav-height) + var(--bottom-inset, 34px));
 }
 
 html.standalone-pwa body {
-  height: auto;
-  min-height: -webkit-fill-available;
+  height: var(--app-height);
+  min-height: var(--app-height);
 }
 
 html.standalone-pwa #root,
 html.standalone-pwa .app-shell,
 html.standalone-pwa .app-container {
-  height: 100%;
-  min-height: -webkit-fill-available;
+  height: var(--app-height);
+  min-height: var(--app-height);
 }
 
 html.standalone-pwa .app-shell,
@@ -173,61 +177,22 @@ html.standalone-pwa .app-container {
   min-height: 0;
 }
 
-html.standalone-pwa {
-  --bottom-nav-total: calc(
-    var(--bottom-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator))
-  );
-}
-
 html.standalone-pwa .bottom-nav {
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
+  padding-bottom: var(--bottom-inset, 34px);
 }
 
-html.standalone-pwa .bottom-nav-safe-fill {
-  display: block;
+/* iOS PWA: la franja bajo el layout viewport queda fuera de bottom:0; empujar con translateY */
+html.standalone-pwa body::after,
+html.standalone-pwa .bottom-nav::after {
+  content: '';
   position: fixed;
   inset-inline: 0;
-  /* Debajo del layout viewport en iOS PWA; sin ancestro con transform */
-  bottom: calc(-1 * var(--ios-home-indicator));
+  bottom: 0;
   z-index: 39;
-  height: var(--ios-home-indicator);
+  height: var(--bottom-inset, 34px);
   background-color: var(--color-pulso-surface);
   pointer-events: none;
-}
-
-/* Android / otros navegadores con display-mode: standalone */
-@media (display-mode: standalone) {
-  :root {
-    --ios-home-indicator: 34px;
-    --bottom-nav-total: calc(
-      var(--bottom-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator))
-    );
-  }
-
-  html:not(.standalone-pwa) {
-    height: -webkit-fill-available;
-    min-height: -webkit-fill-available;
-  }
-
-  html:not(.standalone-pwa) body {
-    height: auto;
-    min-height: -webkit-fill-available;
-  }
-
-  html:not(.standalone-pwa) .bottom-nav {
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
-  }
-
-  html:not(.standalone-pwa) .bottom-nav-safe-fill {
-    display: block;
-    position: fixed;
-    inset-inline: 0;
-    bottom: 0;
-    z-index: 39;
-    height: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
-    background-color: var(--color-pulso-surface);
-    pointer-events: none;
-  }
+  transform: translateY(100%);
 }
 
 /* Contenedor de scroll principal (iOS PWA / standalone necesita -webkit-overflow-scrolling) */

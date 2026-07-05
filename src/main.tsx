@@ -6,8 +6,10 @@ import './index.css'
 import App from './App'
 import { queryClient } from './lib/queryClient'
 import { initSentry } from './lib/sentry'
+import { initIosViewportMetrics } from './lib/iosViewport'
 
 initSentry()
+initIosViewportMetrics()
 
 const root = createRoot(document.getElementById('root')!)
 root.render(

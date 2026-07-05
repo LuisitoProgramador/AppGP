@@ -16,10 +16,25 @@
     <title>Pulso</title>
     <script>
       ;(function () {
+        var doc = document.documentElement
         var standalone =
           window.navigator.standalone === true ||
           window.matchMedia('(display-mode: standalone)').matches
-        if (standalone) document.documentElement.classList.add('standalone-pwa')
+        if (standalone) doc.classList.add('standalone-pwa')
+
+        function applyViewport() {
+          var h = window.innerHeight
+          doc.style.setProperty('--app-height', h + 'px')
+          if (!standalone) return
+          var gap = Math.max(0, h - doc.clientHeight)
+          var inset = Math.max(gap, 34)
+          doc.style.setProperty('--bottom-inset', inset + 'px')
+          doc.style.setProperty('--ios-home-indicator', inset + 'px')
+        }
+
+        applyViewport()
+        window.addEventListener('resize', applyViewport)
+        window.addEventListener('orientationchange', applyViewport)
       })()
     </script>
   </head>
