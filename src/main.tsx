@@ -7,12 +7,10 @@ import App from './App'
 import { queryClient } from './lib/queryClient'
 import { initSentry } from './lib/sentry'
 import { installSafeAreaInsetListeners } from './utils/core/safeAreaInsets'
-import { installViewportHeightFix } from './utils/core/viewportHeight'
 import { registerSW } from 'virtual:pwa-register'
 
 initSentry()
 installSafeAreaInsetListeners()
-installViewportHeightFix()
 
 if (import.meta.env.PROD) {
   registerSW({
