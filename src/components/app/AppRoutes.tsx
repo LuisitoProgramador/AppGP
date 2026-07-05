@@ -212,9 +212,7 @@ export default function AppRoutes() {
   if (loading) {
     return (
       <Layout>
-        <div className="app-scroll flex-1 min-h-0">
-          <p className="text-center text-slate-400">Cargando...</p>
-        </div>
+        <p className="text-center text-slate-400">Cargando...</p>
       </Layout>
     )
   }
@@ -222,12 +220,10 @@ export default function AppRoutes() {
   if (!user) {
     return (
       <Layout>
-        <div className="app-scroll flex-1 min-h-0">
-          <section className="space-y-6">
-            <h1 className="text-center text-3xl font-bold">Pulso</h1>
-            <LoginForm />
-          </section>
-        </div>
+        <section className="space-y-6">
+          <h1 className="text-center text-3xl font-bold">Pulso</h1>
+          <LoginForm />
+        </section>
       </Layout>
     )
   }
@@ -235,9 +231,7 @@ export default function AppRoutes() {
   if (onboardingState === 'loading') {
     return (
       <Layout>
-        <div className="app-scroll flex-1 min-h-0">
-          <p className="text-center text-slate-400">Preparando tu espacio...</p>
-        </div>
+        <p className="text-center text-slate-400">Preparando tu espacio...</p>
       </Layout>
     )
   }
@@ -245,16 +239,14 @@ export default function AppRoutes() {
   if (onboardingState === 'needed') {
     return (
       <Layout>
-        <div className="app-scroll flex-1 min-h-0">
-          <Suspense fallback={<TabFallback />}>
-            <OnboardingFlow
-              onComplete={() => {
-                setOnboardingState('done')
-                handleTabChange('resumen')
-              }}
-            />
-          </Suspense>
-        </div>
+        <Suspense fallback={<TabFallback />}>
+          <OnboardingFlow
+            onComplete={() => {
+              setOnboardingState('done')
+              handleTabChange('resumen')
+            }}
+          />
+        </Suspense>
       </Layout>
     )
   }
@@ -264,7 +256,7 @@ export default function AppRoutes() {
       <QuietModeProvider>
         <>
           <Layout>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col">
               <header className="shrink-0 space-y-4 pb-3">
                 <div className="flex items-center justify-between gap-3">
                   <h1 className="text-2xl font-bold sm:text-3xl">Pulso</h1>
@@ -298,7 +290,7 @@ export default function AppRoutes() {
                 {!showAjustes && <TopNav activeTab={tab} onChange={handleTabChange} />}
               </header>
 
-              <div className="app-scroll min-h-0 flex-1">
+              <div className="min-h-0 flex-1">
                 {showAjustes ? (
                   <ErrorBoundary title="Error en ajustes">
                     <Suspense fallback={<TabFallback />}>
