@@ -1,5 +1,4 @@
 import {
-  applyIngresoSaldoLocal,
   getCachedCuentas,
   persistCuentaSaldo,
   revertIngresoSaldoLocal,

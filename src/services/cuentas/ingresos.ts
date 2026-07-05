@@ -71,7 +71,7 @@ export async function registrarIngreso(
   }
 
   if (!isOnline()) {
-    const { cuentas: updated, error: localError } = applyIngresoSaldoLocal(
+    const { error: localError } = applyIngresoSaldoLocal(
       userId,
       cuentas,
       cuentaId,

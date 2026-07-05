@@ -88,8 +88,8 @@ export async function syncPendingMetaAhorro(userId: string): Promise<number> {
 }
 
 export interface PresupuestoMetaSync {
-  sueldo_mensual: number
-  porcentaje_ahorro: number
+  sueldo_mensual: number | null
+  porcentaje_ahorro: number | null
   ingresos_extras?: number | null
 }
 
