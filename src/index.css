@@ -88,6 +88,7 @@ textarea,
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   touch-action: pan-y;
+  /* Espacio al fondo del scroll = home indicator de iOS (var medida por JS en PWA) */
   padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
 }
 
