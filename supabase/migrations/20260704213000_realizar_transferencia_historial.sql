@@ -1,6 +1,5 @@
 -- RPC atómico para transferencias internas y pagos a tarjeta.
--- Fuente canónica: supabase/migrations/20260704213000_realizar_transferencia_historial.sql
--- Ejecutar en el SQL Editor de Supabase después de cuentas_schema.sql e ingresos_cuenta_schema.sql
+-- Registra salida en gastos e ingreso en ingresos_cuenta para historial visible.
 
 create or replace function public.realizar_transferencia(
   p_origen_id uuid,
