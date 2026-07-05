@@ -30,7 +30,11 @@
         function applyViewport() {
           var h = window.innerHeight
           doc.style.setProperty('--app-height', h + 'px')
-          if (!isIos) return
+          if (!standalone) {
+            doc.style.removeProperty('--bottom-inset')
+            doc.style.removeProperty('--bottom-nav-total')
+            return
+          }
           var gap = Math.max(0, h - doc.clientHeight)
           var inset = Math.max(gap, 34)
           doc.style.setProperty('--bottom-inset', inset + 'px')

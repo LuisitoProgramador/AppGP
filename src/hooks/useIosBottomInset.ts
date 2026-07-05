@@ -17,6 +17,14 @@ function subscribe(onStoreChange: () => void) {
   }
 }
 
+function readIsStandalonePwa(): boolean {
+  return document.documentElement.classList.contains('standalone-pwa')
+}
+
+export function useIsStandalonePwa(): boolean {
+  return useSyncExternalStore(subscribe, readIsStandalonePwa, () => false)
+}
+
 export function useIosBottomInset(): number {
   return useSyncExternalStore(subscribe, readBottomInsetPx, () => 34)
 }

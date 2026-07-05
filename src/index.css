@@ -151,41 +151,38 @@ textarea,
 }
 
 /*
- * iOS: --app-height y --bottom-inset los fija iosViewport.ts (env/100dvh fallan).
- * Fondo html = surface para que la franja bajo el webview no sea negra.
+ * PWA instalada (icono en pantalla de inicio): sin barra URL de Safari.
+ * El layout viewport queda corto y deja franja negra bajo bottom:0.
+ * En Safari normal NO aplicar — la barra URL ocupa ese espacio.
  */
-html.ios-device {
+html.standalone-pwa {
+  height: 100%;
+  min-height: 100%;
   background-color: var(--color-pulso-surface);
-}
-
-html.ios-device {
-  height: var(--app-height);
-  min-height: var(--app-height);
   --bottom-nav-total: calc(var(--bottom-nav-height) + var(--bottom-inset, 34px));
 }
 
-html.ios-device body {
-  height: var(--app-height);
-  min-height: var(--app-height);
-}
-
-html.ios-device #root,
-html.ios-device .app-shell,
-html.ios-device .app-container {
-  height: var(--app-height);
-  min-height: var(--app-height);
-}
-
-html.ios-device .app-shell,
-html.ios-device .app-container {
+html.standalone-pwa body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: auto;
   min-height: 0;
 }
 
-html.ios-device .bottom-nav {
-  padding-bottom: 0;
+html.standalone-pwa #root,
+html.standalone-pwa .app-shell,
+html.standalone-pwa .app-container {
+  height: 100%;
+  min-height: 0;
 }
 
-html.ios-device .bottom-nav__safe-area {
+html.standalone-pwa .bottom-nav {
+  padding-bottom: 0;
+  box-shadow: 0 var(--bottom-inset, 34px) 0 var(--color-pulso-surface);
+}
+
+html.standalone-pwa .bottom-nav__safe-area {
   display: block;
 }
 
@@ -193,7 +190,7 @@ html.ios-device .bottom-nav__safe-area {
   display: none;
 }
 
-html.ios-device .bottom-nav-viewport-fill {
+html.standalone-pwa .bottom-nav-viewport-fill {
   display: block;
 }
 

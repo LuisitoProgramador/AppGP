@@ -8,7 +8,7 @@ export function isIosDevice(): boolean {
   )
 }
 
-function isStandalonePwa(): boolean {
+export function isStandalonePwa(): boolean {
   const nav = navigator as Navigator & { standalone?: boolean }
   return nav.standalone === true || window.matchMedia('(display-mode: standalone)').matches
 }
@@ -23,7 +23,7 @@ function measureSafeAreaBottom(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
-function measureBottomInset(): number {
+function measureStandaloneBottomInset(): number {
   const doc = document.documentElement
   const vv = window.visualViewport
   const layoutGap = Math.max(0, window.innerHeight - doc.clientHeight)
@@ -33,16 +33,20 @@ function measureBottomInset(): number {
   return Math.max(layoutGap, visualGap, envInset, BOTTOM_INSET_FLOOR_PX)
 }
 
-/** Actualiza altura real y safe area inferior (iOS 26 devuelve env() = 0). */
+/** Actualiza altura real y safe area inferior. Solo aplica inset extra en PWA instalada. */
 export function updateIosViewportMetrics(): void {
   const doc = document.documentElement
-  const appHeight = window.innerHeight
+  const isStandalone = doc.classList.contains('standalone-pwa')
 
-  doc.style.setProperty('--app-height', `${appHeight}px`)
+  doc.style.setProperty('--app-height', `${window.innerHeight}px`)
 
-  if (!doc.classList.contains('ios-device')) return
+  if (!isStandalone) {
+    doc.style.removeProperty('--bottom-inset')
+    doc.style.removeProperty('--bottom-nav-total')
+    return
+  }
 
-  const inset = measureBottomInset()
+  const inset = measureStandaloneBottomInset()
   doc.style.setProperty('--bottom-inset', `${inset}px`)
   doc.style.setProperty('--bottom-nav-total', `calc(3.25rem + ${inset}px)`)
 }
@@ -69,6 +73,10 @@ export function initIosViewportMetrics(): void {
 }
 
 export function readBottomInsetPx(): number {
+  if (!document.documentElement.classList.contains('standalone-pwa')) {
+    return 0
+  }
+
   const raw = getComputedStyle(document.documentElement).getPropertyValue('--bottom-inset')
   const parsed = parseFloat(raw)
   return Number.isFinite(parsed) && parsed > 0 ? parsed : BOTTOM_INSET_FLOOR_PX
