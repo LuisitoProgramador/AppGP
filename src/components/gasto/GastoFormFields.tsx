@@ -42,7 +42,6 @@ export default function GastoFormFields({
           onChange={(value) => setForm((prev) => ({ ...prev, monto: value }))}
           placeholder="0"
           required
-          autoFocus
         />
       </div>
 

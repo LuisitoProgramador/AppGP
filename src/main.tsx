@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { Toaster } from 'sonner'
 import './index.css'
 import App from './App'
+import { installSafeAreaInsetListeners } from './utils/core/safeAreaInsets'
+
+installSafeAreaInsetListeners()
 
 const root = createRoot(document.getElementById('root')!)
 root.render(
