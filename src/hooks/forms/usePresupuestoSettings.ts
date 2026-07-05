@@ -1,4 +1,5 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { useAuthSession, useGastosRefreshState } from '../../contexts'
 import { getPresupuesto, savePresupuestoFinanciero, applyLimiteCalculado } from '../../services/presupuesto'
 import {
@@ -20,11 +21,13 @@ import { formatMontoFromNumber, parseMontoValue } from '../../utils/format/monto
 import {
   calcAhorroMensual503020,
   calcLimitesRegla503020,
+  calcPorcentajesRegla503020,
   calcTotalBucket503020,
 } from '../../utils/finanzas/regla503020'
 import { isOnline } from '../../utils/core/network'
 import { showError, showSuccess } from '../../utils/core/toast'
 import { validateMonto } from '../../utils/core/validation'
+import { queryKeys } from '../../lib/queryKeys'
 
 function validateIngresosExtrasOpcional(value: string): string | null {
   if (!value.trim()) return null
@@ -39,7 +42,6 @@ export function usePresupuestoSettings() {
   const { user } = useAuthSession()
   const { refreshKey, refresh } = useGastosRefreshState()
 
-  const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
   const [aplicandoLimite, setAplicandoLimite] = useState(false)
 
@@ -58,50 +60,38 @@ export function usePresupuestoSettings() {
     porcentajeAhorro: PORCENTAJE_AHORRO_DEFAULT,
   })
 
+  const presupuestoQuery = useQuery({
+    queryKey: [...queryKeys.presupuesto(user?.id), refreshKey],
+    queryFn: () => getPresupuesto(user!.id),
+    enabled: Boolean(user),
+  })
+
   useEffect(() => {
-    if (!user) return
+    const presupuesto = presupuestoQuery.data
+    if (!presupuesto) return
 
-    const userId = user.id
-    let cancelled = false
+    setLimiteEsManual(presupuesto.limite_es_manual)
+    setLimiteManualActual(presupuesto.limite_es_manual ? presupuesto.limite_mensual : null)
 
-    async function cargar() {
-      setCargando(true)
-      const presupuesto = await getPresupuesto(userId)
-      if (cancelled) return
+    if (presupuesto.sueldo_mensual != null) {
+      const sueldo = presupuesto.sueldo_mensual
+      const extras = presupuesto.ingresos_extras ?? 0
+      const ahorro = presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT
 
-      if (presupuesto) {
-        setLimiteEsManual(presupuesto.limite_es_manual)
-        setLimiteManualActual(
-          presupuesto.limite_es_manual ? presupuesto.limite_mensual : null,
-        )
-
-        if (presupuesto.sueldo_mensual != null) {
-          const sueldo = presupuesto.sueldo_mensual
-          const extras = presupuesto.ingresos_extras ?? 0
-          const ahorro = presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT
-
-          setSueldoMensual(formatMontoFromNumber(sueldo))
-          setIngresosExtras(extras > 0 ? formatMontoFromNumber(extras) : '')
-          setPorcentajeAhorro(ahorro)
-          setDiaPago(presupuesto.dia_pago ?? 5)
-          setDiaPagoInicial(presupuesto.dia_pago ?? 5)
-          setValoresIniciales({
-            sueldoMensual: sueldo,
-            ingresosExtras: extras,
-            porcentajeAhorro: ahorro,
-          })
-        }
-      }
-
-      setCargando(false)
+      setSueldoMensual(formatMontoFromNumber(sueldo))
+      setIngresosExtras(extras > 0 ? formatMontoFromNumber(extras) : '')
+      setPorcentajeAhorro(ahorro)
+      setDiaPago(presupuesto.dia_pago ?? 5)
+      setDiaPagoInicial(presupuesto.dia_pago ?? 5)
+      setValoresIniciales({
+        sueldoMensual: sueldo,
+        ingresosExtras: extras,
+        porcentajeAhorro: ahorro,
+      })
     }
+  }, [presupuestoQuery.data])
 
-    cargar()
-
-    return () => {
-      cancelled = true
-    }
-  }, [user, refreshKey])
+  const cargando = presupuestoQuery.isLoading
 
   const sueldoNum = parseMontoValue(sueldoMensual) || 0
   const extrasNum = ingresosExtras.trim() ? parseMontoValue(ingresosExtras) || 0 : 0
@@ -137,12 +127,13 @@ export function usePresupuestoSettings() {
   const regla503020Preview = useMemo(() => {
     if (ingresoMensualPreview <= 0) return null
     return {
-      necesidades: calcTotalBucket503020(ingresoMensualPreview, 'necesidades'),
-      caprichos: calcTotalBucket503020(ingresoMensualPreview, 'caprichos'),
-      ahorro: calcAhorroMensual503020(ingresoMensualPreview),
-      limites: calcLimitesRegla503020(ingresoMensualPreview, CATEGORIAS_DEFAULT),
+      necesidades: calcTotalBucket503020(ingresoMensualPreview, 'necesidades', porcentajeAhorro),
+      caprichos: calcTotalBucket503020(ingresoMensualPreview, 'caprichos', porcentajeAhorro),
+      ahorro: calcAhorroMensual503020(ingresoMensualPreview, porcentajeAhorro),
+      limites: calcLimitesRegla503020(ingresoMensualPreview, CATEGORIAS_DEFAULT, porcentajeAhorro),
+      porcentajes: calcPorcentajesRegla503020(porcentajeAhorro),
     }
-  }, [ingresoMensualPreview])
+  }, [ingresoMensualPreview, porcentajeAhorro])
 
   const hayCambios =
     sueldoNum !== valoresIniciales.sueldoMensual ||

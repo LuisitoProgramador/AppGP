@@ -1,3 +1,4 @@
+import { assertRowObject, readNumber, readOptionalNumber } from '../../utils/core/rowParsers'
 import { LIMITE_MENSUAL_DEFAULT } from '../../types/gasto'
 import { calcIngresoMensualTotal, SEMANAS_POR_MES } from '../../utils/finanzas'
 import { resolveLimiteMensual } from '../../utils/finanzas/resolveLimiteMensual'
@@ -17,17 +18,16 @@ export const PRESUPUESTO_SELECT_NO_MANUAL =
 type PresupuestoSelectMode = 'full' | 'no_manual' | 'legacy' | 'minimal'
 let presupuestoSelectMode: PresupuestoSelectMode | null = null
 
-export function mapPresupuesto(row: Record<string, unknown>): Presupuesto {
-  const sueldoMensualRaw = row.sueldo_mensual
-  const sueldoSemanalRaw = row.sueldo_semanal
-  const ingresosExtrasRaw = row.ingresos_extras
+export function mapPresupuesto(row: unknown): Presupuesto {
+  const data = assertRowObject(row, 'presupuestos')
+  const limiteMensual = readNumber(data.limite_mensual)
+  if (limiteMensual == null) {
+    throw new Error('Fila de presupuesto inválida: limite_mensual')
+  }
 
-  let sueldo_mensual =
-    sueldoMensualRaw != null ? Number(sueldoMensualRaw) : null
-  let sueldo_semanal =
-    sueldoSemanalRaw != null ? Number(sueldoSemanalRaw) : null
-  const ingresos_extras =
-    ingresosExtrasRaw != null ? Number(ingresosExtrasRaw) : 0
+  let sueldo_mensual = readOptionalNumber(data.sueldo_mensual)
+  let sueldo_semanal = readOptionalNumber(data.sueldo_semanal)
+  const ingresos_extras = readOptionalNumber(data.ingresos_extras) ?? 0
 
   if (sueldo_mensual == null && sueldo_semanal != null) {
     sueldo_mensual = Math.round(sueldo_semanal * SEMANAS_POR_MES * 100) / 100
@@ -37,14 +37,13 @@ export function mapPresupuesto(row: Record<string, unknown>): Presupuesto {
   }
 
   return {
-    limite_mensual: Number(row.limite_mensual),
-    limite_es_manual: row.limite_es_manual === true,
+    limite_mensual: limiteMensual,
+    limite_es_manual: data.limite_es_manual === true,
     sueldo_mensual,
     ingresos_extras,
     sueldo_semanal,
-    dia_pago: row.dia_pago != null ? Number(row.dia_pago) : null,
-    porcentaje_ahorro:
-      row.porcentaje_ahorro != null ? Number(row.porcentaje_ahorro) : null,
+    dia_pago: readOptionalNumber(data.dia_pago),
+    porcentaje_ahorro: readOptionalNumber(data.porcentaje_ahorro),
   }
 }
 

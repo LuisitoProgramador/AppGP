@@ -1,4 +1,5 @@
 import type { Cuenta } from '../../types/cuenta'
+import { assertRowObject, parseCuentaTipo, readNumber, readOptionalNumber, readString } from '../../utils/core/rowParsers'
 import { supabase } from '../supabase'
 
 export const CUENTA_SELECT_BASE =
@@ -98,16 +99,25 @@ export async function fetchCuentasRows(userId: string) {
   }
 }
 
-export function mapCuenta(row: Record<string, unknown>): Cuenta {
+export function mapCuenta(row: unknown): Cuenta {
+  const data = assertRowObject(row, 'cuentas')
+  const id = readString(data.id)
+  const nombre = readString(data.nombre)
+  const tipo = parseCuentaTipo(data.tipo)
+  const saldoActual = readNumber(data.saldo_actual)
+
+  if (!id || !nombre || !tipo || saldoActual == null) {
+    throw new Error('Fila de cuenta incompleta o inválida')
+  }
+
   return {
-    id: String(row.id),
-    nombre: String(row.nombre),
-    tipo: row.tipo as Cuenta['tipo'],
-    limite_credito: row.limite_credito != null ? Number(row.limite_credito) : null,
-    saldo_actual: Number(row.saldo_actual),
-    dia_corte: row.dia_corte != null ? Number(row.dia_corte) : null,
-    dia_pago: row.dia_pago != null ? Number(row.dia_pago) : null,
-    tasa_interes_mensual:
-      row.tasa_interes_mensual != null ? Number(row.tasa_interes_mensual) : null,
+    id,
+    nombre,
+    tipo,
+    limite_credito: readOptionalNumber(data.limite_credito),
+    saldo_actual: saldoActual,
+    dia_corte: readOptionalNumber(data.dia_corte),
+    dia_pago: readOptionalNumber(data.dia_pago),
+    tasa_interes_mensual: readOptionalNumber(data.tasa_interes_mensual),
   }
 }

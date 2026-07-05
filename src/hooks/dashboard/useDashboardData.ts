@@ -37,6 +37,7 @@ export function useDashboardData(
       error: queries.error,
       limiteMensual: queries.limiteMensual,
       ingresoMensualTotal: queries.ingresoMensualTotal,
+      porcentajeAhorro: queries.porcentajeAhorro,
       patrimonioLiquido: queries.patrimonioLiquido,
       recurrenteSugerido: queries.recurrenteSugerido,
       recurrentes: queries.recurrentes,

@@ -1,6 +1,7 @@
 import type { GastoRecurrente, GastoRecurrenteInput } from '../../types/gasto'
 import { toGastoFecha } from '../../utils/date'
-import { shouldRegisterRecurringToday } from '../../utils/dashboard/recurrentesPolicy'
+import { shouldRegisterRecurringToday, matchesRecurrenteGasto } from '../../utils/dashboard/recurrentesPolicy'
+import { getMonthFechaBounds } from '../../utils/date'
 import {
   applyGastoToCuenta,
   getDefaultCuentaId,
@@ -118,12 +119,34 @@ export async function verificarGastosRecurrentes(userId: string): Promise<number
 
   const now = new Date()
   const fecha = toGastoFecha(now)
+  const monthBounds = getMonthFechaBounds(now)
   let registered = 0
   const listResult = await listCuentas(userId)
   let cuentas = listResult.data ?? []
 
+  const { data: gastosMes } = await supabase
+    .from('gastos')
+    .select('descripcion, monto, categoria')
+    .eq('user_id', userId)
+    .gte('fecha', monthBounds.inicio)
+    .lt('fecha', monthBounds.fin)
+
+  const gastosDelMes = gastosMes ?? []
+
   for (const recurrente of data.map((row) => mapGastoRecurrente(row))) {
     if (!shouldRegisterRecurringToday(recurrente.dia_mes, recurrente.ultimo_registro, now)) {
+      continue
+    }
+
+    const yaRegistradoManual = gastosDelMes.some((gasto) =>
+      matchesRecurrenteGasto(gasto, recurrente),
+    )
+    if (yaRegistradoManual) {
+      await supabase
+        .from('gastos_recurrentes')
+        .update({ ultimo_registro: fecha })
+        .eq('id', recurrente.id)
+        .eq('user_id', userId)
       continue
     }
 

@@ -1,32 +1,34 @@
 export const MAX_SYNC_RETRIES = 8
 
+const PERMANENT_ERROR_PATTERNS = [
+  'row-level security',
+  'violates row-level security',
+  'foreign key',
+  'violates foreign key',
+  'duplicate key',
+  'unique constraint',
+  'check constraint',
+  'violates check',
+  'not-null constraint',
+  'null value in column',
+  'invalid input',
+  'invalid uuid',
+  'grupo msi',
+  'syntax error',
+  'column does not exist',
+  'permission denied',
+  '42501',
+  '23503',
+  '23505',
+  '23514',
+  '22p02',
+  '42804',
+] as const
+
 /** Errores que no se resuelven reintentando (RLS, FK, validación, duplicados). */
 export function isPermanentSyncError(error: string): boolean {
   const lower = error.toLowerCase()
-
-  if (lower.includes('row-level security') || lower.includes('violates row-level security')) {
-    return true
-  }
-  if (lower.includes('foreign key') || lower.includes('violates foreign key')) {
-    return true
-  }
-  if (lower.includes('duplicate key') || lower.includes('unique constraint')) {
-    return true
-  }
-  if (lower.includes('check constraint') || lower.includes('violates check')) {
-    return true
-  }
-  if (lower.includes('not-null constraint') || lower.includes('null value in column')) {
-    return true
-  }
-  if (lower.includes('invalid input') || lower.includes('invalid uuid')) {
-    return true
-  }
-  if (lower.includes('grupo msi')) {
-    return true
-  }
-
-  return false
+  return PERMANENT_ERROR_PATTERNS.some((pattern) => lower.includes(pattern))
 }
 
 /** Descarta tras error permanente o al superar el máximo de reintentos transitorios. */

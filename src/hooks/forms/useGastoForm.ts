@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { useAuthSession, useCuentas, useGastosRefreshState, useOptimisticGastosState } from '../../contexts'
 import { useCategorias } from '../useCategorias'
 import { getDefaultCuentaId } from '../../services/cuentas'
@@ -28,6 +28,32 @@ export const initialGastoForm = {
 
 export type GastoFormState = typeof initialGastoForm
 
+function resolveGastoDescripcion(data: GastoFormState): string {
+  const trimmed = data.descripcion.trim()
+  return trimmed || data.categoria
+}
+
+export function getGastoFormValidationError(
+  data: GastoFormState,
+  isCredito: boolean,
+): string | null {
+  const montoError = validateMonto(data.monto)
+  if (montoError) return montoError
+
+  const cuentaError = validateCuentaId(data.cuentaId)
+  if (cuentaError) return cuentaError
+
+  const descripcionError = validateDescripcion(resolveGastoDescripcion(data))
+  if (descripcionError) return descripcionError
+
+  if (data.esMsi && isCredito) {
+    const mesesError = validateMsiMeses(data.mesesMsi)
+    if (mesesError) return mesesError
+  }
+
+  return null
+}
+
 export function useGastoForm() {
   const { user } = useAuthSession()
   const { refresh } = useGastosRefreshState()
@@ -41,6 +67,10 @@ export function useGastoForm() {
 
   const selectedCuenta = cuentas.find((c) => String(c.id) === form.cuentaId)
   const isCredito = selectedCuenta?.tipo === 'credito'
+  const validationError = useMemo(
+    () => getGastoFormValidationError(form, isCredito),
+    [form, isCredito],
+  )
 
   useEffect(() => {
     if (cuentasLoading || cuentas.length === 0 || form.cuentaId) return
@@ -96,15 +126,12 @@ export function useGastoForm() {
   }
 
   async function submitGasto(data: GastoFormState) {
-    const montoError = validateMonto(data.monto)
-    if (montoError) {
-      showError(montoError)
-      return
-    }
-
-    const cuentaError = validateCuentaId(data.cuentaId)
-    if (cuentaError) {
-      showError(cuentaError)
+    const submitError = getGastoFormValidationError(
+      data,
+      cuentas.find((c) => String(c.id) === data.cuentaId)?.tipo === 'credito',
+    )
+    if (submitError) {
+      showError(submitError)
       return
     }
 
@@ -115,18 +142,7 @@ export function useGastoForm() {
 
     const categoria = data.categoria
     const cuentaIdResolved = data.cuentaId
-
-    let descripcion = data.descripcion.trim()
-    if (!descripcion) {
-      descripcion = categoria
-    }
-
-    const descripcionError = validateDescripcion(descripcion)
-    if (descripcionError) {
-      showError(descripcionError)
-      return
-    }
-
+    const descripcion = resolveGastoDescripcion(data)
     const monto = parseMontoValue(data.monto)
 
     const gastosHoy = [
@@ -168,11 +184,6 @@ export function useGastoForm() {
     let rows = [buildSingleGasto({ monto, categoria, descripcion, cuentaId: cuentaIdResolved })]
 
     if (data.esMsi && isCreditoForSubmit) {
-      const mesesError = validateMsiMeses(data.mesesMsi)
-      if (mesesError) {
-        showError(mesesError)
-        return
-      }
       const meses = Number(data.mesesMsi)
       rows = buildMsiGastos({
         totalMonto: monto,
@@ -309,6 +320,7 @@ export function useGastoForm() {
     form,
     setForm,
     guardando,
+    validationError,
     montoInputRef,
     cuentas,
     cuentasLoading,

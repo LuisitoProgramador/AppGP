@@ -1,9 +1,4 @@
-import {
-  PORCENTAJE_AHORRO_MAX,
-  PORCENTAJE_AHORRO_MIN,
-  PORCENTAJE_AHORRO_STEP,
-} from '../../constants/porcentajeAhorro'
-import { REGLA_503020 } from '../../constants/regla503020'
+import { PORCENTAJE_AHORRO_MAX, PORCENTAJE_AHORRO_MIN, PORCENTAJE_AHORRO_STEP } from '../../constants/porcentajeAhorro'
 import { CATEGORIAS_DEFAULT } from '../../types/gasto'
 import { formatCurrency } from '../../utils/format/formatCurrency'
 import {
@@ -42,8 +37,8 @@ export default function OnboardingStepAhorro({
       <div className="space-y-1">
         <h2 className="text-lg font-semibold text-white">Tu ahorro semanal</h2>
         <p className="text-sm text-slate-400">
-          La regla 50/30/20 reserva {Math.round(REGLA_503020.ahorro * 100)}% para el
-          futuro. Ajusta el porcentaje si quieres ahorrar más o menos cada semana
+          Ajusta cuánto quieres ahorrar cada semana. El resto se reparte en necesidades (50%) y
+          caprichos (30%) de lo disponible para gastar.
         </p>
       </div>
 
@@ -83,7 +78,7 @@ export default function OnboardingStepAhorro({
           {regla503020Preview && (
             <>
               <p className="text-xs text-slate-400">
-                Límites por categoría (50/30/20 sobre {formatCurrency(sueldoNum)}):
+                Límites por categoría (50/30/20 sobre lo disponible para gastar):
               </p>
               <ul className="space-y-1 text-xs text-slate-300">
                 {CATEGORIAS_DEFAULT.map((categoria) => {

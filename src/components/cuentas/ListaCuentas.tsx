@@ -9,6 +9,7 @@ import {
 } from '../ui/formStyles'
 import CuentaCard from './CuentaCard'
 import CuentaFormModal from './CuentaFormModal'
+import { CuentasListSkeleton } from '../ui/Skeleton'
 
 interface ListaCuentasProps {
   embedded?: boolean
@@ -117,9 +118,7 @@ export default function ListaCuentas({ embedded = false }: ListaCuentasProps) {
         </div>
       </div>
 
-      {cuentasLoading && (
-        <p className="text-center text-sm text-slate-400">Cargando cuentas...</p>
-      )}
+      {cuentasLoading && <CuentasListSkeleton count={Math.max(cuentas.length, 2)} />}
 
       {!cuentasLoading && cuentas.length === 0 && (
         <p className="text-center text-sm text-slate-400">

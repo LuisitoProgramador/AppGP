@@ -8,8 +8,11 @@ import {
 } from '../services/categorias'
 import { getPresupuesto, getIngresoMensualTotal } from '../services/presupuesto'
 import { getLimitesPorCategoria } from '../services/presupuestoCategorias'
-import { REGLA_503020 } from '../constants/regla503020'
-import { calcAhorroMensual503020 } from '../utils/finanzas/regla503020'
+import { PORCENTAJE_AHORRO_DEFAULT } from '../constants/porcentajeAhorro'
+import {
+  calcAhorroMensual503020,
+  calcPorcentajesRegla503020,
+} from '../utils/finanzas/regla503020'
 import { formatCurrency } from '../utils/format/formatCurrency'
 import { showError, showSuccess } from '../utils/core/toast'
 import {
@@ -24,6 +27,7 @@ export default memo(function PersonalAppSettings() {
   const { categorias, reloadCategorias } = useCategorias(user?.id)
   const [nuevaCategoria, setNuevaCategoria] = useState('')
   const [ingresoMensual, setIngresoMensual] = useState<number | null>(null)
+  const [porcentajeAhorro, setPorcentajeAhorro] = useState(PORCENTAJE_AHORRO_DEFAULT)
   const [limites, setLimites] = useState<Record<string, number>>({})
 
   useEffect(() => {
@@ -33,6 +37,7 @@ export default memo(function PersonalAppSettings() {
       if (cancelled) return
       const ingreso = presupuesto ? getIngresoMensualTotal(presupuesto) : null
       setIngresoMensual(ingreso)
+      setPorcentajeAhorro(presupuesto?.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT)
       setLimites(getLimitesPorCategoria(user.id))
     })
     return () => {
@@ -55,9 +60,10 @@ export default memo(function PersonalAppSettings() {
   }
 
   const custom = getCategoriasCustom(user.id)
+  const porcentajes = calcPorcentajesRegla503020(porcentajeAhorro)
   const ahorroObjetivo =
     ingresoMensual != null && ingresoMensual > 0
-      ? calcAhorroMensual503020(ingresoMensual)
+      ? calcAhorroMensual503020(ingresoMensual, porcentajeAhorro)
       : null
 
   return (
@@ -65,16 +71,14 @@ export default memo(function PersonalAppSettings() {
       <section className={settingsPanelClassName}>
         <h3 className="text-sm font-semibold text-white">Regla 50 / 30 / 20</h3>
         <p className="mt-1 text-xs text-slate-500">
-          50% necesidades (Comida, Transporte, Casa) · 30% caprichos (Suscripciones, Compras,
-          Otros) · 20% ahorro. Los límites por categoría se recalculan al guardar tu sueldo en
-          Ajustes → Presupuesto.
+          Necesidades y caprichos se reparten 50/30 sobre lo disponible para gastar; el ahorro lo
+          defines en Presupuesto. Los límites por categoría se recalculan al guardar tu sueldo.
         </p>
         {ingresoMensual != null && ingresoMensual > 0 ? (
           <div className="mt-3 space-y-3">
             <p className="text-xs text-slate-400">
               Ingreso mensual: {formatCurrency(ingresoMensual)} · Ahorro objetivo:{' '}
-              {formatCurrency(ahorroObjetivo ?? 0)} (
-              {Math.round(REGLA_503020.ahorro * 100)}%)
+              {formatCurrency(ahorroObjetivo ?? 0)} ({porcentajes.ahorro}%)
             </p>
             <ul className="space-y-1.5 text-sm text-slate-300">
               {categorias.map((categoria) => {

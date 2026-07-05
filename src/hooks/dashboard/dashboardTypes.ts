@@ -23,6 +23,7 @@ export interface DashboardQueryState {
   resumenMensual: ResumenMensual[]
   limiteMensual: number
   ingresoMensualTotal: number | null
+  porcentajeAhorro: number | null
   patrimonioLiquido: number | null
   recurrentes: GastoRecurrente[]
   gastosMsi: GastoMsiRow[]

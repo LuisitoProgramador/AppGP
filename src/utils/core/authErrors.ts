@@ -1,6 +1,19 @@
 import type { AuthError } from '@supabase/supabase-js'
 
-const AUTH_ERROR_MESSAGES: Record<string, string> = {
+const AUTH_ERROR_BY_CODE: Record<string, string> = {
+  invalid_credentials:
+    'Correo o contraseña incorrectos. Si aún no tienes cuenta, regístrate abajo.',
+  email_not_confirmed:
+    'Confirma tu correo antes de iniciar sesión. Revisa tu bandeja de entrada.',
+  user_already_exists:
+    'Ya existe una cuenta con ese correo. Inicia sesión o usa otro correo.',
+  weak_password: 'La contraseña debe tener al menos 6 caracteres.',
+  validation_failed: 'Revisa tus datos e inténtalo de nuevo.',
+  signup_disabled: 'El registro no está disponible en este momento.',
+  over_request_rate_limit: 'Demasiados intentos. Espera un momento e inténtalo de nuevo.',
+}
+
+const AUTH_ERROR_BY_MESSAGE: Record<string, string> = {
   'Invalid login credentials':
     'Correo o contraseña incorrectos. Si aún no tienes cuenta, regístrate abajo.',
   'Email not confirmed':
@@ -16,7 +29,11 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 }
 
 export function formatAuthError(error: AuthError, modo: 'login' | 'register'): string {
-  const mapped = AUTH_ERROR_MESSAGES[error.message]
+  if (error.code && AUTH_ERROR_BY_CODE[error.code]) {
+    return AUTH_ERROR_BY_CODE[error.code]
+  }
+
+  const mapped = AUTH_ERROR_BY_MESSAGE[error.message]
   if (mapped) return mapped
 
   if (modo === 'login') {

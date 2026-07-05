@@ -16,6 +16,7 @@ import { isOnline } from '../../utils/core/network'
 import {
   calcAhorroMensual503020,
   calcLimitesRegla503020,
+  calcPorcentajesRegla503020,
   calcTotalBucket503020,
 } from '../../utils/finanzas/regla503020'
 import { showError, showSuccess } from '../../utils/core/toast'
@@ -336,12 +337,13 @@ export function useOnboardingFlow(onComplete: () => void) {
   const regla503020Preview = useMemo(() => {
     if (sueldoNum <= 0) return null
     return {
-      necesidades: calcTotalBucket503020(sueldoNum, 'necesidades'),
-      caprichos: calcTotalBucket503020(sueldoNum, 'caprichos'),
-      ahorro: calcAhorroMensual503020(sueldoNum),
-      limites: calcLimitesRegla503020(sueldoNum, CATEGORIAS_DEFAULT),
+      necesidades: calcTotalBucket503020(sueldoNum, 'necesidades', porcentajeAhorro),
+      caprichos: calcTotalBucket503020(sueldoNum, 'caprichos', porcentajeAhorro),
+      ahorro: calcAhorroMensual503020(sueldoNum, porcentajeAhorro),
+      limites: calcLimitesRegla503020(sueldoNum, CATEGORIAS_DEFAULT, porcentajeAhorro),
+      porcentajes: calcPorcentajesRegla503020(porcentajeAhorro),
     }
-  }, [sueldoNum])
+  }, [sueldoNum, porcentajeAhorro])
 
   return {
     step,

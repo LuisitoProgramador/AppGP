@@ -3,6 +3,7 @@ import { useAuthSession, useCuentas, useOfflineSyncStatus, useQuietMode, useFocu
 import { useDashboardData } from '../hooks/dashboard/useDashboardData'
 import { useMetasAhorro } from '../hooks/useMetasAhorro'
 import { calcAlertasCategoria, getLimitesPorCategoria } from '../services/presupuestoCategorias'
+import { PORCENTAJE_AHORRO_DEFAULT } from '../constants/porcentajeAhorro'
 import {
   calcAhorroMensual503020,
   calcResumenBuckets503020,
@@ -55,6 +56,7 @@ export default memo(function Dashboard() {
     resumen,
     limiteMensual,
     ingresoMensualTotal,
+    porcentajeAhorro,
     patrimonioLiquido,
     disponible,
     presupuestoDiario,
@@ -108,11 +110,13 @@ export default memo(function Dashboard() {
 
   const regla503020 = useMemo(() => {
     if (!esMesActual || ingresoMensualTotal == null || ingresoMensualTotal <= 0) return null
+    const ahorroPct = porcentajeAhorro ?? PORCENTAJE_AHORRO_DEFAULT
     return {
-      buckets: calcResumenBuckets503020(ingresoMensualTotal, gastosPorCategoria),
-      ahorroMensual: calcAhorroMensual503020(ingresoMensualTotal),
+      buckets: calcResumenBuckets503020(ingresoMensualTotal, gastosPorCategoria, ahorroPct),
+      ahorroMensual: calcAhorroMensual503020(ingresoMensualTotal, ahorroPct),
+      porcentajeAhorro: ahorroPct,
     }
-  }, [esMesActual, ingresoMensualTotal, gastosPorCategoria])
+  }, [esMesActual, ingresoMensualTotal, porcentajeAhorro, gastosPorCategoria])
 
   const insights = useMemo(() => {
     if (!esMesActual || cargando) return null
@@ -202,6 +206,7 @@ export default memo(function Dashboard() {
                 <Regla503020Widget
                   ingresoMensual={ingresoMensualTotal}
                   ahorroMensual={regla503020.ahorroMensual}
+                  porcentajeAhorro={regla503020.porcentajeAhorro}
                   buckets={regla503020.buckets}
                 />
               )}

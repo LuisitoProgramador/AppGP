@@ -1,4 +1,4 @@
-import { validatePorcentajeAhorro } from '../../constants/porcentajeAhorro'
+import { PORCENTAJE_AHORRO_DEFAULT, validatePorcentajeAhorro } from '../../constants/porcentajeAhorro'
 import { calcEstrategiaFinanciera } from '../../utils/finanzas'
 import { limiteTrasActualizarEstrategia } from '../../utils/finanzas/resolveLimiteMensual'
 import { aplicarLimitesRegla503020 } from '../presupuestoCategorias'
@@ -11,7 +11,11 @@ import type { Presupuesto, PresupuestoFinancieroInput } from './types'
 function syncLimites503020(userId: string, presupuesto: Presupuesto): void {
   const ingreso = getIngresoMensualTotal(presupuesto)
   if (ingreso != null && ingreso > 0) {
-    aplicarLimitesRegla503020(userId, ingreso)
+    aplicarLimitesRegla503020(
+      userId,
+      ingreso,
+      presupuesto.porcentaje_ahorro ?? PORCENTAJE_AHORRO_DEFAULT,
+    )
   }
 }
 

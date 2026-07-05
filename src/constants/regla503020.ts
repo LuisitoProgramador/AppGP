@@ -9,9 +9,10 @@ export const REGLA_503020 = {
 
 export type Bucket503020 = 'necesidades' | 'caprichos'
 
+/** Etiqueta base; el porcentaje real depende del ahorro del usuario (ver getBucketLabel503020). */
 export const BUCKET_LABELS: Record<Bucket503020, string> = {
-  necesidades: 'Necesidades (50%)',
-  caprichos: 'Caprichos (30%)',
+  necesidades: 'Necesidades',
+  caprichos: 'Caprichos',
 }
 
 /** Reparto de cada categoría base dentro de su bucket (suma 1 por bucket). */

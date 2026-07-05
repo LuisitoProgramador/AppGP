@@ -18,6 +18,7 @@ export interface DashboardFetchResult {
   resumenMensual: ResumenMensual[]
   limiteMensual: number
   ingresoMensualTotal: number | null
+  porcentajeAhorro: number | null
   patrimonioLiquido: number | null
   gastosMsi: GastoMsiRow[]
   evolucionRows: EvolucionRow[]
@@ -72,6 +73,7 @@ export async function fetchDashboardData(
       resumenMensual: [],
       limiteMensual: limite,
       ingresoMensualTotal: null,
+      porcentajeAhorro: null,
       patrimonioLiquido: null,
       gastosMsi: [],
       evolucionRows: [],
@@ -90,10 +92,12 @@ export async function fetchDashboardData(
   }))
 
   let ingresoMensualTotal: number | null = null
+  let porcentajeAhorro: number | null = null
   let patrimonioLiquido: number | null = null
 
   if (!lite) {
     ingresoMensualTotal = presupuestoData ? getIngresoMensualTotal(presupuestoData) : null
+    porcentajeAhorro = presupuestoData?.porcentaje_ahorro ?? null
     const cuentasData = cuentasResult.data ?? []
     patrimonioLiquido = cuentasData.length > 0 ? calcPatrimonioLiquido(cuentasData) : null
     if (cuentasResult.error) {
@@ -117,6 +121,7 @@ export async function fetchDashboardData(
       resumenMensual,
       limiteMensual: limite,
       ingresoMensualTotal,
+      porcentajeAhorro,
       patrimonioLiquido,
       gastosMsi,
       evolucionRows: [],
@@ -210,6 +215,7 @@ export async function fetchDashboardData(
     resumenMensual,
     limiteMensual: limite,
     ingresoMensualTotal,
+    porcentajeAhorro,
     patrimonioLiquido,
     gastosMsi,
     evolucionRows,

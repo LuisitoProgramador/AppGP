@@ -6,6 +6,7 @@ import { dashboardCardClassName } from '../../ui/formStyles'
 interface Regla503020WidgetProps {
   ingresoMensual: number
   ahorroMensual: number
+  porcentajeAhorro: number
   buckets: ResumenBucket503020[]
 }
 
@@ -18,6 +19,7 @@ function barColor(porcentaje: number): string {
 export default memo(function Regla503020Widget({
   ingresoMensual,
   ahorroMensual,
+  porcentajeAhorro,
   buckets,
 }: Regla503020WidgetProps) {
   if (ingresoMensual <= 0) return null
@@ -50,7 +52,7 @@ export default memo(function Regla503020Widget({
         ))}
 
         <div className="rounded-lg border border-pulso-accent/20 bg-pulso-accent/5 px-3 py-2 text-xs text-slate-300">
-          Ahorro objetivo (20%):{' '}
+          Ahorro objetivo ({porcentajeAhorro}%):{' '}
           <span className="font-medium text-white">{formatCurrency(ahorroMensual)}</span>
         </div>
       </div>

@@ -64,10 +64,14 @@ export function calcAlertasCategoria(
   return alertas.sort((a, b) => b.porcentaje - a.porcentaje)
 }
 
-/** Aplica límites por categoría según regla 50/30/20 sobre el ingreso mensual. */
-export function aplicarLimitesRegla503020(userId: string, ingresoMensual: number): void {
+/** Aplica límites por categoría según regla 50/30/20 sobre el ingreso mensual y el % de ahorro. */
+export function aplicarLimitesRegla503020(
+  userId: string,
+  ingresoMensual: number,
+  porcentajeAhorro: number,
+): void {
   if (ingresoMensual <= 0) return
   const categorias = getCategoriasUsuario(userId)
-  const limites = calcLimitesRegla503020(ingresoMensual, categorias)
+  const limites = calcLimitesRegla503020(ingresoMensual, categorias, porcentajeAhorro)
   localStorage.setItem(storageKey(userId), JSON.stringify(limites))
 }

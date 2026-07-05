@@ -39,6 +39,7 @@ export function useDashboardQueries(
       resumenMensual: data?.resumenMensual ?? [],
       limiteMensual: data?.limiteMensual ?? 10000,
       ingresoMensualTotal: data?.ingresoMensualTotal ?? null,
+      porcentajeAhorro: data?.porcentajeAhorro ?? null,
       patrimonioLiquido: data?.patrimonioLiquido ?? null,
       recurrentes,
       gastosMsi: data?.gastosMsi ?? [],

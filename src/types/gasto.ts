@@ -103,6 +103,9 @@ export const COLORES_CATEGORIA: Record<string, string> = {
 
 export const LIMITE_MENSUAL_DEFAULT = 10000
 export const MAX_MONTO = 1_000_000
+
+/** Movimientos internos; excluidos del presupuesto y del resumen mensual. */
+export const CATEGORIA_TRANSFERENCIA = 'Transferencia'
 export const MAX_DESCRIPCION_LENGTH = 200
 export const MIN_MSI_MESES = 2
 export const MAX_MSI_MESES = 48
