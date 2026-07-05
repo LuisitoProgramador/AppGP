@@ -11,7 +11,7 @@ interface TopNavProps {
 function TopNav({ activeTab, onChange }: TopNavProps) {
   return (
     <nav
-      className="-mx-4 grid grid-cols-4 gap-1 border-b border-white/10 bg-pulso-bg px-2 py-2 sm:-mx-0 sm:rounded-xl sm:border sm:px-1"
+      className="grid w-full grid-cols-4 gap-1 border-b border-white/10 py-2"
       role="tablist"
       aria-label="Navegación principal"
     >

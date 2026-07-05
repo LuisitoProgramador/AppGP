@@ -298,7 +298,7 @@ export default function AppRoutes() {
                 {!showAjustes && <TopNav activeTab={tab} onChange={handleTabChange} />}
               </header>
 
-              <div className="app-scroll -mx-4 min-h-0 flex-1 px-4">
+              <div className="app-scroll min-h-0 flex-1">
                 {showAjustes ? (
                   <ErrorBoundary title="Error en ajustes">
                     <Suspense fallback={<TabFallback />}>
