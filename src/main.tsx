@@ -24,6 +24,15 @@ if (import.meta.env.PROD) {
         if (document.visibilityState === 'visible') checkForUpdate()
       })
       window.addEventListener('focus', checkForUpdate)
+      registration.addEventListener('updatefound', () => {
+        const installing = registration.installing
+        if (!installing) return
+        installing.addEventListener('statechange', () => {
+          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+            window.location.reload()
+          }
+        })
+      })
     },
   })
 }

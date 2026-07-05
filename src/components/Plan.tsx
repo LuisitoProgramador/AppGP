@@ -1,21 +1,17 @@
-import { lazy, Suspense, memo } from 'react'
-
-const GastosRecurrentes = lazy(() => import('./recurrentes/GastosRecurrentes'))
-const Metas = lazy(() => import('./Metas'))
-
-function PlanSectionFallback() {
-  return <p className="text-center text-sm text-slate-400">Cargando...</p>
-}
+import { memo } from 'react'
+import ErrorBoundary from './ui/ErrorBoundary'
+import Metas from './Metas'
+import GastosRecurrentes from './recurrentes/GastosRecurrentes'
 
 export default memo(function Plan() {
   return (
     <div className="space-y-6">
-      <Suspense fallback={<PlanSectionFallback />}>
+      <ErrorBoundary title="Error en metas de ahorro">
         <Metas />
-      </Suspense>
-      <Suspense fallback={<PlanSectionFallback />}>
+      </ErrorBoundary>
+      <ErrorBoundary title="Error en gastos recurrentes">
         <GastosRecurrentes />
-      </Suspense>
+      </ErrorBoundary>
     </div>
   )
 })

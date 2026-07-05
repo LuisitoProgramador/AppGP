@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState, useCallback, type ReactNode } from 'react'
+import { Suspense, useEffect, useState, useCallback, type ReactNode } from 'react'
+import { lazyWithRetry } from '../../utils/core/lazyWithRetry'
 import {
   GastosProviders,
   QuietModeProvider,
@@ -21,12 +22,12 @@ import { readSessionStorage, writeSessionStorage } from '../../utils/core/storag
 import { getWelcomeBackState, markAppVisit } from '../../utils/dashboard/welcomeBack'
 import { showError } from '../../utils/core/toast'
 
-const GastoForm = lazy(() => import('../GastoForm'))
-const Dashboard = lazy(() => import('../Dashboard'))
-const Historial = lazy(() => import('../Historial'))
-const Plan = lazy(() => import('../Plan'))
-const Ajustes = lazy(() => import('../Ajustes'))
-const OnboardingFlow = lazy(() => import('../onboarding/OnboardingFlow'))
+const GastoForm = lazyWithRetry(() => import('../GastoForm'))
+const Dashboard = lazyWithRetry(() => import('../Dashboard'))
+const Historial = lazyWithRetry(() => import('../Historial'))
+const Plan = lazyWithRetry(() => import('../Plan'))
+const Ajustes = lazyWithRetry(() => import('../Ajustes'))
+const OnboardingFlow = lazyWithRetry(() => import('../onboarding/OnboardingFlow'))
 
 export type AppTab = 'registro' | 'resumen' | 'historial' | 'plan'
 
