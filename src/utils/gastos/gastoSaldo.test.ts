@@ -46,6 +46,21 @@ describe('gastoSaldo', () => {
     expect(result).toEqual({ cuentaId: 'c1', monto: 1000 })
   })
 
+  it('usa total_compra_msi persistido al revertir saldo', () => {
+    const result = saldoRevertAlEliminar(
+      {
+        id: 1,
+        monto: 333.34,
+        cuenta_id: 'c1',
+        es_msi: true,
+        grupo_msi_id: 'g1',
+        total_compra_msi: 1000,
+      },
+      [{ id: 1, monto: 333.34, total_compra_msi: 1000 }],
+    )
+    expect(result).toEqual({ cuentaId: 'c1', monto: 1000 })
+  })
+
   it('revierte el total MSI legacy sin grupo_msi_id al borrar la última cuota', () => {
     const result = saldoRevertAlEliminar(
       {

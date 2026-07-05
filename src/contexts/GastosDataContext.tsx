@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { OptimisticGasto } from '../types/gasto'
+import { invalidateAppQueries } from '../lib/invalidateAppQueries'
 
 interface GastosRefreshContextValue {
   refreshKey: number
@@ -33,6 +34,7 @@ export function GastosDataProvider({ children }: GastosDataProviderProps) {
 
   const refresh = useCallback(() => {
     setRefreshKey((key) => key + 1)
+    invalidateAppQueries()
   }, [])
 
   const addOptimisticGasto = useCallback((gasto: Omit<OptimisticGasto, 'tempId'>) => {

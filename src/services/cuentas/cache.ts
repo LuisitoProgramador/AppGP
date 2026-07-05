@@ -8,7 +8,10 @@ export function readCache(userId: string): Cuenta[] {
   try {
     const raw = localStorage.getItem(cacheKey(userId))
     if (!raw) return []
-    return JSON.parse(raw) as Cuenta[]
+    return (JSON.parse(raw) as Cuenta[]).map((cuenta) => ({
+      ...cuenta,
+      tasa_interes_mensual: cuenta.tasa_interes_mensual ?? null,
+    }))
   } catch {
     return []
   }

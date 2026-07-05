@@ -20,22 +20,9 @@ create policy "Usuarios pueden insertar sus propios ingresos"
 on public.ingresos_cuenta for insert
 with check (auth.uid() = user_id);
 
-create or replace function public.set_ingreso_cuenta_user_id()
-returns trigger
-language plpgsql
-security definer
-set search_path = public
-as $$
-begin
-  new.user_id := auth.uid();
-  return new;
-end;
-$$;
-
-drop trigger if exists ingresos_cuenta_set_user_id on public.ingresos_cuenta;
 create trigger ingresos_cuenta_set_user_id
 before insert on public.ingresos_cuenta
-for each row execute function public.set_ingreso_cuenta_user_id();
+for each row execute function public.set_auth_user_id();
 
 create index if not exists ingresos_cuenta_user_id_idx on public.ingresos_cuenta (user_id);
 create index if not exists ingresos_cuenta_cuenta_id_idx on public.ingresos_cuenta (cuenta_id);

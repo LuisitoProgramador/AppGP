@@ -1,4 +1,5 @@
-import { type FormEvent, useCallback, useEffect, useMemo, useState } from 'react'
+import { type FormEvent, useCallback, useMemo, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthSession, useGastosRefreshState } from '../contexts'
 import {
   addAhorroToMeta,
@@ -7,6 +8,7 @@ import {
   listMetasAhorro,
   updateMetaAhorro,
 } from '../services/metasAhorro'
+import { queryKeys } from '../lib/queryKeys'
 import { esMetaAhorroAnual } from '../utils/finanzas/metaCalendario'
 import type { MetaAhorro } from '../types/metaAhorro'
 import { formatCurrency } from '../utils/format/formatCurrency'
@@ -17,11 +19,38 @@ import { validateMonto, validateNombre } from '../utils/core/validation'
 export function useMetasAhorro(enabled = true) {
   const { user } = useAuthSession()
   const { refreshKey } = useGastosRefreshState()
+  const queryClient = useQueryClient()
 
-  const [metas, setMetas] = useState<MetaAhorro[]>([])
-  const [metasCargando, setMetasCargando] = useState(true)
-  const [metasError, setMetasError] = useState<string | null>(null)
-  const [metasFromCache, setMetasFromCache] = useState(false)
+  const metasQuery = useQuery({
+    queryKey: [...queryKeys.metas(user?.id), refreshKey],
+    queryFn: async () => {
+      const { data, error: listError, fromCache } = await listMetasAhorro(user!.id)
+      if (listError) throw new Error(listError)
+      return { data, fromCache }
+    },
+    enabled: Boolean(user) && enabled,
+  })
+
+  const metas = metasQuery.data?.data ?? []
+  const metasCargando = enabled && metasQuery.isLoading
+  const metasError = metasQuery.error ? (metasQuery.error as Error).message : null
+  const metasFromCache = metasQuery.data?.fromCache ?? false
+
+
+  const setMetasOptimistic = useCallback(
+    (updater: (current: MetaAhorro[]) => MetaAhorro[]) => {
+      if (!user) return
+      queryClient.setQueryData<{ data: MetaAhorro[]; fromCache: boolean }>(
+        [...queryKeys.metas(user.id), refreshKey],
+        (current) => ({
+          data: updater(current?.data ?? []),
+          fromCache: current?.fromCache ?? false,
+        }),
+      )
+    },
+    [queryClient, refreshKey, user],
+  )
+
   const [mostrarFormMeta, setMostrarFormMeta] = useState(false)
   const [metaNombre, setMetaNombre] = useState('')
   const [metaObjetivo, setMetaObjetivo] = useState('')
@@ -33,32 +62,6 @@ export function useMetasAhorro(enabled = true) {
   const [editObjetivo, setEditObjetivo] = useState('')
   const [guardandoEdicionMeta, setGuardandoEdicionMeta] = useState(false)
   const [eliminandoMetaId, setEliminandoMetaId] = useState<number | null>(null)
-
-  const cargarMetas = useCallback(async () => {
-    if (!user) return
-
-    setMetasCargando(true)
-    setMetasError(null)
-
-    const { data, error: listError, fromCache } = await listMetasAhorro(user.id)
-    setMetasCargando(false)
-    setMetasFromCache(fromCache)
-
-    if (listError) {
-      setMetasError(listError)
-      return
-    }
-
-    setMetas(data)
-  }, [user])
-
-  useEffect(() => {
-    if (!enabled) {
-      setMetasCargando(false)
-      return
-    }
-    cargarMetas()
-  }, [cargarMetas, refreshKey, enabled])
 
   const handleCrearMeta = useCallback(
     async (event: FormEvent<HTMLFormElement>) => {
@@ -92,7 +95,7 @@ export function useMetasAhorro(enabled = true) {
       }
 
       if (data) {
-        setMetas((current) => [...current, data])
+        setMetasOptimistic((current) => [...current, data])
       }
 
       setMetaNombre('')
@@ -100,7 +103,7 @@ export function useMetasAhorro(enabled = true) {
       setMostrarFormMeta(false)
       showSuccess('Meta de ahorro creada.')
     },
-    [user, metaNombre, metaObjetivo],
+    [user, metaNombre, metaObjetivo, setMetasOptimistic],
   )
 
   const iniciarEdicionMeta = useCallback((meta: MetaAhorro) => {
@@ -144,13 +147,13 @@ export function useMetasAhorro(enabled = true) {
       }
 
       if (data) {
-        setMetas((current) => current.map((item) => (item.id === meta.id ? data : item)))
+        setMetasOptimistic((current) => current.map((item) => (item.id === meta.id ? data : item)))
       }
 
       cancelarEdicionMeta()
       showSuccess('Meta actualizada.')
     },
-    [user, editNombre, editObjetivo, cancelarEdicionMeta],
+    [user, editNombre, editObjetivo, cancelarEdicionMeta, setMetasOptimistic],
   )
 
   const handleEliminarMeta = useCallback(
@@ -169,11 +172,11 @@ export function useMetasAhorro(enabled = true) {
         return
       }
 
-      setMetas((current) => current.filter((item) => item.id !== meta.id))
+      setMetasOptimistic((current) => current.filter((item) => item.id !== meta.id))
       if (editandoMetaId === meta.id) cancelarEdicionMeta()
       showSuccess('Meta eliminada.')
     },
-    [user, editandoMetaId, cancelarEdicionMeta],
+    [user, editandoMetaId, cancelarEdicionMeta, setMetasOptimistic],
   )
 
   const handleSumarAhorro = useCallback(
@@ -191,7 +194,7 @@ export function useMetasAhorro(enabled = true) {
       setSumandoMetaId(meta.id)
 
       const previousMetas = metas
-      setMetas((current) =>
+      setMetasOptimistic((current) =>
         current.map((item) =>
           item.id === meta.id
             ? { ...item, monto_actual: item.monto_actual + amount }
@@ -204,13 +207,13 @@ export function useMetasAhorro(enabled = true) {
       setSumandoMetaId(null)
 
       if (addError) {
-        setMetas(previousMetas)
+        setMetasOptimistic(() => previousMetas)
         showError(addError)
         return
       }
 
       if (data) {
-        setMetas((current) =>
+        setMetasOptimistic((current) =>
           current.map((item) => (item.id === meta.id ? data : item)),
         )
       }
@@ -226,7 +229,7 @@ export function useMetasAhorro(enabled = true) {
 
       showSuccess(`Se sumaron ${formatCurrency(amount)} a "${meta.nombre}".`)
     },
-    [user, ahorroInputs, metas],
+    [user, ahorroInputs, metas, setMetasOptimistic],
   )
 
   return useMemo(

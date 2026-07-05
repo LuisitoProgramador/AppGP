@@ -4,6 +4,7 @@ import { getPendingCuentas, getPendingGastosCount } from '../sync/offlineQueue'
 import { readCache, writeCache } from './cache'
 import { fetchCuentasRows, mapCuenta } from './fetch'
 import { pendingCuentaToCuenta } from './helpers'
+import { migrateLegacyTasaInteres } from './migrateTasaInteres'
 
 async function appendQueuedCuentas(userId: string, cuentas: Cuenta[]): Promise<Cuenta[]> {
   const pending = await getPendingCuentas(userId)
@@ -43,7 +44,8 @@ export async function listCuentas(
   }
 
   const cuentas = (data ?? []).map((row) => mapCuenta(row))
-  const merged = await appendQueuedCuentas(userId, cuentas)
+  const migrated = await migrateLegacyTasaInteres(userId, cuentas)
+  const merged = await appendQueuedCuentas(userId, migrated)
   writeCache(userId, merged)
   return { data: merged, error: null, fromCache: false }
 }

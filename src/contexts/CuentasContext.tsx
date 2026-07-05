@@ -5,9 +5,9 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type ReactNode,
 } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import type { Cuenta } from '../types/cuenta'
 import {
   applyGastoSaldoLocal,
@@ -18,6 +18,7 @@ import {
   resolveCuentasBase,
   setCachedCuentas,
 } from '../services/cuentas'
+import { queryKeys } from '../lib/queryKeys'
 import { isOnline } from '../utils/core/network'
 import { showError } from '../utils/core/toast'
 import { useAuthSession } from './AuthContext'
@@ -37,40 +38,52 @@ interface CuentasProviderProps {
   children: ReactNode
 }
 
+async function loadCuentasForUser(userId: string): Promise<Cuenta[]> {
+  const { data, error } = await listCuentas(userId)
+
+  if (error && data.length === 0) {
+    throw new Error(error)
+  }
+
+  let result = data
+  if (result.length === 0 && isOnline()) {
+    const ensured = await ensureCuentaEfectivo(userId)
+    if (ensured.data) result = [ensured.data]
+  }
+
+  return result
+}
+
 export function CuentasProvider({ children }: CuentasProviderProps) {
   const { user } = useAuthSession()
   const { refreshKey } = useGastosRefreshState()
-  const [cuentas, setCuentas] = useState<Cuenta[]>([])
-  const [cuentasLoading, setCuentasLoading] = useState(true)
-  const cuentasRef = useRef(cuentas)
+  const queryClient = useQueryClient()
+  const cuentasRef = useRef<Cuenta[]>([])
+
+  const query = useQuery({
+    queryKey: [...queryKeys.cuentas(user?.id), refreshKey],
+    queryFn: () => loadCuentasForUser(user!.id),
+    enabled: Boolean(user),
+  })
+
+  const cuentas = query.data ?? []
   cuentasRef.current = cuentas
 
   const refreshCuentas = useCallback(async () => {
-    if (!user) {
-      setCuentas([])
-      setCuentasLoading(false)
-      return
-    }
+    if (!user) return
+    await queryClient.invalidateQueries({ queryKey: queryKeys.cuentas(user.id) })
+  }, [queryClient, user])
 
-    setCuentasLoading(true)
-    const { data, error } = await listCuentas(user.id)
-
-    if (error && data.length === 0) {
-      showError(`No se pudieron cargar las cuentas: ${error}`)
-      setCuentas([])
-      setCuentasLoading(false)
-      return
-    }
-
-    let result = data
-    if (result.length === 0 && isOnline()) {
-      const ensured = await ensureCuentaEfectivo(user.id)
-      if (ensured.data) result = [ensured.data]
-    }
-
-    setCuentas(result)
-    setCuentasLoading(false)
-  }, [user])
+  const setCuentasOptimistic = useCallback(
+    (updater: (current: Cuenta[]) => Cuenta[]) => {
+      if (!user) return
+      queryClient.setQueryData<Cuenta[]>(
+        [...queryKeys.cuentas(user.id), refreshKey],
+        (current) => updater(current ?? []),
+      )
+    },
+    [queryClient, refreshKey, user],
+  )
 
   const applyGastoSaldo = useCallback(
     async (cuentaId: string, monto: number): Promise<{ error: string | null }> => {
@@ -85,7 +98,7 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
       )
       if (localError) return { error: localError }
 
-      setCuentas(updated)
+      setCuentasOptimistic(() => updated)
 
       const cuenta = updated.find((c) => c.id === cuentaId)
       if (!cuenta) return { error: 'Cuenta no encontrada' }
@@ -97,13 +110,13 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
       )
       if (persistError) {
         setCachedCuentas(user.id, base)
-        setCuentas(base)
+        setCuentasOptimistic(() => base)
         return { error: persistError }
       }
 
       return { error: null }
     },
-    [user],
+    [setCuentasOptimistic, user],
   )
 
   const revertGastoSaldo = useCallback(
@@ -112,7 +125,7 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
 
       const base = resolveCuentasBase(user.id, cuentasRef.current)
       const updated = revertGastoSaldoLocal(user.id, base, cuentaId, monto)
-      setCuentas(updated)
+      setCuentasOptimistic(() => updated)
 
       const cuenta = updated.find((c) => c.id === cuentaId)
       if (!cuenta) return { error: 'Cuenta no encontrada' }
@@ -124,28 +137,30 @@ export function CuentasProvider({ children }: CuentasProviderProps) {
       )
       if (persistError) {
         setCachedCuentas(user.id, base)
-        setCuentas(base)
+        setCuentasOptimistic(() => base)
         return { error: persistError }
       }
 
       return { error: null }
     },
-    [user],
+    [setCuentasOptimistic, user],
   )
 
   useEffect(() => {
-    refreshCuentas()
-  }, [refreshCuentas, refreshKey])
+    if (query.error && cuentas.length === 0) {
+      showError(`No se pudieron cargar las cuentas: ${(query.error as Error).message}`)
+    }
+  }, [query.error, cuentas.length])
 
   const contextValue = useMemo(
     () => ({
       cuentas,
-      cuentasLoading,
+      cuentasLoading: query.isLoading,
       refreshCuentas,
       applyGastoSaldo,
       revertGastoSaldo,
     }),
-    [cuentas, cuentasLoading, refreshCuentas, applyGastoSaldo, revertGastoSaldo],
+    [cuentas, query.isLoading, refreshCuentas, applyGastoSaldo, revertGastoSaldo],
   )
 
   return <CuentasContext.Provider value={contextValue}>{children}</CuentasContext.Provider>

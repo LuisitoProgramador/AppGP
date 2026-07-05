@@ -33,7 +33,7 @@ using (auth.uid() = user_id);
 
 create trigger gastos_recurrentes_set_user_id
 before insert on public.gastos_recurrentes
-for each row execute function public.set_gasto_user_id();
+for each row execute function public.set_auth_user_id();
 
 create index gastos_recurrentes_user_id_idx on public.gastos_recurrentes (user_id);
 create index gastos_recurrentes_cuenta_id_idx on public.gastos_recurrentes (cuenta_id);

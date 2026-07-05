@@ -182,7 +182,7 @@ export function useHistorialActions() {
         if (item.grupo_msi_id) {
           const { data: grupoRows } = await supabase
             .from('gastos')
-            .select('id, monto')
+            .select('id, monto, total_compra_msi')
             .eq('grupo_msi_id', item.grupo_msi_id)
           if (grupoRows) {
             saldoRevert = saldoRevertAlEliminar(item, grupoRows)

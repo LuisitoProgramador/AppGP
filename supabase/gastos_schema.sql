@@ -29,7 +29,7 @@ create policy "Usuarios pueden eliminar sus propios gastos"
 on public.gastos for delete
 using (auth.uid() = user_id);
 
-create or replace function public.set_gasto_user_id()
+create or replace function public.set_auth_user_id()
 returns trigger
 language plpgsql
 security definer
@@ -43,7 +43,7 @@ $$;
 
 create trigger gastos_set_user_id
 before insert on public.gastos
-for each row execute function public.set_gasto_user_id();
+for each row execute function public.set_auth_user_id();
 
 create index gastos_user_id_idx on public.gastos (user_id);
 create index gastos_fecha_idx on public.gastos (fecha desc);

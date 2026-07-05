@@ -19,6 +19,7 @@ export interface Gasto {
   cuenta_id?: string | null
   es_msi?: boolean
   grupo_msi_id?: string | null
+  total_compra_msi?: number | null
 }
 
 export interface OptimisticGasto {
@@ -42,17 +43,19 @@ export interface PendingGasto {
   cuenta_id?: string | null
   es_msi?: boolean
   grupo_msi_id?: string | null
+  total_compra_msi?: number | null
   msiInstallments?: GastoInsertFields[]
   optimisticTempIds?: string[]
   createdAt: number
   retryCount: number
 }
 
-export type GastoInsertFields = Omit<Gasto, 'id' | 'descripcion' | 'cuenta_id' | 'es_msi' | 'grupo_msi_id'> & {
+export type GastoInsertFields = Omit<Gasto, 'id' | 'descripcion' | 'cuenta_id' | 'es_msi' | 'grupo_msi_id' | 'total_compra_msi'> & {
   descripcion: string
   cuenta_id: string | null
   es_msi: boolean
   grupo_msi_id: string | null
+  total_compra_msi?: number | null
   offline_id?: string | null
 }
 

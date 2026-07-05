@@ -1,7 +1,7 @@
 -- Revoca ejecución RPC de funciones trigger SECURITY DEFINER
-revoke all on function public.set_gasto_user_id() from public;
-revoke all on function public.set_gasto_user_id() from anon;
-revoke all on function public.set_gasto_user_id() from authenticated;
+revoke all on function public.set_auth_user_id() from public;
+revoke all on function public.set_auth_user_id() from anon;
+revoke all on function public.set_auth_user_id() from authenticated;
 
 -- RLS: auth.uid() una sola vez por query (initplan)
 -- gastos

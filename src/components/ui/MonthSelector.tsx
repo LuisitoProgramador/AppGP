@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { formatMonthLabel, formatMonthShortLabel, shiftMonth } from '../../utils/date'
+import { lockBodyScroll } from '../../utils/core/scrollLock'
 import { buttonSecondaryClassName, inputClassName } from './formStyles'
 
 const MONTHS_SHORT = [
@@ -155,8 +156,7 @@ export default function MonthSelector({ value, onChange }: MonthSelectorProps) {
   useEffect(() => {
     if (!open) return
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlockScroll = lockBodyScroll()
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -166,7 +166,7 @@ export default function MonthSelector({ value, onChange }: MonthSelectorProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow || 'unset'
+      unlockScroll()
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [open])

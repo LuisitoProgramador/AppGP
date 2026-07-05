@@ -8,6 +8,7 @@ export interface Cuenta {
   saldo_actual: number
   dia_corte: number | null
   dia_pago: number | null
+  tasa_interes_mensual: number | null
 }
 
 export interface CuentaInput {
@@ -17,6 +18,7 @@ export interface CuentaInput {
   saldo_actual?: number
   dia_corte?: number | null
   dia_pago?: number | null
+  tasa_interes_mensual?: number | null
 }
 
 export interface PendingCuenta {
@@ -29,6 +31,7 @@ export interface PendingCuenta {
   saldo_actual: number
   dia_corte: number | null
   dia_pago: number | null
+  tasa_interes_mensual: number | null
   createdAt: number
   retryCount: number
 }

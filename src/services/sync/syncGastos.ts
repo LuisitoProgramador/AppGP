@@ -38,6 +38,7 @@ function rowsToInsert(gasto: PendingGasto): GastoInsertFields[] {
             cuenta_id: gasto.cuenta_id ?? null,
             es_msi: gasto.es_msi ?? false,
             grupo_msi_id: gasto.grupo_msi_id ?? null,
+            total_compra_msi: gasto.total_compra_msi ?? null,
           },
         ]
 
@@ -204,7 +205,7 @@ export async function syncPendingGastos(userId: string): Promise<SyncResult> {
     ) {
       const retryCount = (gasto.retryCount ?? 0) + 1
 
-      if (shouldDiscardAfterRetry(retryCount)) {
+      if (shouldDiscardAfterRetry(retryCount, outcome.error)) {
         if (gasto.cuenta_id) {
           cachedCuentas = await revertPendingSaldo(userId, gasto, cachedCuentas)
         }
@@ -242,7 +243,7 @@ export async function syncPendingGastos(userId: string): Promise<SyncResult> {
         )
         if (persistError) {
           const retryCount = (gasto.retryCount ?? 0) + 1
-          if (shouldDiscardAfterRetry(retryCount)) {
+          if (shouldDiscardAfterRetry(retryCount, persistError)) {
             cachedCuentas = await revertPendingSaldo(userId, gasto, cachedCuentas)
             if (gasto.optimisticTempIds?.length) {
               result.optimisticTempIdsRemoved.push(...gasto.optimisticTempIds)

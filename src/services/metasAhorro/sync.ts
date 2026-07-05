@@ -34,7 +34,7 @@ async function syncPendingMetaAhorroInner(userId: string): Promise<number> {
 
     if (fetchError || !meta) {
       const retryCount = (item.retryCount ?? 0) + 1
-      if (shouldDiscardAfterRetry(retryCount)) {
+      if (shouldDiscardAfterRetry(retryCount, fetchError?.message)) {
         revertPendingMetaInCache(userId, item)
       } else {
         remaining.push({ ...item, retryCount })
@@ -51,7 +51,7 @@ async function syncPendingMetaAhorroInner(userId: string): Promise<number> {
 
     if (updateError) {
       const retryCount = (item.retryCount ?? 0) + 1
-      if (shouldDiscardAfterRetry(retryCount)) {
+      if (shouldDiscardAfterRetry(retryCount, updateError.message)) {
         revertPendingMetaInCache(userId, item)
       } else {
         remaining.push({ ...item, retryCount })

@@ -94,7 +94,7 @@ export default memo(function Dashboard() {
     let total = 0
     for (const cuenta of cuentas) {
       if (cuenta.tipo !== 'credito' || cuenta.saldo_actual <= 0) continue
-      const tasa = getTasaInteresMensual(cuenta.id)
+      const tasa = getTasaInteresMensual(cuenta)
       const interes = calcInteresEstimado(cuenta.saldo_actual, tasa)
       if (interes != null) total += interes
     }

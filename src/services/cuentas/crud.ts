@@ -1,4 +1,5 @@
 import type { Cuenta, CuentaInput } from '../../types/cuenta'
+import { normalizeTasaInteresMensual } from '../cuentaInteres'
 import { isOnline, offlineServiceError } from '../../utils/core/network'
 import { addPendingCuenta } from '../sync/offlineQueue'
 import { supabase } from '../supabase'
@@ -18,6 +19,7 @@ export async function insertCuentaRemoto(
 
   if (input.tipo === 'credito') {
     row.limite_credito = input.limite_credito ?? null
+    row.tasa_interes_mensual = normalizeTasaInteresMensual(input.tasa_interes_mensual)
     if (input.dia_corte != null) {
       row.dia_corte = input.dia_corte
     }
@@ -59,6 +61,8 @@ async function queueCuentaOffline(
     limite_credito: input.tipo === 'credito' ? (input.limite_credito ?? null) : null,
     dia_corte: input.tipo === 'credito' ? (input.dia_corte ?? null) : null,
     dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
+    tasa_interes_mensual:
+      input.tipo === 'credito' ? normalizeTasaInteresMensual(input.tasa_interes_mensual) : null,
   })
 
   const cuenta: Cuenta = {
@@ -69,6 +73,8 @@ async function queueCuentaOffline(
     limite_credito: input.tipo === 'credito' ? (input.limite_credito ?? null) : null,
     dia_corte: input.tipo === 'credito' ? (input.dia_corte ?? null) : null,
     dia_pago: input.tipo === 'credito' ? (input.dia_pago ?? null) : null,
+    tasa_interes_mensual:
+      input.tipo === 'credito' ? normalizeTasaInteresMensual(input.tasa_interes_mensual) : null,
   }
 
   appendToCache(userId, cuenta)
@@ -120,6 +126,9 @@ export async function updateCuenta(
   if (input.limite_credito !== undefined) row.limite_credito = input.limite_credito
   if (input.dia_corte !== undefined) row.dia_corte = input.dia_corte
   if (input.dia_pago !== undefined) row.dia_pago = input.dia_pago
+  if (input.tasa_interes_mensual !== undefined) {
+    row.tasa_interes_mensual = normalizeTasaInteresMensual(input.tasa_interes_mensual)
+  }
 
   const { data, error } = await supabase
     .from('cuentas')

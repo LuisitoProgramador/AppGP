@@ -23,6 +23,7 @@ export function pendingCuentaToCuenta(item: PendingCuenta): Cuenta {
     saldo_actual: item.saldo_actual,
     dia_corte: item.dia_corte,
     dia_pago: item.dia_pago,
+    tasa_interes_mensual: item.tasa_interes_mensual,
   }
 }
 

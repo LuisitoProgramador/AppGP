@@ -61,6 +61,7 @@ function normalizePendingIngreso(ingreso: PendingIngreso): PendingIngreso {
 function normalizePendingCuenta(cuenta: PendingCuenta): PendingCuenta {
   return {
     ...cuenta,
+    tasa_interes_mensual: cuenta.tasa_interes_mensual ?? null,
     retryCount: cuenta.retryCount ?? 0,
   }
 }

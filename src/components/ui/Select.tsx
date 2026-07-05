@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, memo } from 'react'
 import { createPortal } from 'react-dom'
+import { lockBodyScroll } from '../../utils/core/scrollLock'
 import { inputClassName } from './formStyles'
 
 export interface SelectOption {
@@ -83,8 +84,7 @@ export default memo(function Select({
   useEffect(() => {
     if (!open) return
 
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlockScroll = lockBodyScroll()
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -94,7 +94,7 @@ export default memo(function Select({
 
     window.addEventListener('keydown', handleKeyDown)
     return () => {
-      document.body.style.overflow = previousOverflow || 'unset'
+      unlockScroll()
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [open])

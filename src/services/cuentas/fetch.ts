@@ -1,7 +1,8 @@
 import type { Cuenta } from '../../types/cuenta'
 import { supabase } from '../supabase'
 
-export const CUENTA_SELECT_BASE = 'id, nombre, tipo, limite_credito, saldo_actual' as const
+export const CUENTA_SELECT_BASE =
+  'id, nombre, tipo, limite_credito, saldo_actual, tasa_interes_mensual' as const
 export const CUENTA_SELECT_CORTE = `${CUENTA_SELECT_BASE}, dia_corte` as const
 export const CUENTA_SELECT = `${CUENTA_SELECT_CORTE}, dia_pago` as const
 
@@ -25,7 +26,7 @@ export async function fetchCuentasRows(userId: string) {
       .order('created_at', { ascending: true })
     if (!withCorte.error) {
       return {
-        data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null })),
+        data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null, tasa_interes_mensual: row.tasa_interes_mensual ?? null })),
         error: null,
       }
     }
@@ -40,7 +41,12 @@ export async function fetchCuentasRows(userId: string) {
       .order('created_at', { ascending: true })
     if (!base.error) {
       return {
-        data: (base.data ?? []).map((row) => ({ ...row, dia_corte: null, dia_pago: null })),
+        data: (base.data ?? []).map((row) => ({
+          ...row,
+          dia_corte: null,
+          dia_pago: null,
+          tasa_interes_mensual: row.tasa_interes_mensual ?? null,
+        })),
         error: null,
       }
     }
@@ -67,7 +73,7 @@ export async function fetchCuentasRows(userId: string) {
   if (!withCorte.error) {
     cuentaSelectMode = 'corte'
     return {
-      data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null })),
+      data: (withCorte.data ?? []).map((row) => ({ ...row, dia_pago: null, tasa_interes_mensual: row.tasa_interes_mensual ?? null })),
       error: null,
     }
   }
@@ -82,7 +88,12 @@ export async function fetchCuentasRows(userId: string) {
 
   cuentaSelectMode = 'base'
   return {
-    data: (base.data ?? []).map((row) => ({ ...row, dia_corte: null, dia_pago: null })),
+    data: (base.data ?? []).map((row) => ({
+      ...row,
+      dia_corte: null,
+      dia_pago: null,
+      tasa_interes_mensual: row.tasa_interes_mensual ?? null,
+    })),
     error: null,
   }
 }
@@ -96,5 +107,7 @@ export function mapCuenta(row: Record<string, unknown>): Cuenta {
     saldo_actual: Number(row.saldo_actual),
     dia_corte: row.dia_corte != null ? Number(row.dia_corte) : null,
     dia_pago: row.dia_pago != null ? Number(row.dia_pago) : null,
+    tasa_interes_mensual:
+      row.tasa_interes_mensual != null ? Number(row.tasa_interes_mensual) : null,
   }
 }

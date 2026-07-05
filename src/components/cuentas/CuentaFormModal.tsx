@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import { useAuthSession } from '../../contexts'
 import { createCuenta, updateCuenta } from '../../services/cuentas'
-import { getTasaInteresMensual, setTasaInteresMensual } from '../../services/cuentaInteres'
+import { getTasaInteresMensual, normalizeTasaInteresMensual } from '../../services/cuentaInteres'
 import { CUENTA_TIPOS, type Cuenta, type CuentaTipo } from '../../types/cuenta'
 import { parseMontoValue } from '../../utils/format/montoInput'
 import { isOnline } from '../../utils/core/network'
@@ -48,7 +48,7 @@ export default function CuentaFormModal({
     if (!open) return
 
     if (editingCuenta) {
-      const tasa = getTasaInteresMensual(editingCuenta.id)
+      const tasa = getTasaInteresMensual(editingCuenta)
       setForm({
         nombre: editingCuenta.nombre,
         tipo: editingCuenta.tipo,
@@ -131,34 +131,31 @@ export default function CuentaFormModal({
         limite_credito,
         dia_corte,
         dia_pago,
+        tasa_interes_mensual:
+          form.tipo === 'credito' ? normalizeTasaInteresMensual(tasaInteres) : null,
       })
       setGuardando(false)
       if (error) {
         showError(`Error al actualizar cuenta: ${error}`)
         return
       }
-      if (form.tipo === 'credito') {
-        setTasaInteresMensual(editingCuenta.id, tasaInteres)
-      }
       showSuccess('Cuenta actualizada.')
     } else {
-      const { data, error } = await createCuenta(user.id, {
+      const { error } = await createCuenta(user.id, {
         nombre,
         tipo: form.tipo,
         saldo_actual: saldo,
         limite_credito,
         dia_corte,
         dia_pago,
+        tasa_interes_mensual:
+          form.tipo === 'credito' ? normalizeTasaInteresMensual(tasaInteres) : null,
       })
       setGuardando(false)
 
       if (error) {
         showError(`Error al crear cuenta: ${error}`)
         return
-      }
-
-      if (data && form.tipo === 'credito') {
-        setTasaInteresMensual(data.id, tasaInteres)
       }
 
       showSuccess(
@@ -301,7 +298,7 @@ export default function CuentaFormModal({
                 className={inputClassName}
               />
               <p className="text-xs text-slate-500">
-                Solo en este dispositivo. Sirve para estimar el costo de no pagar a meses.
+                Opcional. Se sincroniza entre dispositivos para estimar el costo de no pagar a meses.
               </p>
             </div>
           </>

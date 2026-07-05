@@ -80,7 +80,7 @@ export async function syncPendingIngresos(userId: string): Promise<SyncIngresosR
 
     if (outcome.kind === 'insert_error') {
       const retryCount = (ingreso.retryCount ?? 0) + 1
-      if (shouldDiscardAfterRetry(retryCount)) {
+      if (shouldDiscardAfterRetry(retryCount, outcome.error)) {
         cachedCuentas = revertIngresoSaldoLocal(userId, cachedCuentas, ingreso.cuenta_id, ingreso.monto)
         await removePendingIngreso(ingreso.id)
         result.discarded += 1
@@ -109,7 +109,7 @@ export async function syncPendingIngresos(userId: string): Promise<SyncIngresosR
       )
       if (persistError) {
         const retryCount = (ingreso.retryCount ?? 0) + 1
-        if (shouldDiscardAfterRetry(retryCount)) {
+        if (shouldDiscardAfterRetry(retryCount, persistError)) {
           cachedCuentas = revertIngresoSaldoLocal(
             userId,
             cachedCuentas,

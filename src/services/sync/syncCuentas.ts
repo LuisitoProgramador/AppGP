@@ -60,6 +60,7 @@ export async function syncPendingCuentas(userId: string): Promise<SyncCuentasRes
       limite_credito: item.limite_credito,
       dia_corte: item.dia_corte,
       dia_pago: item.dia_pago,
+      tasa_interes_mensual: item.tasa_interes_mensual,
     })
     return { item, data, error: error ?? (data ? null : 'No se pudo crear la cuenta en el servidor.') }
   })
@@ -68,7 +69,7 @@ export async function syncPendingCuentas(userId: string): Promise<SyncCuentasRes
     if (error || !data) {
       const retryCount = (item.retryCount ?? 0) + 1
 
-      if (shouldDiscardAfterRetry(retryCount)) {
+      if (shouldDiscardAfterRetry(retryCount, error ?? undefined)) {
         const cached = getCachedCuentas(userId).filter((c) => c.id !== item.tempCuentaId)
         setCachedCuentas(userId, cached)
         await removePendingCuenta(item.id)

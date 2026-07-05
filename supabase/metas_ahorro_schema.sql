@@ -31,6 +31,6 @@ using (auth.uid() = user_id);
 
 create trigger metas_ahorro_set_user_id
 before insert on public.metas_ahorro
-for each row execute function public.set_gasto_user_id();
+for each row execute function public.set_auth_user_id();
 
 create index metas_ahorro_user_id_idx on public.metas_ahorro (user_id);

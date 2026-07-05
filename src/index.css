@@ -29,17 +29,18 @@
 html {
   color-scheme: dark;
   height: 100%;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
   overflow: hidden;
   overscroll-behavior: none;
   background-color: var(--color-pulso-surface);
 }
 
 body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
   margin: 0;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
   overflow: hidden;
   overscroll-behavior: none;
   font-family: system-ui, -apple-system, sans-serif;
@@ -50,11 +51,21 @@ body {
 #root {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   background-color: var(--color-pulso-bg);
+}
+
+/* Contenedor de scroll principal (iOS PWA / standalone necesita -webkit-overflow-scrolling) */
+.app-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
 }
 
 /* Evita zoom automático en iOS al enfocar inputs (< 16px dispara el zoom) */

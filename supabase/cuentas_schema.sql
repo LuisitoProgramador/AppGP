@@ -33,6 +33,6 @@ using (auth.uid() = user_id);
 
 create trigger cuentas_set_user_id
 before insert on public.cuentas
-for each row execute function public.set_gasto_user_id();
+for each row execute function public.set_auth_user_id();
 
 create index cuentas_user_id_idx on public.cuentas (user_id);

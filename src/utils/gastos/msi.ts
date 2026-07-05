@@ -9,6 +9,7 @@ export interface GastoInsertPayload {
   cuenta_id: string | null
   es_msi: boolean
   grupo_msi_id: string | null
+  total_compra_msi: number | null
 }
 
 export function splitMsiAmount(total: number, months: number): number[] {
@@ -49,6 +50,7 @@ export function buildMsiGastos(params: {
     cuenta_id: cuentaId,
     es_msi: true,
     grupo_msi_id: grupoMsiId,
+    total_compra_msi: totalMonto,
   }))
 }
 
@@ -67,6 +69,7 @@ export function buildSingleGasto(params: {
     cuenta_id: params.cuentaId,
     es_msi: false,
     grupo_msi_id: null,
+    total_compra_msi: null,
   }
 }
 

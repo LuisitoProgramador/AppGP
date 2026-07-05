@@ -20,7 +20,7 @@ export default function CuentaCard({ cuenta, onEdit }: CuentaCardProps) {
   const disponible = isCredito ? limite - cuenta.saldo_actual : null
   const corteEstado = isCredito ? getCorteEstado(cuenta.dia_corte) : null
   const utilizacion = getCreditUtilization(cuenta)
-  const tasaInteres = isCredito ? getTasaInteresMensual(cuenta.id) : null
+  const tasaInteres = isCredito ? getTasaInteresMensual(cuenta) : null
   const interesEstimado =
     isCredito && tasaInteres != null
       ? calcInteresEstimado(cuenta.saldo_actual, tasaInteres)

@@ -37,8 +37,9 @@ export function saldoRevertAlEliminar(
     cuenta_id?: string | null
     es_msi?: boolean
     grupo_msi_id?: string | null
+    total_compra_msi?: number | null
   },
-  grupoRows: { id: number; monto: number }[],
+  grupoRows: { id: number; monto: number; total_compra_msi?: number | null }[],
 ): SaldoRevertAlEliminar | null {
   if (!gasto.cuenta_id) return null
 
@@ -61,9 +62,18 @@ export function sumMsiGrupoMontos(rows: { monto: number }[]): number {
 
 /** Total de compra MSI a revertir en crédito (cuando se elimina la última cuota). */
 function msiTotalParaRevertir(
-  gasto: { monto: number; descripcion?: string | null },
-  grupoRows: { monto: number }[],
+  gasto: { monto: number; descripcion?: string | null; total_compra_msi?: number | null },
+  grupoRows: { monto: number; total_compra_msi?: number | null }[],
 ): number {
+  const fromColumn =
+    gasto.total_compra_msi ??
+    grupoRows.find((row) => row.total_compra_msi != null && row.total_compra_msi > 0)
+      ?.total_compra_msi
+
+  if (fromColumn != null && fromColumn > 0) {
+    return Number(fromColumn)
+  }
+
   if (grupoRows.length > 1) {
     return sumMsiGrupoMontos(grupoRows)
   }
