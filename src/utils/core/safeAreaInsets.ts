@@ -1,4 +1,16 @@
 /** Mide env(safe-area-inset-*) y los expone como CSS vars (iOS PWA tarda en aplicarlos al primer paint). */
+function readInsetPx(value: string): number {
+  const parsed = parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function isStandalonePwa(): boolean {
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    (navigator as Navigator & { standalone?: boolean }).standalone === true
+  )
+}
+
 export function applySafeAreaInsets(): void {
   const probe = document.createElement('div')
   probe.setAttribute('aria-hidden', 'true')
@@ -7,10 +19,21 @@ export function applySafeAreaInsets(): void {
   document.body.appendChild(probe)
   const style = getComputedStyle(probe)
   const root = document.documentElement
-  root.style.setProperty('--safe-area-top', style.paddingTop)
-  root.style.setProperty('--safe-area-right', style.paddingRight)
-  root.style.setProperty('--safe-area-bottom', style.paddingBottom)
-  root.style.setProperty('--safe-area-left', style.paddingLeft)
+
+  let top = readInsetPx(style.paddingTop)
+  let right = readInsetPx(style.paddingRight)
+  let bottom = readInsetPx(style.paddingBottom)
+  let left = readInsetPx(style.paddingLeft)
+
+  // iOS PWA suele devolver 0 en el home indicator; reservar espacio una sola vez en el shell.
+  if (isStandalonePwa() && bottom < 20) {
+    bottom = 34
+  }
+
+  root.style.setProperty('--safe-area-top', `${top}px`)
+  root.style.setProperty('--safe-area-right', `${right}px`)
+  root.style.setProperty('--safe-area-bottom', `${bottom}px`)
+  root.style.setProperty('--safe-area-left', `${left}px`)
   probe.remove()
 }
 

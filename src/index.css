@@ -81,6 +81,7 @@ textarea,
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: none;
   touch-action: pan-y;
+  scroll-padding-bottom: max(0.75rem, var(--safe-area-bottom));
 }
 
 button,

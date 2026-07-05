@@ -212,7 +212,9 @@ export default function AppRoutes() {
   if (loading) {
     return (
       <Layout>
-        <p className="text-center text-slate-400">Cargando...</p>
+        <div className="app-scroll flex-1 min-h-0">
+          <p className="text-center text-slate-400">Cargando...</p>
+        </div>
       </Layout>
     )
   }
@@ -220,10 +222,12 @@ export default function AppRoutes() {
   if (!user) {
     return (
       <Layout>
-        <section className="space-y-6">
-          <h1 className="text-center text-3xl font-bold">Pulso</h1>
-          <LoginForm />
-        </section>
+        <div className="app-scroll flex-1 min-h-0">
+          <section className="space-y-6">
+            <h1 className="text-center text-3xl font-bold">Pulso</h1>
+            <LoginForm />
+          </section>
+        </div>
       </Layout>
     )
   }
@@ -231,7 +235,9 @@ export default function AppRoutes() {
   if (onboardingState === 'loading') {
     return (
       <Layout>
-        <p className="text-center text-slate-400">Preparando tu espacio...</p>
+        <div className="app-scroll flex-1 min-h-0">
+          <p className="text-center text-slate-400">Preparando tu espacio...</p>
+        </div>
       </Layout>
     )
   }
@@ -239,14 +245,16 @@ export default function AppRoutes() {
   if (onboardingState === 'needed') {
     return (
       <Layout>
-        <Suspense fallback={<TabFallback />}>
-          <OnboardingFlow
-            onComplete={() => {
-              setOnboardingState('done')
-              handleTabChange('resumen')
-            }}
-          />
-        </Suspense>
+        <div className="app-scroll flex-1 min-h-0">
+          <Suspense fallback={<TabFallback />}>
+            <OnboardingFlow
+              onComplete={() => {
+                setOnboardingState('done')
+                handleTabChange('resumen')
+              }}
+            />
+          </Suspense>
+        </div>
       </Layout>
     )
   }
@@ -256,76 +264,78 @@ export default function AppRoutes() {
       <QuietModeProvider>
         <>
           <Layout>
-            <section className="flex min-h-full flex-col space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="text-2xl font-bold sm:text-3xl">Pulso</h1>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handleToggleAjustes}
-                  aria-pressed={showAjustes}
-                  aria-label="Ajustes"
-                  title="Ajustes"
-                  className={`${iconButtonClassName} border ${
-                    showAjustes
-                      ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent'
-                      : 'border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700'
-                  }`}
-                >
-                  <SettingsIcon />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSignOut}
-                  aria-label="Cerrar sesión"
-                  title="Cerrar sesión"
-                  className={`${iconButtonClassName} border border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700`}
-                >
-                  <LogOutIcon />
-                </button>
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <header className="shrink-0 space-y-4 pb-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h1 className="text-2xl font-bold sm:text-3xl">Pulso</h1>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleToggleAjustes}
+                      aria-pressed={showAjustes}
+                      aria-label="Ajustes"
+                      title="Ajustes"
+                      className={`${iconButtonClassName} border ${
+                        showAjustes
+                          ? 'border-pulso-accent/50 bg-pulso-accent/15 text-pulso-accent'
+                          : 'border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700'
+                      }`}
+                    >
+                      <SettingsIcon />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSignOut}
+                      aria-label="Cerrar sesión"
+                      title="Cerrar sesión"
+                      className={`${iconButtonClassName} border border-slate-600 text-slate-400 active:border-slate-500 active:text-white active:bg-slate-700`}
+                    >
+                      <LogOutIcon />
+                    </button>
+                  </div>
+                </div>
+
+                {!showAjustes && <TopNav activeTab={tab} onChange={handleTabChange} />}
+              </header>
+
+              <div className="app-scroll -mx-4 min-h-0 flex-1 px-4">
+                {showAjustes ? (
+                  <ErrorBoundary title="Error en ajustes">
+                    <Suspense fallback={<TabFallback />}>
+                      <Ajustes />
+                    </Suspense>
+                  </ErrorBoundary>
+                ) : (
+                  <>
+                    <TabPanel id="registro" activeTab={tab}>
+                      <ErrorBoundary title="Error en el formulario">
+                        <GastoForm />
+                      </ErrorBoundary>
+                    </TabPanel>
+
+                    <TabPanel id="resumen" activeTab={tab}>
+                      <FocusModeProvider>
+                        <ErrorBoundary title="Error en el Dashboard">
+                          <Dashboard />
+                        </ErrorBoundary>
+                      </FocusModeProvider>
+                    </TabPanel>
+
+                    <TabPanel id="historial" activeTab={tab}>
+                      <ErrorBoundary title="Error en el historial">
+                        <Historial />
+                      </ErrorBoundary>
+                    </TabPanel>
+
+                    <TabPanel id="plan" activeTab={tab}>
+                      <ErrorBoundary title="Error en planificación">
+                        <Plan />
+                      </ErrorBoundary>
+                    </TabPanel>
+                  </>
+                )}
               </div>
             </div>
-
-            {!showAjustes && <TopNav activeTab={tab} onChange={handleTabChange} />}
-
-            <div className="relative flex-1">
-              {showAjustes ? (
-                <ErrorBoundary title="Error en ajustes">
-                  <Suspense fallback={<TabFallback />}>
-                    <Ajustes />
-                  </Suspense>
-                </ErrorBoundary>
-              ) : (
-                <>
-                  <TabPanel id="registro" activeTab={tab}>
-                    <ErrorBoundary title="Error en el formulario">
-                      <GastoForm />
-                    </ErrorBoundary>
-                  </TabPanel>
-
-                  <TabPanel id="resumen" activeTab={tab}>
-                    <FocusModeProvider>
-                      <ErrorBoundary title="Error en el Dashboard">
-                        <Dashboard />
-                      </ErrorBoundary>
-                    </FocusModeProvider>
-                  </TabPanel>
-
-                  <TabPanel id="historial" activeTab={tab}>
-                    <ErrorBoundary title="Error en el historial">
-                      <Historial />
-                    </ErrorBoundary>
-                  </TabPanel>
-
-                  <TabPanel id="plan" activeTab={tab}>
-                    <ErrorBoundary title="Error en planificación">
-                      <Plan />
-                    </ErrorBoundary>
-                  </TabPanel>
-                </>
-              )}
-            </div>
-          </section>
           </Layout>
         </>
       </QuietModeProvider>
