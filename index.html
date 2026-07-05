@@ -14,8 +14,17 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <title>Pulso</title>
+    <script>
+      ;(function () {
+        var standalone =
+          window.navigator.standalone === true ||
+          window.matchMedia('(display-mode: standalone)').matches
+        if (standalone) document.documentElement.classList.add('ios-standalone')
+      })()
+    </script>
   </head>
   <body>
+    <div id="ios-bottom-fill" aria-hidden="true"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

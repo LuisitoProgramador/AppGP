@@ -4,7 +4,7 @@ import AppRoutes from './components/app/AppRoutes'
 function App() {
   return (
     <AuthProvider>
-      <div className="app-shell">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <AppRoutes />
       </div>
     </AuthProvider>

@@ -10,9 +10,8 @@ function Layout({ children, withBottomNav = false }: LayoutProps) {
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-pulso-bg text-white">
       <main
-        data-app-scroll
-        className={`app-scroll mx-auto w-full max-w-lg px-4 pt-[max(1.5rem,env(safe-area-inset-top))] ${
-          withBottomNav ? 'pb-[var(--bottom-nav-total)]' : 'pb-[max(1rem,env(safe-area-inset-bottom))]'
+        className={`app-scroll mx-auto min-h-0 w-full max-w-lg flex-1 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] ${
+          withBottomNav ? 'pb-[var(--bottom-nav-total)]' : 'pb-4'
         }`}
       >
         {children}
