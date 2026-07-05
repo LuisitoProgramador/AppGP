@@ -18,7 +18,8 @@ function BottomNav({ children }: BottomNavProps) {
     <footer
       className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-pulso-surface sm:hidden"
       style={{
-        paddingBottom: 'var(--safe-area-bottom, env(safe-area-inset-bottom, 0px))',
+        paddingBottom:
+          'max(0.5rem, var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)))',
       }}
     >
       <div className="mx-auto flex h-[var(--bottom-nav-height)] max-w-lg items-center px-2">
