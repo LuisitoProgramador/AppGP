@@ -172,7 +172,7 @@ export default function AppRoutes() {
     handleTabChange(TABS[tabIndex - 1].id)
   }, [showAjustes, tabIndex, handleTabChange])
 
-  const swipeHandlers = useTabSwipe(handleSwipeLeft, handleSwipeRight)
+  useTabSwipe(handleSwipeLeft, handleSwipeRight, !showAjustes)
 
   const handleToggleAjustes = useCallback(() => {
     setShowAjustes((open) => !open)
@@ -256,7 +256,7 @@ export default function AppRoutes() {
       <QuietModeProvider>
         <>
           <Layout>
-            <section className="space-y-4" {...(!showAjustes ? swipeHandlers : {})}>
+            <section className="flex min-h-full flex-col space-y-4">
             <div className="flex items-center justify-between gap-3">
               <h1 className="text-2xl font-bold sm:text-3xl">Pulso</h1>
               <div className="flex items-center gap-1">
@@ -288,7 +288,7 @@ export default function AppRoutes() {
 
             {!showAjustes && <TopNav activeTab={tab} onChange={handleTabChange} />}
 
-            <div className="relative">
+            <div className="relative flex-1">
               {showAjustes ? (
                 <ErrorBoundary title="Error en ajustes">
                   <Suspense fallback={<TabFallback />}>
