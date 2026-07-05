@@ -20,32 +20,16 @@
 :root {
   --app-height: 100vh;
   --bottom-nav-height: 3.25rem;
-  --bottom-inset: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-left: env(safe-area-inset-left, 0px);
-  --bottom-nav-total: calc(var(--bottom-nav-height) + var(--bottom-inset));
-}
-
-@supports (height: 100svh) {
-  :root {
-    --app-height: 100svh;
-  }
-}
-
-@supports (height: 100dvh) {
-  :root {
-    --app-height: 100dvh;
-  }
+  --bottom-nav-total: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
 }
 
 @supports (-webkit-touch-callout: none) {
-  html,
-  body,
-  #root,
-  .app-shell {
-    min-height: -webkit-fill-available;
+  :root {
+    --app-height: 100dvh;
   }
 }
 
@@ -61,7 +45,7 @@ html {
   overscroll-behavior: none;
   overscroll-behavior-y: none;
   touch-action: manipulation;
-  background-color: var(--color-pulso-bg);
+  background-color: var(--color-pulso-surface);
 }
 
 body {
@@ -115,83 +99,6 @@ textarea,
   width: 100%;
   min-height: var(--app-height);
   overflow: hidden;
-}
-
-/* Barra inferior fija: fondo hasta el borde físico; safe area como padding interno */
-.bottom-nav {
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
-  z-index: 40;
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding-bottom: var(--bottom-inset, env(safe-area-inset-bottom, 0px));
-  border-top: 1px solid rgb(255 255 255 / 0.1);
-  background-color: var(--color-pulso-surface);
-  box-sizing: border-box;
-}
-
-.bottom-nav__inner {
-  display: flex;
-  flex-shrink: 0;
-  height: var(--bottom-nav-height);
-  max-width: 32rem;
-  width: 100%;
-  margin-inline: auto;
-  align-items: center;
-  padding-inline: 0.5rem;
-}
-
-.bottom-nav__safe-area {
-  display: none;
-  flex-shrink: 0;
-  width: 100%;
-  background-color: inherit;
-}
-
-/*
- * PWA instalada (icono en pantalla de inicio): sin barra URL de Safari.
- * El layout viewport queda corto y deja franja negra bajo bottom:0.
- * En Safari normal NO aplicar — la barra URL ocupa ese espacio.
- */
-html.standalone-pwa {
-  height: 100%;
-  min-height: 100%;
-  background-color: var(--color-pulso-surface);
-  --bottom-nav-total: calc(var(--bottom-nav-height) + var(--bottom-inset, 34px));
-}
-
-html.standalone-pwa body {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: auto;
-  min-height: 0;
-}
-
-html.standalone-pwa #root,
-html.standalone-pwa .app-shell,
-html.standalone-pwa .app-container {
-  height: 100%;
-  min-height: 0;
-}
-
-html.standalone-pwa .bottom-nav {
-  padding-bottom: 0;
-  box-shadow: 0 var(--bottom-inset, 34px) 0 var(--color-pulso-surface);
-}
-
-html.standalone-pwa .bottom-nav__safe-area {
-  display: block;
-}
-
-.bottom-nav-viewport-fill {
-  display: none;
-}
-
-html.standalone-pwa .bottom-nav-viewport-fill {
-  display: block;
 }
 
 /* Contenedor de scroll principal (iOS PWA / standalone necesita -webkit-overflow-scrolling) */
