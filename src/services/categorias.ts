@@ -15,7 +15,7 @@ export function getCategoriasUsuario(userId: string): Categoria[] {
     const raw = localStorage.getItem(storageKey(userId))
     if (!raw) return [...CATEGORIAS_DEFAULT]
     const custom = JSON.parse(raw) as string[]
-    const merged = [...CATEGORIAS_DEFAULT]
+    const merged: Categoria[] = [...CATEGORIAS_DEFAULT]
     for (const nombre of custom) {
       const limpio = normalizeNombre(nombre)
       if (!limpio || merged.includes(limpio)) continue

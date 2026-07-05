@@ -118,7 +118,11 @@ export async function savePresupuestoFinanciero(
     porcentaje_ahorro: input.porcentaje_ahorro,
   }
 
-  await syncMetasAnualesConPresupuesto(userId, presupuesto)
+  await syncMetasAnualesConPresupuesto(userId, {
+    sueldo_mensual: input.sueldo_mensual,
+    porcentaje_ahorro: input.porcentaje_ahorro,
+    ingresos_extras: ingresosExtras,
+  })
 
   return { error: null, presupuesto, limiteManualPreservado: limite_es_manual }
 }

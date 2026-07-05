@@ -199,7 +199,11 @@ export async function ensureMetaAhorroAnioCalendario(userId: string): Promise<vo
   const year = hoy.getFullYear()
   const ingresosExtras = presupuesto.ingresos_extras ?? 0
 
-  await syncMetasAnualesConPresupuesto(userId, presupuesto)
+  await syncMetasAnualesConPresupuesto(userId, {
+    sueldo_mensual: presupuesto.sueldo_mensual,
+    porcentaje_ahorro: presupuesto.porcentaje_ahorro,
+    ingresos_extras: presupuesto.ingresos_extras,
+  })
 
   const { data: refreshedRows } = await supabase
     .from('metas_ahorro')
