@@ -18,7 +18,6 @@
 }
 
 :root {
-  --app-height: 100vh;
   --bottom-nav-height: 3.25rem;
   --safe-area-top: env(safe-area-inset-top, 0px);
   --safe-area-right: env(safe-area-inset-right, 0px);
@@ -27,20 +26,16 @@
   --bottom-nav-total: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
 }
 
-@supports (-webkit-touch-callout: none) {
-  :root {
-    --app-height: 100dvh;
-  }
-}
-
 .min-h-screen {
-  min-height: var(--app-height);
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
 }
 
 html {
   color-scheme: dark;
-  height: var(--app-height);
-  min-height: var(--app-height);
+  height: 100%;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
   overscroll-behavior: none;
   overscroll-behavior-y: none;
@@ -49,12 +44,9 @@ html {
 }
 
 body {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: var(--app-height);
-  min-height: var(--app-height);
   margin: 0;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
   overscroll-behavior: none;
   overscroll-behavior-y: none;
@@ -83,8 +75,9 @@ textarea,
 #root {
   display: flex;
   flex-direction: column;
-  height: var(--app-height);
-  min-height: var(--app-height);
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  height: 100%;
   overflow: hidden;
   background-color: var(--color-pulso-bg);
   user-select: none;
@@ -97,7 +90,7 @@ textarea,
   flex: 1 1 0%;
   flex-direction: column;
   width: 100%;
-  min-height: var(--app-height);
+  min-height: 0;
   overflow: hidden;
 }
 
