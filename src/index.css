@@ -26,13 +26,6 @@
   --bottom-nav-total: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
 }
 
-/*
- * Layout PWA iOS (855e6c7 + 5909a9b):
- * - html surface = mismo color que BottomNav (tapona hueco bajo viewport)
- * - #root fixed inset 0 = ancla al borde físico
- * - SIN body position:fixed (0e152aa lo rompió)
- * - SIN piso 34px (duplicaba espacio en contenido)
- */
 html {
   color-scheme: dark;
   height: 100%;
@@ -40,6 +33,11 @@ html {
   overscroll-behavior: none;
   overscroll-behavior-y: none;
   touch-action: manipulation;
+  background-color: var(--color-pulso-surface);
+}
+
+html.pwa-standalone,
+html.pwa-standalone body {
   background-color: var(--color-pulso-surface);
 }
 
@@ -67,6 +65,28 @@ body {
   background-color: var(--color-pulso-bg);
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* Barra inferior: padding sube iconos; box-shadow pinta bajo el viewport sin hueco negro */
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 50;
+  border-top: 1px solid rgb(255 255 255 / 0.1);
+  background-color: var(--color-pulso-surface);
+  padding-bottom: var(--safe-area-bottom, env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 var(--safe-area-bottom, env(safe-area-inset-bottom, 0px)) 0
+    var(--color-pulso-surface);
+}
+
+.bottom-nav__inner {
+  display: flex;
+  height: var(--bottom-nav-height);
+  max-width: 32rem;
+  margin-inline: auto;
+  align-items: center;
+  padding-inline: 0.5rem;
 }
 
 *,

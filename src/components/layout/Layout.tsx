@@ -2,7 +2,6 @@ import { memo, type ReactNode } from 'react'
 
 interface LayoutProps {
   children: ReactNode
-  /** Reserva espacio inferior para la barra fija en móvil */
   withBottomNav?: boolean
 }
 
