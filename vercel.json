@@ -1,4 +1,12 @@
 {
+  "headers": [
+    {
+      "source": "/(sw.js|registerSW.js|workbox-.*\\.js)",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    }
+  ],
   "functions": {
     "api/cron.ts": {
       "maxDuration": 30

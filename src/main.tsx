@@ -7,9 +7,26 @@ import App from './App'
 import { queryClient } from './lib/queryClient'
 import { initSentry } from './lib/sentry'
 import { installSafeAreaInsetListeners } from './utils/core/safeAreaInsets'
+import { registerSW } from 'virtual:pwa-register'
 
 initSentry()
 installSafeAreaInsetListeners()
+
+if (import.meta.env.PROD) {
+  registerSW({
+    immediate: true,
+    onRegisteredSW(_swUrl, registration) {
+      if (!registration) return
+      const checkForUpdate = () => {
+        registration.update().catch(() => {})
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate()
+      })
+      window.addEventListener('focus', checkForUpdate)
+    },
+  })
+}
 
 const root = createRoot(document.getElementById('root')!)
 root.render(
