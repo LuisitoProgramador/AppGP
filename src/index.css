@@ -27,13 +27,14 @@
 html,
 body,
 #root {
-  @apply bg-pulso-bg;
-  min-height: 100dvh;
+  background-color: var(--color-pulso-bg);
+  height: 100dvh;
+  width: 100vw;
+  overflow: hidden;
 }
 
 html {
   color-scheme: dark;
-  overflow: hidden;
   overscroll-behavior: none;
   overscroll-behavior-y: none;
   touch-action: manipulation;
@@ -41,7 +42,6 @@ html {
 
 body {
   margin: 0;
-  overflow: hidden;
   overscroll-behavior: none;
   overscroll-behavior-y: none;
   touch-action: pan-x pan-y;
@@ -55,9 +55,14 @@ body {
 #root {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   user-select: none;
   -webkit-user-select: none;
+}
+
+#root > div {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
 }
 
 *,
@@ -74,13 +79,10 @@ textarea,
 }
 
 .app-scroll {
-  flex: 1 1 0%;
-  min-height: 0;
-  overflow-x: hidden;
+  flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: none;
-  touch-action: pan-y;
+  padding-bottom: 2rem;
 }
 
 button,
