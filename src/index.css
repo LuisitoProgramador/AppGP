@@ -27,9 +27,24 @@
   --bottom-nav-total: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
 }
 
-@supports (-webkit-touch-callout: none) {
+@supports (height: 100svh) {
+  :root {
+    --app-height: 100svh;
+  }
+}
+
+@supports (height: 100dvh) {
   :root {
     --app-height: 100dvh;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root,
+  .app-shell {
+    min-height: -webkit-fill-available;
   }
 }
 
@@ -45,7 +60,7 @@ html {
   overscroll-behavior: none;
   overscroll-behavior-y: none;
   touch-action: manipulation;
-  background-color: var(--color-pulso-surface);
+  background-color: var(--color-pulso-bg);
 }
 
 body {
@@ -91,12 +106,47 @@ textarea,
   -webkit-user-select: none;
 }
 
-.app-shell {
+.app-shell,
+.app-container {
   display: flex;
   flex: 1 1 0%;
   flex-direction: column;
+  width: 100%;
   min-height: var(--app-height);
   overflow: hidden;
+}
+
+/* Barra inferior fija: fondo hasta el borde físico; safe area solo como padding interno */
+.bottom-nav {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 40;
+  margin: 0;
+  padding-bottom: var(--safe-area-bottom);
+  border-top: 1px solid rgb(255 255 255 / 0.1);
+  background-color: var(--color-pulso-surface);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+}
+
+.bottom-nav__inner {
+  display: flex;
+  height: var(--bottom-nav-height);
+  max-width: 32rem;
+  margin-inline: auto;
+  align-items: center;
+  padding-inline: 0.5rem;
+}
+
+@media (display-mode: standalone) {
+  .bottom-nav {
+    padding-bottom: max(var(--safe-area-bottom), 0.75rem);
+  }
+
+  :root {
+    --bottom-nav-total: calc(var(--bottom-nav-height) + max(var(--safe-area-bottom), 0.75rem));
+  }
 }
 
 /* Contenedor de scroll principal (iOS PWA / standalone necesita -webkit-overflow-scrolling) */
