@@ -123,7 +123,7 @@ textarea,
   bottom: 0;
   z-index: 40;
   margin: 0;
-  padding-bottom: var(--safe-area-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   border-top: 1px solid rgb(255 255 255 / 0.1);
   background-color: var(--color-pulso-surface);
   transform: translateZ(0);
@@ -140,12 +140,54 @@ textarea,
 }
 
 @media (display-mode: standalone) {
-  .bottom-nav {
-    padding-bottom: max(var(--safe-area-bottom), 0.75rem);
+  /*
+   * iOS PWA: 100dvh deja una franja bajo el layout viewport (hueco negro).
+   * inset:0 sin height fijo + fill-available llena hasta el borde físico.
+   */
+  html {
+    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
+  }
+
+  body {
+    height: auto;
+    min-height: -webkit-fill-available;
+  }
+
+  #root,
+  .app-shell,
+  .app-container {
+    height: 100%;
+    min-height: -webkit-fill-available;
+  }
+
+  .app-shell,
+  .app-container {
+    min-height: 0;
   }
 
   :root {
-    --bottom-nav-total: calc(var(--bottom-nav-height) + max(var(--safe-area-bottom), 0.75rem));
+    /* iOS 26+ PWA: env(safe-area-inset-bottom) a veces devuelve 0; 34px ≈ home indicator 15 Pro Max */
+    --ios-home-indicator: 34px;
+    --bottom-nav-total: calc(
+      var(--bottom-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator))
+    );
+  }
+
+  .bottom-nav {
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
+  }
+
+  /* Rellena la franja bajo el home indicator si el viewport no llega al borde físico */
+  .bottom-nav::after {
+    content: '';
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    z-index: 39;
+    height: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
+    background-color: var(--color-pulso-surface);
+    pointer-events: none;
   }
 }
 
