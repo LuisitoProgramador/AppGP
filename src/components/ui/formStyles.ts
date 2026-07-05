@@ -110,6 +110,13 @@ export const chipPickerClassName = (active: boolean) =>
       : 'border-pulso-border bg-pulso-surface-muted/80 text-slate-300 active:bg-pulso-surface-raised'
   }`
 
+export const navTopTabClassName = (active: boolean) =>
+  `flex w-full flex-col items-center justify-center gap-1 rounded-lg px-1 py-2 min-h-11 ${interactive} ${
+    active
+      ? 'bg-pulso-accent text-neutral-950 shadow-sm active:bg-pulso-accent-active'
+      : 'text-slate-400 active:bg-pulso-surface-raised active:text-white'
+  }`
+
 export const navBottomTabClassName = (active: boolean) =>
   `flex w-full flex-col items-center justify-center rounded-lg px-2 py-2 min-h-11 ${interactive} ${
     active

@@ -8,11 +8,9 @@ import {
 } from '../../contexts'
 import ErrorBoundary from '../ui/ErrorBoundary'
 import Layout from '../layout/Layout'
-import BottomNav from '../ui/BottomNav'
+import TopNav from '../ui/TopNav'
 import LoginForm from '../auth/LoginForm'
 import {
-  navTabClassName,
-  navBottomTabClassName,
   iconButtonClassName,
   tabPanelClassName,
 } from '../ui/formStyles'
@@ -256,10 +254,10 @@ export default function AppRoutes() {
     <GastosProviders>
       <QuietModeProvider>
         <>
-          <Layout withBottomNav={!showAjustes}>
-            <section className="space-y-6">
+          <Layout>
+            <section className="space-y-4" {...(!showAjustes ? swipeHandlers : {})}>
             <div className="flex items-center justify-between gap-3">
-              <h1 className="text-3xl font-bold">Pulso</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">Pulso</h1>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
@@ -287,31 +285,9 @@ export default function AppRoutes() {
               </div>
             </div>
 
-            {!showAjustes && (
-              <div
-                className="hidden grid-cols-4 gap-1 rounded-xl border border-white/10 bg-pulso-surface/50 p-1 backdrop-blur-sm sm:grid"
-                role="tablist"
-                aria-label="Navegación principal"
-              >
-                {TABS.map(({ id, label }) => (
-                  <button
-                    key={id}
-                    type="button"
-                    role="tab"
-                    id={`tab-${id}`}
-                    aria-selected={tab === id}
-                    aria-controls={`panel-${id}`}
-                    data-testid={`nav-tab-${id}`}
-                    onClick={() => handleTabChange(id)}
-                    className={navTabClassName(tab === id)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            )}
+            {!showAjustes && <TopNav activeTab={tab} onChange={handleTabChange} />}
 
-            <div className="relative" {...(!showAjustes ? swipeHandlers : {})}>
+            <div className="relative">
               {showAjustes ? (
                 <ErrorBoundary title="Error en ajustes">
                   <Suspense fallback={<TabFallback />}>
@@ -350,33 +326,6 @@ export default function AppRoutes() {
             </div>
           </section>
           </Layout>
-          {!showAjustes && (
-            <BottomNav>
-              <nav
-                className="grid h-full w-full grid-cols-4 gap-0.5"
-                role="tablist"
-                aria-label="Navegación principal"
-              >
-                {TABS.map(({ id, label, Icon }) => (
-                  <button
-                    key={`bottom-${id}`}
-                    type="button"
-                    role="tab"
-                    aria-selected={tab === id}
-                    aria-label={label}
-                    title={label}
-                    aria-controls={`panel-${id}`}
-                    data-testid={`nav-tab-${id}`}
-                    onClick={() => handleTabChange(id)}
-                    className={navBottomTabClassName(tab === id)}
-                  >
-                    <Icon />
-                    <span className="sr-only">{label}</span>
-                  </button>
-                ))}
-              </nav>
-            </BottomNav>
-          )}
         </>
       </QuietModeProvider>
     </GastosProviders>
