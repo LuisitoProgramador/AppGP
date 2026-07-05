@@ -126,8 +126,7 @@ textarea,
   padding-bottom: env(safe-area-inset-bottom, 0px);
   border-top: 1px solid rgb(255 255 255 / 0.1);
   background-color: var(--color-pulso-surface);
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  box-sizing: border-box;
 }
 
 .bottom-nav__inner {
@@ -137,50 +136,90 @@ textarea,
   margin-inline: auto;
   align-items: center;
   padding-inline: 0.5rem;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
+/* Oculto salvo PWA instalada; portal directo a body sin transform en ancestros */
+.bottom-nav-safe-fill {
+  display: none;
+}
+
+/*
+ * iOS no siempre activa @media (display-mode: standalone).
+ * .standalone-pwa se añade vía navigator.standalone en index.html.
+ * iOS 26 PWA: 100dvh corta el viewport y env(safe-area-inset-bottom) devuelve 0.
+ */
+html.standalone-pwa {
+  --ios-home-indicator: 34px;
+  height: -webkit-fill-available;
+  min-height: -webkit-fill-available;
+}
+
+html.standalone-pwa body {
+  height: auto;
+  min-height: -webkit-fill-available;
+}
+
+html.standalone-pwa #root,
+html.standalone-pwa .app-shell,
+html.standalone-pwa .app-container {
+  height: 100%;
+  min-height: -webkit-fill-available;
+}
+
+html.standalone-pwa .app-shell,
+html.standalone-pwa .app-container {
+  min-height: 0;
+}
+
+html.standalone-pwa {
+  --bottom-nav-total: calc(
+    var(--bottom-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator))
+  );
+}
+
+html.standalone-pwa .bottom-nav {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
+}
+
+html.standalone-pwa .bottom-nav-safe-fill {
+  display: block;
+  position: fixed;
+  inset-inline: 0;
+  /* Debajo del layout viewport en iOS PWA; sin ancestro con transform */
+  bottom: calc(-1 * var(--ios-home-indicator));
+  z-index: 39;
+  height: var(--ios-home-indicator);
+  background-color: var(--color-pulso-surface);
+  pointer-events: none;
+}
+
+/* Android / otros navegadores con display-mode: standalone */
 @media (display-mode: standalone) {
-  /*
-   * iOS PWA: 100dvh deja una franja bajo el layout viewport (hueco negro).
-   * inset:0 sin height fijo + fill-available llena hasta el borde físico.
-   */
-  html {
-    height: -webkit-fill-available;
-    min-height: -webkit-fill-available;
-  }
-
-  body {
-    height: auto;
-    min-height: -webkit-fill-available;
-  }
-
-  #root,
-  .app-shell,
-  .app-container {
-    height: 100%;
-    min-height: -webkit-fill-available;
-  }
-
-  .app-shell,
-  .app-container {
-    min-height: 0;
-  }
-
   :root {
-    /* iOS 26+ PWA: env(safe-area-inset-bottom) a veces devuelve 0; 34px ≈ home indicator 15 Pro Max */
     --ios-home-indicator: 34px;
     --bottom-nav-total: calc(
       var(--bottom-nav-height) + max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator))
     );
   }
 
-  .bottom-nav {
+  html:not(.standalone-pwa) {
+    height: -webkit-fill-available;
+    min-height: -webkit-fill-available;
+  }
+
+  html:not(.standalone-pwa) body {
+    height: auto;
+    min-height: -webkit-fill-available;
+  }
+
+  html:not(.standalone-pwa) .bottom-nav {
     padding-bottom: max(env(safe-area-inset-bottom, 0px), var(--ios-home-indicator));
   }
 
-  /* Rellena la franja bajo el home indicator si el viewport no llega al borde físico */
-  .bottom-nav::after {
-    content: '';
+  html:not(.standalone-pwa) .bottom-nav-safe-fill {
+    display: block;
     position: fixed;
     inset-inline: 0;
     bottom: 0;
