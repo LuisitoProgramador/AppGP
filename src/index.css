@@ -25,12 +25,30 @@
 }
 
 html,
-body,
+body {
+  background-color: var(--color-pulso-bg);
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: fixed;
+  margin: 0;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: #f5f5f5;
+}
+
 #root {
   background-color: var(--color-pulso-bg);
-  height: 100dvh;
-  width: 100vw;
-  overflow: hidden;
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 html {
@@ -52,17 +70,12 @@ body {
   color: #f5f5f5;
 }
 
-#root {
-  display: flex;
-  flex-direction: column;
-  user-select: none;
-  -webkit-user-select: none;
-}
 
 #root > div {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%;
+  flex: 1;
 }
 
 *,
@@ -82,7 +95,7 @@ textarea,
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding-bottom: 2rem;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
 }
 
 button,
