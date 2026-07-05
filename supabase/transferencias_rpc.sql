@@ -17,6 +17,9 @@ declare
   v_destino public.cuentas%rowtype;
   v_nuevo_saldo_origen decimal;
   v_nuevo_saldo_destino decimal;
+  v_fecha timestamptz := timezone('utc', now());
+  v_descripcion_salida text;
+  v_descripcion_entrada text;
 begin
   v_user_id := auth.uid();
   if v_user_id is null then
@@ -91,6 +94,36 @@ begin
   update public.cuentas
   set saldo_actual = v_nuevo_saldo_destino
   where id = p_destino_id;
+
+  if v_destino.tipo = 'credito' then
+    v_descripcion_salida := format('Pago a tarjeta %s', v_destino.nombre);
+    v_descripcion_entrada := null;
+  else
+    v_descripcion_salida := format('Transferencia a %s', v_destino.nombre);
+    v_descripcion_entrada := format('Transferencia desde %s', v_origen.nombre);
+  end if;
+
+  insert into public.gastos (user_id, monto, categoria, descripcion, fecha, cuenta_id)
+  values (
+    v_user_id,
+    p_monto,
+    'Transferencia',
+    v_descripcion_salida,
+    v_fecha,
+    p_origen_id
+  );
+
+  if v_descripcion_entrada is not null
+    and v_destino.tipo in ('efectivo', 'debito') then
+    insert into public.ingresos_cuenta (user_id, cuenta_id, monto, descripcion, fecha)
+    values (
+      v_user_id,
+      p_destino_id,
+      p_monto,
+      v_descripcion_entrada,
+      v_fecha
+    );
+  end if;
 end;
 $$;
 
