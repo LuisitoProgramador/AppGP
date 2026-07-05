@@ -1,7 +1,15 @@
 const BOTTOM_INSET_FLOOR_PX = 34
 
+export function isIosDevice(): boolean {
+  if (typeof navigator === 'undefined') return false
+  return (
+    /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  )
+}
+
 function isStandalonePwa(): boolean {
-  const nav = window.navigator as Navigator & { standalone?: boolean }
+  const nav = navigator as Navigator & { standalone?: boolean }
   return nav.standalone === true || window.matchMedia('(display-mode: standalone)').matches
 }
 
@@ -15,26 +23,39 @@ function measureSafeAreaBottom(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0
 }
 
-/** Actualiza altura real y safe area inferior (iOS 26 PWA devuelve env() = 0). */
+function measureBottomInset(): number {
+  const doc = document.documentElement
+  const vv = window.visualViewport
+  const layoutGap = Math.max(0, window.innerHeight - doc.clientHeight)
+  const visualGap = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0
+  const envInset = measureSafeAreaBottom()
+
+  return Math.max(layoutGap, visualGap, envInset, BOTTOM_INSET_FLOOR_PX)
+}
+
+/** Actualiza altura real y safe area inferior (iOS 26 devuelve env() = 0). */
 export function updateIosViewportMetrics(): void {
   const doc = document.documentElement
   const appHeight = window.innerHeight
 
   doc.style.setProperty('--app-height', `${appHeight}px`)
 
-  if (!doc.classList.contains('standalone-pwa')) return
+  if (!doc.classList.contains('ios-device')) return
 
-  const layoutGap = Math.max(0, appHeight - doc.clientHeight)
-  const envInset = measureSafeAreaBottom()
-  const inset = Math.max(layoutGap, envInset, BOTTOM_INSET_FLOOR_PX)
-
+  const inset = measureBottomInset()
   doc.style.setProperty('--bottom-inset', `${inset}px`)
-  doc.style.setProperty('--ios-home-indicator', `${inset}px`)
+  doc.style.setProperty('--bottom-nav-total', `calc(3.25rem + ${inset}px)`)
 }
 
 export function initIosViewportMetrics(): void {
+  const doc = document.documentElement
+
+  if (isIosDevice()) {
+    doc.classList.add('ios-device')
+  }
+
   if (isStandalonePwa()) {
-    document.documentElement.classList.add('standalone-pwa')
+    doc.classList.add('standalone-pwa')
   }
 
   updateIosViewportMetrics()
@@ -45,4 +66,10 @@ export function initIosViewportMetrics(): void {
   window.addEventListener('orientationchange', schedule)
   window.visualViewport?.addEventListener('resize', schedule)
   window.visualViewport?.addEventListener('scroll', schedule)
+}
+
+export function readBottomInsetPx(): number {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--bottom-inset')
+  const parsed = parseFloat(raw)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : BOTTOM_INSET_FLOOR_PX
 }

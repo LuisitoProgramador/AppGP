@@ -123,6 +123,8 @@ textarea,
   inset-inline: 0;
   bottom: 0;
   z-index: 40;
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding-bottom: var(--bottom-inset, env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgb(255 255 255 / 0.1);
@@ -132,67 +134,67 @@ textarea,
 
 .bottom-nav__inner {
   display: flex;
+  flex-shrink: 0;
   height: var(--bottom-nav-height);
   max-width: 32rem;
+  width: 100%;
   margin-inline: auto;
   align-items: center;
   padding-inline: 0.5rem;
 }
 
-/*
- * PWA instalada en iOS: --app-height y --bottom-inset los fija iosViewport.ts
- * con window.innerHeight (100dvh/env() fallan en iOS 26).
- * El degradado en html pinta la franja bajo el layout viewport.
- */
-html.standalone-pwa {
-  height: var(--app-height);
-  min-height: var(--app-height);
-  background-color: var(--color-pulso-surface);
-  background-image: linear-gradient(
-    to bottom,
-    var(--color-pulso-bg) 0%,
-    var(--color-pulso-bg) calc(100% - var(--bottom-nav-total, 5.25rem)),
-    var(--color-pulso-surface) calc(100% - var(--bottom-nav-total, 5.25rem))
-  );
+.bottom-nav__safe-area {
+  display: none;
+  flex-shrink: 0;
+  width: 100%;
+  background-color: inherit;
 }
 
-html.standalone-pwa {
+/*
+ * iOS: --app-height y --bottom-inset los fija iosViewport.ts (env/100dvh fallan).
+ * Fondo html = surface para que la franja bajo el webview no sea negra.
+ */
+html.ios-device {
+  background-color: var(--color-pulso-surface);
+}
+
+html.ios-device {
+  height: var(--app-height);
+  min-height: var(--app-height);
   --bottom-nav-total: calc(var(--bottom-nav-height) + var(--bottom-inset, 34px));
 }
 
-html.standalone-pwa body {
+html.ios-device body {
   height: var(--app-height);
   min-height: var(--app-height);
 }
 
-html.standalone-pwa #root,
-html.standalone-pwa .app-shell,
-html.standalone-pwa .app-container {
+html.ios-device #root,
+html.ios-device .app-shell,
+html.ios-device .app-container {
   height: var(--app-height);
   min-height: var(--app-height);
 }
 
-html.standalone-pwa .app-shell,
-html.standalone-pwa .app-container {
+html.ios-device .app-shell,
+html.ios-device .app-container {
   min-height: 0;
 }
 
-html.standalone-pwa .bottom-nav {
-  padding-bottom: var(--bottom-inset, 34px);
+html.ios-device .bottom-nav {
+  padding-bottom: 0;
 }
 
-/* iOS PWA: la franja bajo el layout viewport queda fuera de bottom:0; empujar con translateY */
-html.standalone-pwa body::after,
-html.standalone-pwa .bottom-nav::after {
-  content: '';
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
-  z-index: 39;
-  height: var(--bottom-inset, 34px);
-  background-color: var(--color-pulso-surface);
-  pointer-events: none;
-  transform: translateY(100%);
+html.ios-device .bottom-nav__safe-area {
+  display: block;
+}
+
+.bottom-nav-viewport-fill {
+  display: none;
+}
+
+html.ios-device .bottom-nav-viewport-fill {
+  display: block;
 }
 
 /* Contenedor de scroll principal (iOS PWA / standalone necesita -webkit-overflow-scrolling) */

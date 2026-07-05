@@ -17,19 +17,24 @@
     <script>
       ;(function () {
         var doc = document.documentElement
+        var isIos =
+          /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+          (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
         var standalone =
           window.navigator.standalone === true ||
           window.matchMedia('(display-mode: standalone)').matches
+
+        if (isIos) doc.classList.add('ios-device')
         if (standalone) doc.classList.add('standalone-pwa')
 
         function applyViewport() {
           var h = window.innerHeight
           doc.style.setProperty('--app-height', h + 'px')
-          if (!standalone) return
+          if (!isIos) return
           var gap = Math.max(0, h - doc.clientHeight)
           var inset = Math.max(gap, 34)
           doc.style.setProperty('--bottom-inset', inset + 'px')
-          doc.style.setProperty('--ios-home-indicator', inset + 'px')
+          doc.style.setProperty('--bottom-nav-total', 'calc(3.25rem + ' + inset + 'px)')
         }
 
         applyViewport()
